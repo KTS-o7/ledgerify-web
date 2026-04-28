@@ -20,7 +20,7 @@
 **Step 1: Scaffold the project**
 
 ```bash
-npx create-next-app@latest . \
+bunx create-next-app@latest . \
   --typescript \
   --tailwind \
   --eslint \
@@ -33,7 +33,7 @@ npx create-next-app@latest . \
 **Step 2: Verify it runs**
 
 ```bash
-npm run dev
+bun run dev
 ```
 Expected: Server starts on localhost:3000, default Next.js page loads.
 
@@ -52,49 +52,49 @@ git commit -m "chore: scaffold Next.js 16 project with App Router and TypeScript
 
 ```bash
 # ORM + DB
-npm install drizzle-orm postgres
-npm install -D drizzle-kit
+bun add drizzle-orm postgres
+bun add -D drizzle-kit
 
 # Auth
-npm install next-auth@beta
+bun add next-auth@beta
 
 # Validation
-npm install zod
+bun add zod
 
 # UI
-npm install @radix-ui/react-icons lucide-react clsx tailwind-merge class-variance-authority
+bun add @radix-ui/react-icons lucide-react clsx tailwind-merge class-variance-authority
 
 # Charts
-npm install recharts
+bun add recharts
 
 # CSV parsing
-npm install papaparse
-npm install -D @types/papaparse
+bun add papaparse
+bun add -D @types/papaparse
 
 # Date handling
-npm install date-fns
+bun add date-fns
 
 # Misc
-npm install nanoid
+bun add nanoid
 ```
 
 **Step 2: Install shadcn/ui**
 
 ```bash
-npx shadcn@latest init
+bunx shadcn@latest init
 ```
 Choose: Default style, Zinc base color, CSS variables yes.
 
 **Step 3: Add essential shadcn components**
 
 ```bash
-npx shadcn@latest add button input label card table dialog drawer sheet tabs select badge skeleton toast sonner form
+bunx shadcn@latest add button input label card table dialog drawer sheet tabs select badge skeleton toast sonner form
 ```
 
 **Step 4: Verify build**
 
 ```bash
-npm run build
+bun run build
 ```
 Expected: Build succeeds with no errors.
 
@@ -762,15 +762,15 @@ export * from './auditLogs'
 **Step 5: Generate and run migrations**
 
 ```bash
-npm run db:generate
-npm run db:migrate
+bun run db:generate
+bun run db:migrate
 ```
 Expected: Migration files created in `./drizzle/`, all tables created in postgres.
 
 **Step 6: Verify in Drizzle Studio**
 
 ```bash
-npm run db:studio
+bun run db:studio
 ```
 Expected: All 15 tables visible.
 
@@ -847,8 +847,8 @@ export const authConfig: NextAuthConfig = {
 **Step 2: Install bcryptjs**
 
 ```bash
-npm install bcryptjs
-npm install -D @types/bcryptjs
+bun add bcryptjs
+bun add -D @types/bcryptjs
 ```
 
 **Step 3: Create `src/app/api/auth/[...nextauth]/route.ts`**
@@ -987,7 +987,7 @@ export default function LoginPage() {
 **Step 4: Verify auth flow**
 
 ```bash
-npm run dev
+bun run dev
 ```
 - Visit `/auth/register` → create a user
 - Visit `/auth/login` → sign in
@@ -1186,7 +1186,7 @@ export default async function TransactionsPage() {
 **Step 5: Verify**
 
 ```bash
-npm run dev
+bun run dev
 ```
 - Log in → navigate to `/transactions` → list renders
 - Click add → fill form → submit → transaction appears in list
@@ -2059,7 +2059,7 @@ git commit -m "feat(settings): add profile, accounts, categories, currency setti
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN bun install --omit=dev
 
 # Stage 2: builder
 FROM node:22-alpine AS builder
@@ -2067,7 +2067,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN bun run build
 
 # Stage 3: runner (standalone output)
 FROM node:22-alpine AS runner
@@ -2209,19 +2209,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
