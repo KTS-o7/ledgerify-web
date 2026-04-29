@@ -36,21 +36,21 @@ const primaryTabs = [
 
 const quickActions = [
   {
-    href: "/transactions",
+    href: "/transactions?type=expense",
     label: "Add expense",
     description: "Record daily spending",
     icon: ArrowDownLeft,
     tone: "text-rose-600 bg-rose-50 border-rose-200",
   },
   {
-    href: "/transactions",
+    href: "/transactions?type=income",
     label: "Add income",
     description: "Salary, refunds, or cash in",
     icon: ArrowUpRight,
     tone: "text-emerald-600 bg-emerald-50 border-emerald-200",
   },
   {
-    href: "/transactions",
+    href: "/transactions?type=transfer",
     label: "Transfer",
     description: "Move money between accounts",
     icon: ArrowLeftRight,

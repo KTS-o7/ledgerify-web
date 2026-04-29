@@ -104,7 +104,11 @@ export default async function TransactionsPage() {
           }
         />
       ) : (
-        <TransactionList transactions={txList} />
+        <TransactionList
+          transactions={txList}
+          accounts={accountList}
+          categories={categoryList}
+        />
       )}
     </PageShell>
   );
