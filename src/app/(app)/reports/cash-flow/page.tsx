@@ -4,7 +4,7 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getCashFlowByMonth } from '@/lib/utils/reports'
 import { CashFlowChart } from '@/components/reports/CashFlowChart'
-import { FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
+import { ChartPanel, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
 import { ArrowDownRight, ArrowUpRight, Scale } from 'lucide-react'
 
 export default async function CashFlowPage() {
@@ -21,6 +21,10 @@ export default async function CashFlowPage() {
     { income: 0, expense: 0 }
   )
   const net = totals.income - totals.expense
+  const insight =
+    net >= 0
+      ? 'Income is ahead of expenses across this period.'
+      : 'Expenses are ahead of income across this period.'
 
   return (
     <PageShell size="wide">
@@ -34,9 +38,13 @@ export default async function CashFlowPage() {
         <MetricCard label="Expenses" value={<FinancialAmount amount={totals.expense} currency={currency} sign="never" />} icon={ArrowDownRight} tone="negative" />
         <MetricCard label="Net" value={<FinancialAmount amount={net} currency={currency} sign="always" />} icon={Scale} tone={net >= 0 ? 'positive' : 'negative'} />
       </div>
-      <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <ChartPanel
+        title="Last 12 months"
+        description="Monthly bars compare money in and money out."
+        insight={insight}
+      >
         <CashFlowChart data={data} currency={currency} />
-      </div>
+      </ChartPanel>
     </PageShell>
   )
 }

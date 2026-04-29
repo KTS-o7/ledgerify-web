@@ -5,7 +5,7 @@ import { eq, isNull, and } from 'drizzle-orm'
 import { getCategoryBreakdown } from '@/lib/utils/reports'
 import { CategoryPieChart } from '@/components/reports/CategoryPieChart'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
-import { EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
+import { ChartPanel, EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
 import { PieChart, ReceiptText, Tags } from 'lucide-react'
 
 export default async function CategoryBreakdownPage() {
@@ -34,6 +34,7 @@ export default async function CategoryBreakdownPage() {
     }))
     .filter(d => d.value > 0)
   const totalExpense = expenseData.reduce((sum, row) => sum + row.value, 0)
+  const topCategory = expenseData.toSorted((a, b) => b.value - a.value)[0]
 
   return (
     <PageShell size="wide">
@@ -49,9 +50,13 @@ export default async function CategoryBreakdownPage() {
       {expenseData.length === 0 ? (
         <EmptyState icon={PieChart} title="No expense data this month" description="Record or import transactions to see where money is going." />
       ) : (
-        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+        <ChartPanel
+          title="Spending by category"
+          description="A donut view of this month’s expenses."
+          insight={topCategory ? `${topCategory.name} is the largest spending category this month.` : undefined}
+        >
           <CategoryPieChart data={expenseData} currency={currency} />
-        </div>
+        </ChartPanel>
       )}
     </PageShell>
   )

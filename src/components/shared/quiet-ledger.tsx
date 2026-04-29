@@ -451,6 +451,30 @@ export function QuickActionCard({
   )
 }
 
+export function ChartPanel({
+  title,
+  description,
+  insight,
+  children,
+}: {
+  title: string
+  description?: string
+  insight?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <SectionHeader title={title} description={description} />
+      {insight && (
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm leading-6 text-primary">
+          {insight}
+        </div>
+      )}
+      <div className="mt-5 min-h-72">{children}</div>
+    </section>
+  )
+}
+
 export function SetupChecklist({
   items,
   className,
