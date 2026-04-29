@@ -93,6 +93,46 @@
     --info-soft: oklch(0.93 0.04 245);
 }
 
+:root[data-accent="teal"] {
+    --primary: oklch(0.55 0.13 185);
+    --ring: oklch(0.62 0.12 185);
+    --accent: oklch(0.9 0.052 185);
+    --accent-foreground: oklch(0.24 0.07 185);
+    --sidebar-primary: var(--primary);
+    --sidebar-accent: oklch(0.91 0.045 185);
+    --sidebar-ring: var(--ring);
+}
+
+:root[data-accent="sky"] {
+    --primary: oklch(0.56 0.14 235);
+    --ring: oklch(0.63 0.12 235);
+    --accent: oklch(0.91 0.045 235);
+    --accent-foreground: oklch(0.25 0.07 235);
+    --sidebar-primary: var(--primary);
+    --sidebar-accent: oklch(0.92 0.04 235);
+    --sidebar-ring: var(--ring);
+}
+
+:root[data-accent="indigo"] {
+    --primary: oklch(0.5 0.16 285);
+    --ring: oklch(0.62 0.13 285);
+    --accent: oklch(0.92 0.045 285);
+    --accent-foreground: oklch(0.25 0.08 285);
+    --sidebar-primary: var(--primary);
+    --sidebar-accent: oklch(0.92 0.04 285);
+    --sidebar-ring: var(--ring);
+}
+
+:root[data-accent="rose"] {
+    --primary: oklch(0.55 0.17 18);
+    --ring: oklch(0.64 0.14 18);
+    --accent: oklch(0.93 0.045 18);
+    --accent-foreground: oklch(0.29 0.08 18);
+    --sidebar-primary: var(--primary);
+    --sidebar-accent: oklch(0.93 0.04 18);
+    --sidebar-ring: var(--ring);
+}
+
 .dark {
     --background: oklch(0.16 0.026 255);
     --foreground: oklch(0.95 0.012 92);
@@ -136,6 +176,34 @@
     --info-soft: oklch(0.28 0.055 245);
 }
 
+.dark[data-accent="teal"] {
+    --primary: oklch(0.72 0.14 185);
+    --ring: oklch(0.7 0.12 185);
+    --accent: oklch(0.29 0.07 185);
+    --accent-foreground: oklch(0.9 0.06 185);
+}
+
+.dark[data-accent="sky"] {
+    --primary: oklch(0.72 0.13 235);
+    --ring: oklch(0.7 0.11 235);
+    --accent: oklch(0.28 0.065 235);
+    --accent-foreground: oklch(0.9 0.055 235);
+}
+
+.dark[data-accent="indigo"] {
+    --primary: oklch(0.73 0.14 285);
+    --ring: oklch(0.7 0.12 285);
+    --accent: oklch(0.3 0.07 285);
+    --accent-foreground: oklch(0.9 0.055 285);
+}
+
+.dark[data-accent="rose"] {
+    --primary: oklch(0.72 0.15 18);
+    --ring: oklch(0.7 0.12 18);
+    --accent: oklch(0.3 0.065 18);
+    --accent-foreground: oklch(0.92 0.055 18);
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -159,6 +227,15 @@
                 transparent 30rem
             ),
             var(--background);
+    }
+    :root[data-density="compact"] body {
+        font-size: 14px;
+    }
+    :root[data-density="compact"] [data-density-surface] {
+        padding: 0.875rem;
+    }
+    :root[data-density="compact"] [data-density-list] {
+        gap: 0.5rem;
     }
     :where(.tabular-nums, [data-financial-value]) {
         font-variant-numeric: tabular-nums;
