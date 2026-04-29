@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { transactions, categories, investments, loans, budgets } from '@/lib/db/schema'
+import { transactions, investments, budgets } from '@/lib/db/schema'
 import { eq, and, isNull, gte, lte, sql } from 'drizzle-orm'
 
 // Cash flow by month for the last N months
