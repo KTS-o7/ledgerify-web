@@ -2,8 +2,8 @@
 import { useTransition } from 'react'
 import { differenceInDays } from 'date-fns'
 import { deletePolicy } from '@/app/actions/insurance'
+import { FinancialAmount, StatusPill } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils/format'
 import type { InsurancePolicy } from '@/lib/db/schema'
 
 const POLICY_TYPE_LABELS: Record<string, string> = {
@@ -41,52 +41,47 @@ export function PolicyCard({ policy }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold truncate">{policy.name}</p>
-            {renewsSoon && (
-              <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 shrink-0">
-                Renews soon
-              </span>
-            )}
+    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="truncate text-base font-semibold tracking-tight">{policy.name}</p>
+          <div className="flex flex-wrap gap-2">
+            <StatusPill tone="info">
+              {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
+            </StatusPill>
+            {renewsSoon && <StatusPill tone="warning">Renews soon</StatusPill>}
           </div>
-          <span className="inline-block mt-0.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
-          </span>
         </div>
-        <span className="text-xs text-muted-foreground shrink-0">{policy.currency}</span>
+        <StatusPill>{policy.currency}</StatusPill>
       </div>
 
-      {/* Provider */}
       {policy.provider && (
-        <p className="text-sm text-muted-foreground">{policy.provider}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{policy.provider}</p>
       )}
 
-      {/* Premium */}
-      <div>
-        <p className="text-xs text-muted-foreground">Premium</p>
-        <p className="text-xl font-bold">
-          {formatCurrency(Number(policy.premiumAmount), policy.currency)}
+      <div className="mt-5 space-y-1">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Premium
+        </p>
+        <p className="text-3xl font-bold tracking-tight">
+          <FinancialAmount amount={Number(policy.premiumAmount)} currency={policy.currency} sign="never" />
           <span className="text-sm font-normal text-muted-foreground ml-1">
             / {FREQUENCY_LABELS[policy.premiumFrequency] ?? policy.premiumFrequency}
           </span>
         </p>
       </div>
 
-      {/* Coverage */}
       {policy.coverageAmount && (
-        <div className="text-sm">
+        <div className="mt-5 rounded-2xl bg-muted/50 p-3 text-sm">
           <span className="text-muted-foreground">Coverage: </span>
-          <span className="font-medium">{formatCurrency(Number(policy.coverageAmount), policy.currency)}</span>
+          <span className="font-medium">
+            <FinancialAmount amount={Number(policy.coverageAmount)} currency={policy.currency} sign="never" />
+          </span>
         </div>
       )}
 
-      {/* Renewal date */}
       {policy.renewalDate && (
-        <div className="text-sm">
+        <div className="mt-4 text-sm">
           <span className="text-muted-foreground">Renewal: </span>
           <span className={renewsSoon ? 'font-medium text-orange-600 dark:text-orange-400' : ''}>
             {policy.renewalDate}
@@ -97,15 +92,14 @@ export function PolicyCard({ policy }: Props) {
         </div>
       )}
 
-      {/* Delete */}
       <Button
-        variant="destructive"
+        variant="outline"
         size="sm"
-        className="w-full"
+        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
         onClick={handleDelete}
         disabled={isPending}
       >
-        {isPending ? 'Deleting…' : 'Delete'}
+        {isPending ? 'Deleting...' : 'Delete policy'}
       </Button>
     </div>
   )

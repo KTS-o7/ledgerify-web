@@ -2,8 +2,9 @@ import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { users, loans } from '@/lib/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { formatCurrency } from '@/lib/utils/format'
 import { addMonths, format, parseISO } from 'date-fns'
+import { EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell, StatusPill } from '@/components/shared/quiet-ledger'
+import { CalendarClock, Landmark, ReceiptIndianRupee } from 'lucide-react'
 
 export default async function DebtPayoffPage() {
   const session = await auth()
@@ -13,15 +14,25 @@ export default async function DebtPayoffPage() {
   const currency = userRow[0]?.defaultCurrency ?? 'INR'
 
   const loanList = await db.select().from(loans).where(and(eq(loans.userId, userId), isNull(loans.deletedAt)))
+  const totalOutstanding = loanList.reduce((sum, loan) => sum + Number(loan.outstandingBalance ?? loan.principal), 0)
+  const totalEmi = loanList.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Debt Payoff</h1>
-      <p className="text-muted-foreground text-sm">Loan payoff projections</p>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Report"
+        title="Debt payoff"
+        description="Loan payoff projections based on recorded tenure, EMI, and start date."
+      />
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard label="Outstanding" value={<FinancialAmount amount={totalOutstanding} currency={currency} sign="never" />} icon={Landmark} tone={totalOutstanding > 0 ? 'negative' : 'neutral'} />
+        <MetricCard label="Monthly EMI" value={<FinancialAmount amount={totalEmi} currency={currency} sign="never" />} icon={ReceiptIndianRupee} tone={totalEmi > 0 ? 'warning' : 'neutral'} />
+        <MetricCard label="Loans" value={loanList.length} icon={CalendarClock} tone={loanList.length > 0 ? 'info' : 'neutral'} />
+      </div>
       {loanList.length === 0 ? (
-        <p className="text-muted-foreground">No loans found.</p>
+        <EmptyState icon={Landmark} title="No loans found" description="Add loans to review payoff timing and repayment load." />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-3xl border bg-card/85 p-2 shadow-sm shadow-foreground/5">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b text-left">
@@ -44,18 +55,18 @@ export default async function DebtPayoffPage() {
                 const payoffDate = addMonths(parseISO(loan.startDate), loan.tenureMonths)
                 return (
                   <tr key={loan.id} className="border-b hover:bg-muted/30">
-                    <td className="py-2 pr-4">{loan.name}</td>
-                    <td className="py-2 pr-4 capitalize">{loan.loanType}</td>
-                    <td className="py-2 pr-4 text-right">{formatCurrency(principal, currency)}</td>
+                    <td className="py-3 pr-4 font-medium">{loan.name}</td>
+                    <td className="py-3 pr-4 capitalize"><StatusPill tone="negative">{loan.loanType}</StatusPill></td>
+                    <td className="py-3 pr-4 text-right"><FinancialAmount amount={principal} currency={currency} sign="never" /></td>
                     <td className="py-2 pr-4 text-right">
                       {loan.outstandingBalance != null
-                        ? formatCurrency(Number(loan.outstandingBalance), currency)
+                        ? <FinancialAmount amount={Number(loan.outstandingBalance)} currency={currency} sign="never" />
                         : '—'}
                     </td>
-                    <td className="py-2 pr-4 text-right">{Number(loan.interestRate).toFixed(2)}%</td>
-                    <td className="py-2 pr-4 text-right">{formatCurrency(emi, currency)}</td>
-                    <td className="py-2 pr-4 text-right">{formatCurrency(totalInterest, currency)}</td>
-                    <td className="py-2 text-right">{format(payoffDate, 'MMM yyyy')}</td>
+                    <td className="py-3 pr-4 text-right">{Number(loan.interestRate).toFixed(2)}%</td>
+                    <td className="py-3 pr-4 text-right"><FinancialAmount amount={emi} currency={currency} sign="never" /></td>
+                    <td className="py-3 pr-4 text-right"><FinancialAmount amount={totalInterest} currency={currency} sign="never" /></td>
+                    <td className="py-3 text-right">{format(payoffDate, 'MMM yyyy')}</td>
                   </tr>
                 )
               })}
@@ -63,6 +74,6 @@ export default async function DebtPayoffPage() {
           </table>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

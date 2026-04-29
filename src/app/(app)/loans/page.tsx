@@ -1,63 +1,111 @@
 import { db } from '@/lib/db'
-import { loans } from '@/lib/db/schema'
+import { loans, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/config'
 import { eq, and, isNull } from 'drizzle-orm'
 import { LoanCard } from '@/components/loans/LoanCard'
 import { LoanForm } from '@/components/loans/LoanForm'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils/format'
+import {
+  EmptyState,
+  FinancialAmount,
+  MetricCard,
+  PageHeader,
+  PageShell,
+  SectionHeader,
+} from '@/components/shared/quiet-ledger'
+import { Landmark, Plus, ReceiptIndianRupee, TrendingDown } from 'lucide-react'
 
 export default async function LoansPage() {
   const session = await auth()
   const userId = session!.user!.id!
 
-  const loanList = await db.select().from(loans)
-    .where(and(eq(loans.userId, userId), isNull(loans.deletedAt)))
+  const [userRow, loanList] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
+    db.select().from(loans)
+      .where(and(eq(loans.userId, userId), isNull(loans.deletedAt))),
+  ])
 
   const totalOutstanding = loanList.reduce(
     (sum, l) => sum + Number(l.outstandingBalance ?? l.principal),
     0,
   )
+  const totalEmi = loanList.reduce((sum, loan) => sum + Number(loan.emiAmount), 0)
 
-  // Use the currency of the first loan for the summary, fallback to INR
-  const summaryCurrency = loanList[0]?.currency ?? 'INR'
+  const summaryCurrency = loanList[0]?.currency ?? userRow[0]?.defaultCurrency ?? 'INR'
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total Outstanding</p>
-          <p className="text-xl font-bold text-red-500">
-            {formatCurrency(totalOutstanding, summaryCurrency)}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Active Loans</p>
-          <p className="text-xl font-bold">{loanList.length}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Loans</h1>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Obligations"
+        title="Loans"
+        description="Keep debt visible without making it noisy: outstanding balance, EMI load, and repayment progress."
+        action={
         <Sheet>
-          <SheetTrigger render={<Button size="sm"><Plus className="h-4 w-4 mr-1" />Add Loan</Button>} />
-          <SheetContent>
-            <SheetHeader><SheetTitle>New Loan</SheetTitle></SheetHeader>
-            <div className="mt-4 px-4 pb-4 overflow-y-auto"><LoanForm /></div>
+          <SheetTrigger render={<Button size="lg" className="rounded-2xl" />}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add loan
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>New loan</SheetTitle>
+              <SheetDescription>
+                Add the repayment basics so obligations show up in your household picture.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="overflow-y-auto px-4 pb-4"><LoanForm /></div>
           </SheetContent>
         </Sheet>
+        }
+      >
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <span>{loanList.length} active loans</span>
+          <span>·</span>
+          <span>{summaryCurrency} summary currency</span>
+        </div>
+      </PageHeader>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          label="Outstanding"
+          value={<FinancialAmount amount={totalOutstanding} currency={summaryCurrency} sign="never" />}
+          description="Tracked balance still to be repaid."
+          icon={Landmark}
+          tone={totalOutstanding > 0 ? 'negative' : 'neutral'}
+        />
+        <MetricCard
+          label="Monthly EMI"
+          value={<FinancialAmount amount={totalEmi} currency={summaryCurrency} sign="never" />}
+          description="Combined recurring repayment load."
+          icon={ReceiptIndianRupee}
+          tone={totalEmi > 0 ? 'warning' : 'neutral'}
+        />
+        <MetricCard
+          label="Active loans"
+          value={loanList.length}
+          description="Debt accounts included in net worth."
+          icon={TrendingDown}
+          tone={loanList.length > 0 ? 'info' : 'neutral'}
+        />
       </div>
 
       {loanList.length === 0 ? (
-        <p className="text-center py-12 text-muted-foreground">No loans yet.</p>
+        <EmptyState
+          icon={Landmark}
+          title="No loans tracked"
+          description="Add a loan if you want liabilities and repayment progress reflected in your private money home."
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {loanList.map(loan => <LoanCard key={loan.id} loan={loan} />)}
-        </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Repayment progress"
+            description="Each card shows what remains and how much has been repaid."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {loanList.map(loan => <LoanCard key={loan.id} loan={loan} />)}
+          </div>
+        </section>
       )}
-    </div>
+    </PageShell>
   )
 }

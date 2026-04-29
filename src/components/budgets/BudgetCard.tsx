@@ -1,8 +1,8 @@
 'use client'
 import { useTransition } from 'react'
 import { deleteBudget } from '@/app/actions/budgets'
+import { FinancialAmount, ProgressMeter, StatusPill } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils/format'
 import type { Budget } from '@/lib/db/schema'
 
 interface Props {
@@ -15,9 +15,10 @@ export function BudgetCard({ budget, spent }: Props) {
 
   const total = Number(budget.amount)
   const pct = total > 0 ? Math.min(100, (spent / total) * 100) : 0
+  const remaining = total - spent
 
-  const barColor =
-    pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-orange-400' : 'bg-green-500'
+  const tone = pct >= 100 ? 'negative' : pct >= 80 ? 'warning' : 'positive'
+  const status = pct >= 100 ? 'Over plan' : pct >= 80 ? 'Watch' : 'On track'
 
   function handleDelete() {
     startTransition(async () => {
@@ -26,48 +27,61 @@ export function BudgetCard({ budget, spent }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold truncate">{budget.name}</p>
-          <span className="inline-block mt-0.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground capitalize">
-            {budget.periodType}
-          </span>
+    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-base font-semibold tracking-tight">{budget.name}</p>
+          <div className="flex flex-wrap gap-2">
+            <StatusPill className="capitalize">{budget.periodType}</StatusPill>
+            <StatusPill tone={tone}>{status}</StatusPill>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground shrink-0">{budget.currency}</span>
+        <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {budget.currency}
+        </span>
       </div>
 
-      {/* Budget amount */}
-      <div>
-        <p className="text-xs text-muted-foreground">Budget</p>
-        <p className="text-2xl font-bold">
-          {formatCurrency(total, budget.currency)}
+      <div className="mt-5 space-y-1">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Planned
+        </p>
+        <p className="text-3xl font-bold tracking-tight">
+          <FinancialAmount amount={total} currency={budget.currency} sign="never" />
         </p>
       </div>
 
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${barColor}`}
-            style={{ width: `${pct}%` }}
-          />
+      <div className="mt-5">
+        <ProgressMeter value={spent} max={total} tone={tone} label="Spent so far" />
+        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-2xl bg-muted/50 p-3">
+            <p className="text-xs text-muted-foreground">Spent</p>
+            <p className="font-semibold">
+              <FinancialAmount amount={spent} currency={budget.currency} sign="never" />
+            </p>
+          </div>
+          <div className="rounded-2xl bg-muted/50 p-3">
+            <p className="text-xs text-muted-foreground">
+              {remaining >= 0 ? 'Left' : 'Over'}
+            </p>
+            <p className="font-semibold">
+              <FinancialAmount
+                amount={Math.abs(remaining)}
+                currency={budget.currency}
+                sign="never"
+              />
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {formatCurrency(spent, budget.currency)} / {formatCurrency(total, budget.currency)} ({pct.toFixed(0)}%)
-        </p>
       </div>
 
-      {/* Delete */}
       <Button
-        variant="destructive"
+        variant="outline"
         size="sm"
-        className="w-full"
+        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
         onClick={handleDelete}
         disabled={isPending}
       >
-        {isPending ? 'Deleting…' : 'Delete'}
+        {isPending ? 'Deleting...' : 'Delete budget'}
       </Button>
     </div>
   )

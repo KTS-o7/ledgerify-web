@@ -15,7 +15,11 @@ export async function updateProfile(_: unknown, formData: FormData) {
     defaultCurrency: z.string().length(3),
     timezone: z.string().min(1),
   })
-  const parsed = schema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = schema.safeParse({
+    ...raw,
+    defaultCurrency: String(raw.defaultCurrency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   await db.update(users)
@@ -35,7 +39,11 @@ export async function createAccount(_: unknown, formData: FormData) {
     type: z.enum(['bank', 'wallet', 'cash', 'savings']),
     currency: z.string().length(3),
   })
-  const parsed = schema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = schema.safeParse({
+    ...raw,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   await db.insert(accounts).values({ ...parsed.data, userId: session.user.id })
@@ -62,7 +70,11 @@ export async function createCategory(_: unknown, formData: FormData) {
     type: z.enum(['income', 'expense']),
     color: z.string().optional(),
   })
-  const parsed = schema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = schema.safeParse({
+    ...raw,
+    color: raw.color || undefined,
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   await db.insert(categories).values({ ...parsed.data, userId: session.user.id })

@@ -1,21 +1,32 @@
 import { db } from '@/lib/db'
-import { insurancePolicies } from '@/lib/db/schema'
+import { insurancePolicies, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/config'
 import { eq, and, isNull } from 'drizzle-orm'
 import { differenceInDays } from 'date-fns'
 import { PolicyCard } from '@/components/insurance/PolicyCard'
 import { InsuranceForm } from '@/components/insurance/InsuranceForm'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils/format'
+import {
+  EmptyState,
+  FinancialAmount,
+  MetricCard,
+  PageHeader,
+  PageShell,
+  SectionHeader,
+  StatusPill,
+} from '@/components/shared/quiet-ledger'
+import { CalendarClock, Plus, ShieldCheck, Umbrella } from 'lucide-react'
 
 export default async function InsurancePage() {
   const session = await auth()
   const userId = session!.user!.id!
 
-  const policies = await db.select().from(insurancePolicies)
-    .where(and(eq(insurancePolicies.userId, userId), isNull(insurancePolicies.deletedAt)))
+  const [userRow, policies] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
+    db.select().from(insurancePolicies)
+      .where(and(eq(insurancePolicies.userId, userId), isNull(insurancePolicies.deletedAt))),
+  ])
 
   // Count policies expiring within 30 days
   const today = new Date()
@@ -34,49 +45,86 @@ export default async function InsurancePage() {
     return sum + annual
   }, 0)
 
-  const summaryCurrency = policies[0]?.currency ?? 'INR'
+  const summaryCurrency = policies[0]?.currency ?? userRow[0]?.defaultCurrency ?? 'INR'
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Warning banner */}
-      {expiringCount > 0 && (
-        <div className="rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-800 dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-300">
-          {expiringCount} {expiringCount === 1 ? 'policy renews' : 'policies renew'} within the next 30 days.
-        </div>
-      )}
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Annual Premium</p>
-          <p className="text-xl font-bold">
-            {formatCurrency(totalAnnualPremium, summaryCurrency)}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Active Policies</p>
-          <p className="text-xl font-bold">{policies.length}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Insurance</h1>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Protection"
+        title="Insurance"
+        description="Keep policies, premiums, coverage, nominees, and renewal dates in one calm protection view."
+        action={
         <Sheet>
-          <SheetTrigger render={<Button size="sm"><Plus className="h-4 w-4 mr-1" />Add Policy</Button>} />
-          <SheetContent>
-            <SheetHeader><SheetTitle>New Policy</SheetTitle></SheetHeader>
-            <div className="mt-4 px-4 pb-4 overflow-y-auto"><InsuranceForm /></div>
+          <SheetTrigger render={<Button size="lg" className="rounded-2xl" />}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add policy
+          </SheetTrigger>
+          <SheetContent className="sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>New policy</SheetTitle>
+              <SheetDescription>
+                Add the policy basics and renewal date so protection does not get missed.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="overflow-y-auto px-4 pb-4"><InsuranceForm /></div>
           </SheetContent>
         </Sheet>
+        }
+      >
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <span>{policies.length} active policies</span>
+          <span>·</span>
+          <span>{summaryCurrency} summary currency</span>
+          {expiringCount > 0 && (
+            <>
+              <span>·</span>
+              <StatusPill tone="warning">{expiringCount} renewal soon</StatusPill>
+            </>
+          )}
+        </div>
+      </PageHeader>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          label="Annual premium"
+          value={<FinancialAmount amount={totalAnnualPremium} currency={summaryCurrency} sign="never" />}
+          description="Estimated yearly cost from tracked payment frequencies."
+          icon={Umbrella}
+          tone="info"
+        />
+        <MetricCard
+          label="Active policies"
+          value={policies.length}
+          description="Protection records available for household reference."
+          icon={ShieldCheck}
+          tone={policies.length > 0 ? 'positive' : 'neutral'}
+        />
+        <MetricCard
+          label="Renewals soon"
+          value={expiringCount}
+          description="Policies due within the next 30 days."
+          icon={CalendarClock}
+          tone={expiringCount > 0 ? 'warning' : 'positive'}
+        />
       </div>
 
       {policies.length === 0 ? (
-        <p className="text-center py-12 text-muted-foreground">No insurance policies yet.</p>
+        <EmptyState
+          icon={ShieldCheck}
+          title="No protection records yet"
+          description="Add health, life, vehicle, or property policies so renewals and coverage are easy to find."
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {policies.map(policy => <PolicyCard key={policy.id} policy={policy} />)}
-        </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Policies"
+            description="Review premiums, coverage, and renewal timing before they become urgent."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {policies.map(policy => <PolicyCard key={policy.id} policy={policy} />)}
+          </div>
+        </section>
       )}
-    </div>
+    </PageShell>
   )
 }

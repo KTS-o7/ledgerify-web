@@ -2,7 +2,14 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { generateTemplateCSV } from '@/lib/utils/csv'
-import { Upload, Download } from 'lucide-react'
+import { Download, FileSpreadsheet, ShieldCheck, Upload } from 'lucide-react'
+import {
+  IconBadge,
+  MetricCard,
+  PageHeader,
+  PageShell,
+  SectionHeader,
+} from '@/components/shared/quiet-ledger'
 
 interface ImportResult { imported: number; errors: string[]; total: number }
 
@@ -48,40 +55,85 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="p-4 space-y-6 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold">Import Transactions</h1>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Bulk capture"
+        title="Import transactions"
+        description="Bring historical activity into Ledgerify with a CSV template, then review reports and categories with better context."
+      />
 
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h2 className="font-semibold">Step 1: Download template</h2>
-        <p className="text-sm text-muted-foreground">Download the CSV template, fill it in, then upload.</p>
-        <Button variant="outline" onClick={downloadTemplate}>
-          <Download className="h-4 w-4 mr-2" />Download Template
-        </Button>
-      </div>
-
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h2 className="font-semibold">Step 2: Upload your CSV</h2>
-        <form onSubmit={handleUpload} className="space-y-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground"
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-4">
+          <SectionHeader
+            title="CSV workflow"
+            description="Use the template first so account, category, date, and amount fields are shaped correctly."
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading}>
-            <Upload className="h-4 w-4 mr-2" />
-            {loading ? 'Importing…' : 'Import'}
-          </Button>
-        </form>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+              <IconBadge icon={Download} tone="info" />
+              <div className="mt-4 space-y-2">
+                <h2 className="text-base font-semibold tracking-tight">
+                  Download template
+                </h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Fill in the CSV locally before uploading it back into your private ledger.
+                </p>
+                <Button variant="outline" onClick={downloadTemplate} className="rounded-2xl">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download template
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+              <IconBadge icon={Upload} tone="primary" />
+              <div className="mt-4 space-y-2">
+                <h2 className="text-base font-semibold tracking-tight">Upload CSV</h2>
+                <form onSubmit={handleUpload} className="space-y-3">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".csv"
+                    className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-2xl file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+                  />
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <Button type="submit" disabled={loading} className="rounded-2xl">
+                    <Upload className="h-4 w-4 mr-2" />
+                    {loading ? 'Importing...' : 'Import transactions'}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="space-y-4">
+          <MetricCard
+            label="Format"
+            value="CSV"
+            description="Best for bank exports and spreadsheet cleanup."
+            icon={FileSpreadsheet}
+            tone="info"
+          />
+          <MetricCard
+            label="Safety"
+            value="Review"
+            description="Import reports row errors instead of silently hiding them."
+            icon={ShieldCheck}
+            tone="positive"
+          />
+        </aside>
       </div>
 
       {result && (
-        <div className="rounded-lg border bg-card p-4 space-y-2">
-          <h2 className="font-semibold">Result</h2>
-          <p className="text-sm text-green-600">✓ {result.imported} of {result.total} transactions imported</p>
+        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+          <h2 className="font-semibold">Import result</h2>
+          <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
+            {result.imported} of {result.total} transactions imported.
+          </p>
           {result.errors.length > 0 && (
-            <div className="space-y-1">
+            <div className="mt-3 space-y-1">
               <p className="text-sm font-medium text-destructive">{result.errors.length} errors:</p>
               {result.errors.map((e, i) => (
                 <p key={i} className="text-xs text-muted-foreground">{e}</p>
@@ -90,6 +142,6 @@ export default function ImportPage() {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }
