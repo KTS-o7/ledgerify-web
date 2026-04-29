@@ -41,7 +41,7 @@ export default async function NetworthPage() {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Total net worth
         </p>
-        <p className="mt-2 text-4xl font-bold tracking-tight sm:text-6xl">
+        <p className="financial-display mt-2 text-4xl font-bold tracking-tight sm:text-6xl">
           <FinancialAmount amount={networth} currency={baseCurrency} sign="never" />
         </p>
         <div className="mt-6 max-w-xl">

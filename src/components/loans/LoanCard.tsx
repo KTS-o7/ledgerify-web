@@ -47,7 +47,7 @@ export function LoanCard({ loan }: Props) {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Outstanding
         </p>
-        <p className="text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-300">
+        <p className="financial-display text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-300">
           <FinancialAmount amount={outstanding} currency={loan.currency} sign="never" />
         </p>
       </div>
