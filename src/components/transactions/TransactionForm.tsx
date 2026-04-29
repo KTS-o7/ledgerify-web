@@ -1,5 +1,6 @@
 "use client";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createTransaction } from "@/app/actions/transactions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,13 @@ interface Props {
 
 export function TransactionForm({ accounts, categories }: Props) {
   const [state, formAction, pending] = useActionState(createTransaction, null);
+  const searchParams = useSearchParams();
   const defaultCurrency = accounts[0]?.currency ?? "INR";
+  const requestedType = searchParams.get("type");
+  const defaultType =
+    requestedType === "income" || requestedType === "transfer"
+      ? requestedType
+      : "expense";
   const incomeCategories = categories.filter(
     (category) => category.type === "income",
   );
@@ -39,7 +46,7 @@ export function TransactionForm({ accounts, categories }: Props) {
                 type="radio"
                 name="type"
                 value={value}
-                defaultChecked={value === "expense"}
+                defaultChecked={value === defaultType}
                 className="sr-only"
               />
               {label}

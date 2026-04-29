@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Database, FolderTree, UserRound, WalletCards } from 'lucide-react'
+import { Database, FolderTree, Palette, UserRound, WalletCards } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -31,13 +31,19 @@ const tabs = [
     description: 'Export and safety',
     icon: Database,
   },
+  {
+    href: '/settings/appearance',
+    label: 'Appearance',
+    description: 'Accent and density',
+    icon: Palette,
+  },
 ]
 
 export function SettingsNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <nav className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
       {tabs.map((tab) => {
         const Icon = tab.icon
         const active = pathname === tab.href

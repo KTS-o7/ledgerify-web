@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { getBudgetVsActual } from '@/lib/utils/reports'
 import { BudgetActualChart } from '@/components/reports/BudgetActualChart'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
-import { EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
+import { ChartPanel, EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
 import { Gauge, Target, TrendingDown } from 'lucide-react'
 
 export default async function BudgetVsActualPage() {
@@ -28,6 +28,7 @@ export default async function BudgetVsActualPage() {
   }))
   const totalBudget = chartData.reduce((sum, row) => sum + row.budget, 0)
   const totalSpent = chartData.reduce((sum, row) => sum + row.spent, 0)
+  const overBudgetCount = chartData.filter((row) => row.spent > row.budget).length
 
   return (
     <PageShell size="wide">
@@ -44,9 +45,13 @@ export default async function BudgetVsActualPage() {
       {chartData.length === 0 ? (
         <EmptyState icon={Target} title="No budgets found" description="Create a budget to compare planned and actual spending." />
       ) : (
-        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+        <ChartPanel
+          title="Plan against actuals"
+          description="Each row compares budgeted amount and spending."
+          insight={`${overBudgetCount} budget${overBudgetCount === 1 ? '' : 's'} are over plan this month.`}
+        >
           <BudgetActualChart data={chartData} currency={currency} />
-        </div>
+        </ChartPanel>
       )}
     </PageShell>
   )

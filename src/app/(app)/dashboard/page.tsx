@@ -13,6 +13,7 @@ import { endOfMonth, format, startOfMonth } from "date-fns";
 import { Plus, ReceiptText, Settings, WalletCards } from "lucide-react";
 
 import { CashFlowSummary } from "@/components/dashboard/CashFlowSummary";
+import { DashboardSections } from "@/components/dashboard/DashboardSections";
 import { NetworthCard } from "@/components/dashboard/NetworthCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingAlerts } from "@/components/dashboard/UpcomingAlerts";
@@ -124,60 +125,58 @@ export default async function DashboardPage() {
         </div>
       </PageHeader>
 
-      <SetupChecklist
-        items={[
-          {
-            label: "Add your first account",
-            href: "/settings/accounts",
-            complete: hasAccounts,
-          },
-          {
-            label: "Review categories",
-            href: "/settings/categories",
-            complete: hasCategories,
-          },
-          {
-            label: "Record your first transaction",
-            href: "/transactions",
-            complete: hasTransactions,
-          },
-        ]}
+      <DashboardSections
+        setup={
+          <SetupChecklist
+            items={[
+              {
+                label: "Add your first account",
+                href: "/settings/accounts",
+                complete: hasAccounts,
+              },
+              {
+                label: "Review categories",
+                href: "/settings/categories",
+                complete: hasCategories,
+              },
+              {
+                label: "Record your first transaction",
+                href: "/transactions",
+                complete: hasTransactions,
+              },
+            ]}
+          />
+        }
+        snapshot={<NetworthCard {...networthData} currency={baseCurrency} />}
+        basics={
+          <div className="grid gap-4 md:grid-cols-3">
+            <MetricCard
+              label="Accounts"
+              value={accountList.length}
+              description="Places where money lives: bank, wallet, cash, or savings."
+              icon={WalletCards}
+              tone={hasAccounts ? "positive" : "warning"}
+            />
+            <MetricCard
+              label="Categories"
+              value={categoryList.length}
+              description="Simple labels that make spending easier to understand."
+              icon={Settings}
+              tone={hasCategories ? "positive" : "warning"}
+            />
+            <MetricCard
+              label="Recent entries"
+              value={recentTxs.length}
+              description="Latest activity captured in your private ledger."
+              icon={ReceiptText}
+              tone={hasTransactions ? "positive" : "neutral"}
+            />
+          </div>
+        }
+        cashFlow={<CashFlowSummary transactions={monthlyTxs} currency={baseCurrency} />}
+        recent={<RecentTransactions transactions={recentTxs} />}
+        attention={<UpcomingAlerts loans={loanList} policies={policyList} />}
       />
-
-      <NetworthCard {...networthData} currency={baseCurrency} />
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          label="Accounts"
-          value={accountList.length}
-          description="Places where money lives: bank, wallet, cash, or savings."
-          icon={WalletCards}
-          tone={hasAccounts ? "positive" : "warning"}
-        />
-        <MetricCard
-          label="Categories"
-          value={categoryList.length}
-          description="Simple labels that make spending easier to understand."
-          icon={Settings}
-          tone={hasCategories ? "positive" : "warning"}
-        />
-        <MetricCard
-          label="Recent entries"
-          value={recentTxs.length}
-          description="Latest activity captured in your private ledger."
-          icon={ReceiptText}
-          tone={hasTransactions ? "positive" : "neutral"}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
-        <div className="space-y-6">
-          <CashFlowSummary transactions={monthlyTxs} currency={baseCurrency} />
-          <RecentTransactions transactions={recentTxs} />
-        </div>
-
-        <UpcomingAlerts loans={loanList} policies={policyList} />
-      </div>
     </PageShell>
   );
 }

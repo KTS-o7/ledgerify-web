@@ -54,7 +54,7 @@ export function NetworthCard({
               <p className="text-sm font-medium text-muted-foreground">
                 Your money home
               </p>
-              <h2 className="mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+              <h2 className="financial-display mt-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
                 <FinancialAmount amount={networth} currency={currency} />
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
