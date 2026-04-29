@@ -15,28 +15,47 @@ export function ProfileForm({ name, defaultCurrency, timezone }: ProfileFormProp
   const [state, action, pending] = useActionState(updateProfile, null)
 
   return (
-    <form action={action} className="space-y-4 max-w-sm">
+    <form action={action} className="space-y-5">
       <div className="space-y-1">
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" defaultValue={name} required />
+        <Input id="name" name="name" defaultValue={name} required placeholder="Your name" />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="defaultCurrency">Default Currency</Label>
-        <Input id="defaultCurrency" name="defaultCurrency" defaultValue={defaultCurrency} maxLength={3} required />
+      <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
+        <div className="space-y-1">
+          <Label htmlFor="defaultCurrency">Currency</Label>
+          <Input
+            id="defaultCurrency"
+            name="defaultCurrency"
+            defaultValue={defaultCurrency}
+            maxLength={3}
+            required
+            className="uppercase"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="timezone">Timezone</Label>
+          <Input
+            id="timezone"
+            name="timezone"
+            defaultValue={timezone}
+            required
+            placeholder="Asia/Kolkata"
+          />
+        </div>
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="timezone">Timezone</Label>
-        <Input id="timezone" name="timezone" defaultValue={timezone} required />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Button type="submit" disabled={pending} className="rounded-2xl">
+          {pending ? 'Saving...' : 'Save profile'}
+        </Button>
+        {state && 'error' in state && state.error && (
+          <p className="text-sm text-destructive">{state.error}</p>
+        )}
+        {state && 'success' in state && state.success && (
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+            Profile updated.
+          </p>
+        )}
       </div>
-      {state && 'error' in state && state.error && (
-        <p className="text-sm text-destructive">{state.error}</p>
-      )}
-      {state && 'success' in state && state.success && (
-        <p className="text-sm text-green-600">Profile updated successfully.</p>
-      )}
-      <Button type="submit" disabled={pending}>
-        {pending ? 'Saving…' : 'Save'}
-      </Button>
     </form>
   )
 }

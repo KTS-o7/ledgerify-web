@@ -1,54 +1,148 @@
-'use client'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ArrowLeftRight, TrendingUp, CreditCard,
-  Shield, Target, BarChart2, Upload, Settings, PiggyBank
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  LayoutDashboard,
+  ArrowLeftRight,
+  TrendingUp,
+  CreditCard,
+  Shield,
+  Target,
+  BarChart2,
+  Upload,
+  Settings,
+  PiggyBank,
+  Plus,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/investments', label: 'Investments', icon: TrendingUp },
-  { href: '/loans', label: 'Loans', icon: CreditCard },
-  { href: '/insurance', label: 'Insurance', icon: Shield },
-  { href: '/budgets', label: 'Budgets', icon: Target },
-  { href: '/budgets/goals', label: 'Goals', icon: PiggyBank },
-  { href: '/networth', label: 'Net Worth', icon: BarChart2 },
-  { href: '/reports', label: 'Reports', icon: BarChart2 },
-  { href: '/import', label: 'Import', icon: Upload },
-  { href: '/settings', label: 'Settings', icon: Settings },
-]
+const navSections = [
+  {
+    label: "Home",
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+    ],
+  },
+  {
+    label: "Plan",
+    items: [
+      { href: "/budgets", label: "Budgets", icon: Target },
+      { href: "/budgets/goals", label: "Goals", icon: PiggyBank },
+    ],
+  },
+  {
+    label: "Wealth",
+    items: [
+      { href: "/networth", label: "Net Worth", icon: BarChart2 },
+      { href: "/investments", label: "Investments", icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Obligations",
+    items: [
+      { href: "/loans", label: "Loans", icon: CreditCard },
+      { href: "/insurance", label: "Insurance", icon: Shield },
+    ],
+  },
+  {
+    label: "Manage",
+    items: [
+      { href: "/reports", label: "Reports", icon: BarChart2 },
+      { href: "/import", label: "Import", icon: Upload },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
 
 export function Sidebar({ className }: { className?: string }) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
-    <aside className={cn('w-56 shrink-0 border-r bg-card flex flex-col h-screen sticky top-0', className)}>
-      <div className="px-4 py-5 border-b">
-        <span className="text-lg font-bold tracking-tight">Ledgerify</span>
+    <aside
+      className={cn(
+        "sticky top-0 h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar/90 text-sidebar-foreground backdrop-blur flex flex-col",
+        className,
+      )}
+    >
+      <div className="border-b border-sidebar-border px-4 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+            <PiggyBank className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <span className="block text-lg font-bold tracking-tight">
+              Ledgerify
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              Quiet Ledger
+            </span>
+          </div>
+        </div>
       </div>
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {navItems.map(item => {
-          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                active
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </Link>
-          )
-        })}
+
+      <div className="px-3 py-4">
+        <Link
+          href="/transactions"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+        >
+          <Plus className="size-4" />
+          Add transaction
+        </Link>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+        <div className="space-y-5">
+          {navSections.map((section) => (
+            <div key={section.label} className="space-y-1.5">
+              <p className="px-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                {section.label}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" &&
+                      pathname.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          "size-4 shrink-0",
+                          active
+                            ? "text-primary"
+                            : "text-muted-foreground group-hover:text-sidebar-foreground",
+                        )}
+                      />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </nav>
+
+      <div className="border-t border-sidebar-border p-4">
+        <div className="rounded-2xl bg-background/70 p-3">
+          <p className="text-xs font-medium text-foreground">
+            Private money home
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Built for daily clarity, family setup, and trusted use.
+          </p>
+        </div>
+      </div>
     </aside>
-  )
+  );
 }

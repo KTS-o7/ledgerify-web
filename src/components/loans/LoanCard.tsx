@@ -1,8 +1,8 @@
 'use client'
 import { useTransition } from 'react'
 import { deleteLoan } from '@/app/actions/loans'
+import { FinancialAmount, ProgressMeter, StatusPill } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/utils/format'
 import type { Loan } from '@/lib/db/schema'
 
 const LOAN_TYPE_LABELS: Record<string, string> = {
@@ -32,31 +32,32 @@ export function LoanCard({ loan }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold truncate">{loan.name}</p>
-          <span className="inline-block mt-0.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-base font-semibold tracking-tight">{loan.name}</p>
+          <StatusPill tone="negative">
             {LOAN_TYPE_LABELS[loan.loanType] ?? loan.loanType}
-          </span>
+          </StatusPill>
         </div>
-        <span className="text-xs text-muted-foreground shrink-0">{loan.currency}</span>
+        <StatusPill>{loan.currency}</StatusPill>
       </div>
 
-      {/* Outstanding balance */}
-      <div>
-        <p className="text-xs text-muted-foreground">Outstanding Balance</p>
-        <p className="text-2xl font-bold text-red-500">
-          {formatCurrency(outstanding, loan.currency)}
+      <div className="mt-5 space-y-1">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Outstanding
+        </p>
+        <p className="text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-300">
+          <FinancialAmount amount={outstanding} currency={loan.currency} sign="never" />
         </p>
       </div>
 
-      {/* Details */}
-      <div className="space-y-1 text-sm">
+      <div className="mt-5 space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Principal</span>
-          <span>{formatCurrency(principal, loan.currency)}</span>
+          <span className="font-medium">
+            <FinancialAmount amount={principal} currency={loan.currency} sign="never" />
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Interest Rate</span>
@@ -64,7 +65,9 @@ export function LoanCard({ loan }: Props) {
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">EMI</span>
-          <span>{formatCurrency(Number(loan.emiAmount), loan.currency)}</span>
+          <span className="font-medium">
+            <FinancialAmount amount={Number(loan.emiAmount)} currency={loan.currency} sign="never" />
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Tenure</span>
@@ -72,29 +75,18 @@ export function LoanCard({ loan }: Props) {
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Repaid</span>
-          <span>{paidPct.toFixed(1)}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full bg-green-500 transition-all"
-            style={{ width: `${paidPct}%` }}
-          />
-        </div>
+      <div className="mt-5">
+        <ProgressMeter value={paidPct} tone="positive" label="Repaid" />
       </div>
 
-      {/* Delete */}
       <Button
-        variant="destructive"
+        variant="outline"
         size="sm"
-        className="w-full"
+        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
         onClick={handleDelete}
         disabled={isPending}
       >
-        {isPending ? 'Deleting…' : 'Delete'}
+        {isPending ? 'Deleting...' : 'Delete loan'}
       </Button>
     </div>
   )
