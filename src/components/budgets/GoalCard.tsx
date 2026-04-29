@@ -43,7 +43,7 @@ export function GoalCard({ goal }: Props) {
 
   const deadlineDate = goal.deadline ? new Date(goal.deadline) : null
   const daysRemaining = deadlineDate
-    ? Math.ceil((deadlineDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null
 
   function handleContribute() {
