@@ -1,33 +1,115 @@
-'use client'
-import type { Transaction } from '@/lib/db/schema'
-import { formatCurrency } from '@/lib/utils/format'
-import { Badge } from '@/components/ui/badge'
-import Link from 'next/link'
+"use client";
 
-interface Props { transactions: Transaction[] }
+import Link from "next/link";
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  ReceiptText,
+} from "lucide-react";
+
+import type { Transaction } from "@/lib/db/schema";
+import { cn } from "@/lib/utils";
+import {
+  EmptyState,
+  FinancialAmount,
+  IconBadge,
+  SectionHeader,
+  StatusPill,
+} from "@/components/shared/quiet-ledger";
+
+interface Props {
+  transactions: Transaction[];
+}
+
+function getTransactionIcon(type: Transaction["type"]) {
+  if (type === "income") return ArrowUpRight;
+  if (type === "expense") return ArrowDownLeft;
+  return ArrowLeftRight;
+}
+
+function getTransactionTone(type: Transaction["type"]) {
+  if (type === "income") return "positive";
+  if (type === "expense") return "negative";
+  return "info";
+}
 
 export function RecentTransactions({ transactions }: Props) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Recent</h2>
-        <Link href="/transactions" className="text-xs text-primary underline">View all</Link>
-      </div>
+    <section className="space-y-3">
+      <SectionHeader
+        title="Recent activity"
+        description="The latest money movements added to your ledger."
+        action={
+          <Link
+            href="/transactions"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            View all
+          </Link>
+        }
+      />
+
       {transactions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No transactions yet.</p>
-      ) : transactions.map(tx => (
-        <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-          <div className="flex items-center gap-2">
-            <Badge variant={tx.type === 'income' ? 'default' : tx.type === 'expense' ? 'destructive' : 'secondary'} className="text-xs">
-              {tx.type}
-            </Badge>
-            <span className="text-sm">{tx.note || '—'}</span>
-          </div>
-          <span className={`text-sm font-medium ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-500' : ''}`}>
-            {tx.type === 'expense' ? '-' : '+'}{formatCurrency(Number(tx.amount), tx.currency)}
-          </span>
+        <EmptyState
+          icon={ReceiptText}
+          title="No recent transactions"
+          description="Add your first income, expense, or transfer to start building your money history."
+          className="py-8"
+        />
+      ) : (
+        <div className="overflow-hidden rounded-[2rem] border bg-card/85 shadow-sm shadow-foreground/5 backdrop-blur">
+          {transactions.map((transaction, index) => {
+            const Icon = getTransactionIcon(transaction.type);
+            const tone = getTransactionTone(transaction.type);
+            const signedAmount =
+              transaction.type === "expense"
+                ? -Number(transaction.amount)
+                : Number(transaction.amount);
+
+            return (
+              <div
+                key={transaction.id}
+                className={cn(
+                  "flex items-center justify-between gap-3 p-4 transition hover:bg-muted/40",
+                  index > 0 && "border-t",
+                )}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <IconBadge icon={Icon} tone={tone} className="size-11" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {transaction.note || "Untitled transaction"}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <StatusPill tone={tone}>{transaction.type}</StatusPill>
+                      <span className="text-xs text-muted-foreground">
+                        {transaction.date}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <p
+                  className={cn(
+                    "shrink-0 text-sm font-bold tabular-nums",
+                    transaction.type === "income" &&
+                      "text-emerald-700 dark:text-emerald-300",
+                    transaction.type === "expense" &&
+                      "text-rose-700 dark:text-rose-300",
+                  )}
+                >
+                  <FinancialAmount
+                    amount={signedAmount}
+                    currency={transaction.currency}
+                    sign="always"
+                  />
+                </p>
+              </div>
+            );
+          })}
         </div>
-      ))}
-    </div>
-  )
+      )}
+    </section>
+  );
 }

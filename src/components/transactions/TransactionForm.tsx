@@ -1,105 +1,180 @@
-'use client'
-import { useActionState } from 'react'
-import { createTransaction } from '@/app/actions/transactions'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import type { Account, Category } from '@/lib/db/schema'
+"use client";
+import { useActionState } from "react";
+import { createTransaction } from "@/app/actions/transactions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Account, Category } from "@/lib/db/schema";
 
 interface Props {
-  accounts: Account[]
-  categories: Category[]
+  accounts: Account[];
+  categories: Category[];
 }
 
 export function TransactionForm({ accounts, categories }: Props) {
-  const [state, formAction, pending] = useActionState(createTransaction, null)
+  const [state, formAction, pending] = useActionState(createTransaction, null);
+  const defaultCurrency = accounts[0]?.currency ?? "INR";
+  const incomeCategories = categories.filter(
+    (category) => category.type === "income",
+  );
+  const expenseCategories = categories.filter(
+    (category) => category.type === "expense",
+  );
+  const hasAccounts = accounts.length > 0;
 
   return (
-    <form action={formAction} className="space-y-4">
-      {/* Type */}
-      <div className="space-y-1">
-        <Label htmlFor="type">Type</Label>
-        <select
-          name="type"
-          id="type"
-          required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-          <option value="transfer">Transfer</option>
-        </select>
-      </div>
-
-      {/* Amount + Currency */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label htmlFor="amount">Amount</Label>
-          <Input id="amount" name="amount" type="number" step="0.01" min="0.01" required />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="currency">Currency</Label>
-          <Input id="currency" name="currency" defaultValue="INR" maxLength={3} required />
-        </div>
-      </div>
-
-      {/* Account */}
-      <div className="space-y-1">
-        <Label htmlFor="accountId">Account</Label>
-        <select
-          name="accountId"
-          id="accountId"
-          required
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
+    <form action={formAction} className="space-y-5">
+      <div className="rounded-3xl border bg-muted/40 p-1">
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            ["expense", "Expense"],
+            ["income", "Income"],
+            ["transfer", "Transfer"],
+          ].map(([value, label]) => (
+            <label
+              key={value}
+              className="cursor-pointer rounded-2xl px-3 py-2 text-center text-sm font-medium text-muted-foreground transition has-[:checked]:bg-card has-[:checked]:text-foreground has-[:checked]:shadow-sm"
+            >
+              <input
+                type="radio"
+                name="type"
+                value={value}
+                defaultChecked={value === "expense"}
+                className="sr-only"
+              />
+              {label}
+            </label>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Category */}
-      <div className="space-y-1">
+      <div className="space-y-2">
+        <Label htmlFor="amount">Amount</Label>
+        <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+          <Input
+            id="amount"
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            inputMode="decimal"
+            placeholder="0.00"
+            required
+            className="h-14 text-2xl font-semibold tabular-nums"
+          />
+          <Input
+            id="currency"
+            name="currency"
+            defaultValue={defaultCurrency}
+            maxLength={3}
+            required
+            className="h-14 text-center font-semibold uppercase"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="accountId">Account</Label>
+          <select
+            name="accountId"
+            id="accountId"
+            required
+            disabled={!hasAccounts}
+            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {hasAccounts ? (
+              accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} · {account.currency}
+                </option>
+              ))
+            ) : (
+              <option value="">Create an account first</option>
+            )}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="date">Date</Label>
+          <Input
+            id="date"
+            name="date"
+            type="date"
+            required
+            defaultValue={new Date().toISOString().slice(0, 10)}
+            className="h-11"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="categoryId">Category</Label>
         <select
           name="categoryId"
           id="categoryId"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
         >
-          <option value="">— No category —</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          <option value="">No category yet</option>
+          {expenseCategories.length > 0 && (
+            <optgroup label="Expenses">
+              {expenseCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {incomeCategories.length > 0 && (
+            <optgroup label="Income">
+              {incomeCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 
-      {/* Date */}
-      <div className="space-y-1">
-        <Label htmlFor="date">Date</Label>
+      <div className="space-y-2">
+        <Label htmlFor="note">Note</Label>
         <Input
-          id="date"
-          name="date"
-          type="date"
-          required
-          defaultValue={new Date().toISOString().slice(0, 10)}
+          id="note"
+          name="note"
+          type="text"
+          placeholder="Coffee, rent, salary, transfer…"
+          autoComplete="off"
+          className="h-11"
         />
       </div>
 
-      {/* Note */}
-      <div className="space-y-1">
-        <Label htmlFor="note">Note</Label>
-        <Input id="note" name="note" type="text" placeholder="Optional note" />
-      </div>
+      {!hasAccounts && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Add at least one account before recording transactions.
+        </div>
+      )}
 
-      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.error && (
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {state.error}
+        </div>
+      )}
 
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? 'Saving…' : 'Add Transaction'}
+      {state?.success && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Transaction saved. Add another one whenever you are ready.
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        size="lg"
+        className="h-11 w-full rounded-2xl"
+        disabled={pending || !hasAccounts}
+      >
+        {pending ? "Saving…" : "Save transaction"}
       </Button>
     </form>
-  )
+  );
 }
