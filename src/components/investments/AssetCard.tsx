@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { updateInvestmentPrice, deleteInvestment } from '@/app/actions/investments'
+import { FinancialAmount, StatusPill } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -63,55 +64,55 @@ export function AssetCard({ investment }: Props) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold truncate">{investment.name}</p>
-          <span className="inline-block mt-0.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-base font-semibold tracking-tight">{investment.name}</p>
+          <StatusPill tone="primary">
             {ASSET_TYPE_LABELS[investment.assetType] ?? investment.assetType}
-          </span>
+          </StatusPill>
         </div>
-        <span className="text-xs text-muted-foreground shrink-0">{investment.currency}</span>
+        <StatusPill>{investment.currency}</StatusPill>
       </div>
 
-      {/* Values */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Current Value</span>
-          <span className="font-medium">
-            {currentValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-          </span>
-        </div>
+      <div className="mt-5 space-y-1">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Current value
+        </p>
+        <p className="text-3xl font-bold tracking-tight">
+          <FinancialAmount amount={currentValue} currency={investment.currency} sign="never" />
+        </p>
+      </div>
 
+      <div className="mt-5 space-y-2 text-sm">
         {buy > 0 && (
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Invested</span>
-            <span>{(buy * qty).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span className="font-medium">
+              <FinancialAmount amount={buy * qty} currency={investment.currency} sign="never" />
+            </span>
           </div>
         )}
 
         {pnl != null && pnlPct != null ? (
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">P&amp;L</span>
-            <span className={pnl >= 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-              {pnl >= 0 ? '+' : ''}
-              {pnl.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            <span className={pnl >= 0 ? 'font-medium text-emerald-700 dark:text-emerald-300' : 'font-medium text-rose-700 dark:text-rose-300'}>
+              <FinancialAmount amount={pnl} currency={investment.currency} sign="always" />
               <span className="ml-1 text-xs">({pnlPct.toFixed(1)}%)</span>
             </span>
           </div>
         ) : (
           !hasCurrent && (
-            <p className="text-xs text-muted-foreground italic">Price not set</p>
+            <p className="text-xs text-muted-foreground">Current price not set.</p>
           )
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-1">
+      <div className="mt-5 flex gap-2">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button variant="outline" size="sm" className="flex-1" />}>
-            Update Price
+          <DialogTrigger render={<Button variant="outline" size="sm" className="flex-1 rounded-2xl" />}>
+            Update price
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -133,7 +134,7 @@ export function AssetCard({ investment }: Props) {
             <DialogFooter>
               <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
               <Button onClick={handleUpdatePrice} disabled={isPending}>
-                {isPending ? 'Saving…' : 'Save'}
+                {isPending ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -142,6 +143,7 @@ export function AssetCard({ investment }: Props) {
         <Button
           variant="destructive"
           size="sm"
+          className="rounded-2xl"
           onClick={handleDelete}
           disabled={isPending}
         >

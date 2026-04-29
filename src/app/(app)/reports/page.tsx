@@ -1,6 +1,12 @@
 import Link from 'next/link'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { TrendingUp, PieChart, BarChart2, CreditCard, Target } from 'lucide-react'
+import {
+  IconBadge,
+  PageHeader,
+  PageShell,
+  QuickActionCard,
+  SectionHeader,
+} from '@/components/shared/quiet-ledger'
 
 const reports = [
   { href: '/reports/cash-flow', title: 'Cash Flow', description: 'Income vs expenses over time', icon: TrendingUp },
@@ -12,23 +18,51 @@ const reports = [
 
 export default function ReportsPage() {
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Reports</h1>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Analyze"
+        title="Reports"
+        description="Use reports when you need a little more context than the daily dashboard: cash flow, categories, budgets, debt, and investments."
+      />
+
+      <section className="space-y-3">
+        <SectionHeader
+          title="Insight pages"
+          description="Each report focuses on one financial question and keeps the chart close to the supporting numbers."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {reports.map(r => (
-          <Link key={r.href} href={r.href}>
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <r.icon className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-base">{r.title}</CardTitle>
-                </div>
-                <CardDescription>{r.description}</CardDescription>
-              </CardHeader>
-            </Card>
+          <Link
+            key={r.href}
+            href={r.href}
+            className="group rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5 transition hover:-translate-y-0.5 hover:bg-card hover:shadow-md"
+          >
+            <IconBadge icon={r.icon} tone="primary" />
+            <div className="mt-4 space-y-2">
+              <h2 className="text-base font-semibold tracking-tight">{r.title}</h2>
+              <p className="text-sm leading-6 text-muted-foreground">{r.description}</p>
+            </div>
           </Link>
         ))}
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <QuickActionCard
+          href="/transactions"
+          icon={TrendingUp}
+          title="Add recent activity"
+          description="Reports improve when the daily ledger is current."
+          tone="positive"
+        />
+        <QuickActionCard
+          href="/import"
+          icon={BarChart2}
+          title="Import from CSV"
+          description="Bring older transactions in before reviewing trends."
+          tone="info"
+        />
       </div>
-    </div>
+    </PageShell>
   )
 }

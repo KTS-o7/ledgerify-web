@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm'
 import { getBudgetVsActual } from '@/lib/utils/reports'
 import { BudgetActualChart } from '@/components/reports/BudgetActualChart'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
+import { Gauge, Target, TrendingDown } from 'lucide-react'
 
 export default async function BudgetVsActualPage() {
   const session = await auth()
@@ -24,16 +26,28 @@ export default async function BudgetVsActualPage() {
     budget: Number(b.amount),
     spent: b.spent,
   }))
+  const totalBudget = chartData.reduce((sum, row) => sum + row.budget, 0)
+  const totalSpent = chartData.reduce((sum, row) => sum + row.spent, 0)
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Budget vs Actual</h1>
-      <p className="text-muted-foreground text-sm">Spending vs your budgets for {format(now, 'MMMM yyyy')}</p>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Report"
+        title="Budget vs actual"
+        description={`Spending compared with budgets for ${format(now, 'MMMM yyyy')}.`}
+      />
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard label="Budgeted" value={<FinancialAmount amount={totalBudget} currency={currency} sign="never" />} icon={Target} tone="info" />
+        <MetricCard label="Spent" value={<FinancialAmount amount={totalSpent} currency={currency} sign="never" />} icon={TrendingDown} tone={totalSpent > totalBudget ? 'negative' : 'positive'} />
+        <MetricCard label="Envelopes" value={chartData.length} icon={Gauge} tone={chartData.length > 0 ? 'primary' : 'neutral'} />
+      </div>
       {chartData.length === 0 ? (
-        <p className="text-muted-foreground">No budgets found.</p>
+        <EmptyState icon={Target} title="No budgets found" description="Create a budget to compare planned and actual spending." />
       ) : (
-        <BudgetActualChart data={chartData} currency={currency} />
+        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+          <BudgetActualChart data={chartData} currency={currency} />
+        </div>
       )}
-    </div>
+    </PageShell>
   )
 }

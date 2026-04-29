@@ -32,13 +32,13 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full rounded-3xl border bg-card/90 shadow-lg shadow-foreground/5">
       <CardHeader>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>Welcome back to Ledgerify</CardDescription>
+        <CardTitle className="text-2xl tracking-tight">Sign in</CardTitle>
+        <CardDescription>Return to your private Ledgerify home.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" autoComplete="email" required />
@@ -48,8 +48,8 @@ export default function LoginPage() {
             <Input id="password" name="password" type="password" autoComplete="current-password" required />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in\u2026' : 'Sign in'}
+          <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
           <p className="text-sm text-center text-muted-foreground">
             No account?{' '}

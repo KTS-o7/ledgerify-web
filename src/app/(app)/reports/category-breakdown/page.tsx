@@ -5,6 +5,8 @@ import { eq, isNull, and } from 'drizzle-orm'
 import { getCategoryBreakdown } from '@/lib/utils/reports'
 import { CategoryPieChart } from '@/components/reports/CategoryPieChart'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { EmptyState, FinancialAmount, MetricCard, PageHeader, PageShell } from '@/components/shared/quiet-ledger'
+import { PieChart, ReceiptText, Tags } from 'lucide-react'
 
 export default async function CategoryBreakdownPage() {
   const session = await auth()
@@ -31,16 +33,26 @@ export default async function CategoryBreakdownPage() {
       value: Number(row.total),
     }))
     .filter(d => d.value > 0)
+  const totalExpense = expenseData.reduce((sum, row) => sum + row.value, 0)
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Category Breakdown</h1>
-      <p className="text-muted-foreground text-sm">Expense breakdown for {format(now, 'MMMM yyyy')}</p>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Report"
+        title="Category breakdown"
+        description={`Expense breakdown for ${format(now, 'MMMM yyyy')}.`}
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        <MetricCard label="Total expenses" value={<FinancialAmount amount={totalExpense} currency={currency} sign="never" />} icon={ReceiptText} tone="negative" />
+        <MetricCard label="Categories used" value={expenseData.length} icon={Tags} tone={expenseData.length > 0 ? 'info' : 'neutral'} />
+      </div>
       {expenseData.length === 0 ? (
-        <p className="text-muted-foreground">No expense data for this month.</p>
+        <EmptyState icon={PieChart} title="No expense data this month" description="Record or import transactions to see where money is going." />
       ) : (
-        <CategoryPieChart data={expenseData} currency={currency} />
+        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+          <CategoryPieChart data={expenseData} currency={currency} />
+        </div>
       )}
-    </div>
+    </PageShell>
   )
 }
