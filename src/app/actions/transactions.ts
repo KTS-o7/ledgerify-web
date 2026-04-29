@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { transactions, transactionTags, users } from '@/lib/db/schema'
 import { transactionSchema } from '@/lib/validations/transaction'
 import { getRate } from '@/lib/utils/currency'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
 export async function createTransaction(_: unknown, formData: FormData) {
@@ -57,7 +57,7 @@ export async function updateTransaction(_: unknown, formData: FormData) {
   const parsed = transactionSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { tagIds, ...data } = parsed.data
+  const { tagIds: _tagIds, ...data } = parsed.data
 
   const user = await db.query.users.findFirst({ where: eq(users.id, session.user.id) })
   const baseCurrency = user?.defaultCurrency ?? 'INR'

@@ -2,7 +2,7 @@
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { users, accounts, categories } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
