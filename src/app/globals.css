@@ -9,7 +9,8 @@
     --color-foreground: var(--foreground);
     --font-sans: var(--font-sans);
     --font-mono: var(--font-geist-mono);
-    --font-heading: var(--font-sans);
+    --font-display: var(--font-manrope);
+    --font-heading: var(--font-manrope);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -161,6 +162,14 @@
     }
     :where(.tabular-nums, [data-financial-value]) {
         font-variant-numeric: tabular-nums;
+    }
+    :where(h1, h2, h3, .font-heading, .font-display, [data-display-text]) {
+        font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    }
+    :where([data-financial-value], .financial-display) {
+        font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.05;
     }
     ::selection {
         background: color-mix(in oklch, var(--primary) 24%, transparent);

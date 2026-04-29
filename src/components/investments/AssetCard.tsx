@@ -79,7 +79,7 @@ export function AssetCard({ investment }: Props) {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Current value
         </p>
-        <p className="text-3xl font-bold tracking-tight">
+        <p className="financial-display text-3xl font-bold tracking-tight">
           <FinancialAmount amount={currentValue} currency={investment.currency} sign="never" />
         </p>
       </div>

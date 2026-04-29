@@ -123,7 +123,10 @@ export function PageHeader({
           </p>
         )}
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1
+            data-display-text
+            className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          >
             {title}
           </h1>
           {description && (
@@ -153,7 +156,10 @@ export function SectionHeader({
   return (
     <div className={cn('flex items-end justify-between gap-4', className)}>
       <div className="min-w-0 space-y-1">
-        <h2 className="text-base font-semibold tracking-tight text-foreground">
+        <h2
+          data-display-text
+          className="text-base font-semibold tracking-tight text-foreground"
+        >
           {title}
         </h2>
         {description && (
@@ -199,7 +205,10 @@ export function FinancialAmount({
           : ''
 
   return (
-    <span data-financial-value className={cn('tabular-nums', className)}>
+    <span
+      data-financial-value
+      className={cn('financial-display tabular-nums', className)}
+    >
       {prefix}
       {formatted}
     </span>
@@ -317,7 +326,7 @@ export function MetricCard({
             <CardDescription className="text-xs font-medium uppercase tracking-[0.14em]">
               {label}
             </CardDescription>
-            <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <CardTitle className="financial-display text-2xl font-bold tracking-tight sm:text-3xl">
               {value}
             </CardTitle>
           </div>
@@ -396,7 +405,9 @@ export function EmptyState({
     >
       {Icon && <IconBadge icon={Icon} tone="primary" className="mb-4" />}
       <div className="max-w-md space-y-2">
-        <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+        <h3 data-display-text className="text-base font-semibold tracking-tight">
+          {title}
+        </h3>
         {description && (
           <p className="text-sm leading-6 text-muted-foreground">{description}</p>
         )}

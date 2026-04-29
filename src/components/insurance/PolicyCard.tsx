@@ -63,7 +63,7 @@ export function PolicyCard({ policy }: Props) {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Premium
         </p>
-        <p className="text-3xl font-bold tracking-tight">
+        <p className="financial-display text-3xl font-bold tracking-tight">
           <FinancialAmount amount={Number(policy.premiumAmount)} currency={policy.currency} sign="never" />
           <span className="text-sm font-normal text-muted-foreground ml-1">
             / {FREQUENCY_LABELS[policy.premiumFrequency] ?? policy.premiumFrequency}

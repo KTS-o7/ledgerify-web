@@ -45,7 +45,7 @@ export function BudgetCard({ budget, spent }: Props) {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Planned
         </p>
-        <p className="text-3xl font-bold tracking-tight">
+        <p className="financial-display text-3xl font-bold tracking-tight">
           <FinancialAmount amount={total} currency={budget.currency} sign="never" />
         </p>
       </div>

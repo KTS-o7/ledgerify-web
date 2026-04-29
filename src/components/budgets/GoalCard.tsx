@@ -89,7 +89,7 @@ export function GoalCard({ goal }: Props) {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Saved
         </p>
-        <p className="text-3xl font-bold tracking-tight">
+        <p className="financial-display text-3xl font-bold tracking-tight">
           <FinancialAmount amount={current} currency={goal.currency} sign="never" />
         </p>
         <p className="text-sm text-muted-foreground">

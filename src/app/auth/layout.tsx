@@ -8,7 +8,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               Quiet Ledger
             </div>
             <div className="space-y-3">
-              <h1 className="max-w-xl text-4xl font-bold tracking-tight text-foreground">
+              <h1
+                data-display-text
+                className="max-w-xl text-4xl font-bold tracking-tight text-foreground"
+              >
                 Your private money home for everyday clarity.
               </h1>
               <p className="max-w-lg text-base leading-7 text-muted-foreground">
