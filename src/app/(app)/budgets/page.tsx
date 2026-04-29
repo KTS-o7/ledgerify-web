@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { budgets, transactions } from '@/lib/db/schema'
+import { budgets, categories, transactions, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/config'
 import { eq, and, isNull, gte, lte } from 'drizzle-orm'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, format } from 'date-fns'
@@ -9,11 +9,21 @@ import { Button } from '@/components/ui/button'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Plus } from 'lucide-react'
+import {
+  EmptyState,
+  FinancialAmount,
+  HeaderActionLink,
+  MetricCard,
+  PageHeader,
+  PageShell,
+  SectionHeader,
+} from '@/components/shared/quiet-ledger'
+import { Gauge, Plus, Target, TrendingDown, WalletCards } from 'lucide-react'
 import type { Budget, Transaction } from '@/lib/db/schema'
 
 function computeSpent(budget: Budget, txs: Transaction[]): number {
@@ -33,7 +43,8 @@ export default async function BudgetsPage() {
   const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
   const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
-  const [budgetList, monthlyTxs, weeklyTxs] = await Promise.all([
+  const [userRow, budgetList, monthlyTxs, weeklyTxs, categoryList] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
     db
       .select()
       .from(budgets)
@@ -62,39 +73,106 @@ export default async function BudgetsPage() {
           lte(transactions.date, weekEnd),
         ),
       ),
+    db.select().from(categories).where(isNull(categories.deletedAt)),
   ])
+  const baseCurrency = userRow[0]?.defaultCurrency ?? 'INR'
+
+  const budgetProgress = budgetList.map((budget) => {
+    const txs = budget.periodType === 'monthly' ? monthlyTxs : weeklyTxs
+    const spent = computeSpent(budget, txs)
+    const amount = Number(budget.amount)
+    const percentage = amount > 0 ? (spent / amount) * 100 : 0
+    return { budget, spent, amount, percentage }
+  })
+
+  const totalPlanned = budgetProgress.reduce((sum, item) => sum + item.amount, 0)
+  const totalSpent = budgetProgress.reduce((sum, item) => sum + item.spent, 0)
+  const remaining = totalPlanned - totalSpent
+  const atRiskCount = budgetProgress.filter((item) => item.percentage >= 80).length
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Budgets</h1>
-        <Sheet>
-          <SheetTrigger render={<Button size="sm" />}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>New Budget</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4 px-4">
-              <BudgetForm />
-            </div>
-          </SheetContent>
-        </Sheet>
+    <PageShell size="wide">
+      <PageHeader
+        eyebrow="Spending plan"
+        title="Budgets"
+        description="Give everyday spending a gentle boundary so family money decisions stay visible and low-stress."
+        action={
+          <Sheet>
+            <SheetTrigger render={<Button size="lg" className="rounded-2xl" />}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add budget
+            </SheetTrigger>
+            <SheetContent className="sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>New budget</SheetTitle>
+                <SheetDescription>
+                  Start with a broad envelope, then narrow it by category when useful.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="overflow-y-auto px-4 pb-4">
+                <BudgetForm categories={categoryList} defaultCurrency={baseCurrency} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        }
+      >
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <span>{budgetList.length} budgets</span>
+          <span>·</span>
+          <span>{monthlyTxs.length + weeklyTxs.length} expense entries in scope</span>
+          <span>·</span>
+          <span>{baseCurrency} home currency</span>
+        </div>
+      </PageHeader>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          label="Planned"
+          value={<FinancialAmount amount={totalPlanned} currency={baseCurrency} sign="never" />}
+          description="Total active budget boundaries for this period."
+          icon={Gauge}
+          tone={budgetList.length > 0 ? 'info' : 'neutral'}
+        />
+        <MetricCard
+          label="Spent"
+          value={<FinancialAmount amount={totalSpent} currency={baseCurrency} sign="never" />}
+          description="Expenses matched to weekly and monthly budget windows."
+          icon={TrendingDown}
+          tone={totalSpent > totalPlanned && totalPlanned > 0 ? 'negative' : 'positive'}
+        />
+        <MetricCard
+          label={remaining >= 0 ? 'Still available' : 'Over planned'}
+          value={<FinancialAmount amount={Math.abs(remaining)} currency={baseCurrency} sign="never" />}
+          description={`${atRiskCount} budget${atRiskCount === 1 ? '' : 's'} need attention.`}
+          icon={WalletCards}
+          tone={remaining < 0 ? 'negative' : atRiskCount > 0 ? 'warning' : 'positive'}
+        />
       </div>
 
       {budgetList.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No budgets yet. Add one to get started.</p>
+        <EmptyState
+          icon={Target}
+          title="Create your first spending envelope"
+          description="Start with one area that is easy to recognize, like groceries, eating out, fuel, or school. Ledgerify will compare it with expenses from the current week or month."
+          action={
+            <HeaderActionLink href="/transactions" variant="outline">
+              Review transactions
+            </HeaderActionLink>
+          }
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {budgetList.map((budget) => {
-            const txs = budget.periodType === 'monthly' ? monthlyTxs : weeklyTxs
-            const spent = computeSpent(budget, txs)
-            return <BudgetCard key={budget.id} budget={budget} spent={spent} />
-          })}
-        </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Active envelopes"
+            description="Progress is calculated from current weekly or monthly expenses."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {budgetProgress.map(({ budget, spent }) => (
+              <BudgetCard key={budget.id} budget={budget} spent={spent} />
+            ))}
+          </div>
+        </section>
       )}
-    </div>
+    </PageShell>
   )
 }

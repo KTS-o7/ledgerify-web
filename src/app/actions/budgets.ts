@@ -10,7 +10,13 @@ export async function createBudget(_: unknown, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
-  const parsed = budgetSchema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = budgetSchema.safeParse({
+    ...raw,
+    categoryId: raw.categoryId || undefined,
+    endDate: raw.endDate || undefined,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data
@@ -43,7 +49,14 @@ export async function createSavingsGoal(_: unknown, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
-  const parsed = savingsGoalSchema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = savingsGoalSchema.safeParse({
+    ...raw,
+    description: raw.description || undefined,
+    linkedAccountId: raw.linkedAccountId || undefined,
+    deadline: raw.deadline || undefined,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data
