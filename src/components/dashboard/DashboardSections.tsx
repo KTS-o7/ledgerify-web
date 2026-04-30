@@ -74,10 +74,10 @@ export function DashboardSections({
   const hiddenCount = sectionLabels.filter((item) => !visibility[item.key]).length
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border bg-card/70 p-3 shadow-sm shadow-foreground/5">
+    <div className="space-y-5">
+      <div className="rounded-[1.5rem] border bg-card/80 p-2.5 shadow-sm shadow-foreground/5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 px-1 text-sm font-semibold">
             <SlidersHorizontal className="size-4 text-primary" />
             Home sections
           </div>
@@ -94,7 +94,7 @@ export function DashboardSections({
                   className={cn(
                     'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition',
                     active
-                      ? 'border-primary/20 bg-primary/10 text-primary'
+                      ? 'border-primary/20 bg-primary text-primary-foreground shadow-sm'
                       : 'border-border bg-background/70 text-muted-foreground hover:bg-muted'
                   )}
                 >
@@ -121,14 +121,16 @@ export function DashboardSections({
       </div>
 
       {visibility.setup && setup}
-      {visibility.snapshot && snapshot}
-      {visibility.basics && basics}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
-        <div className="space-y-6">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
+        <div className="space-y-5">
+          {visibility.snapshot && snapshot}
+          {visibility.basics && basics}
           {visibility.cashFlow && cashFlow}
+        </div>
+        <div className="space-y-5">
+          {visibility.attention && attention}
           {visibility.recent && recent}
         </div>
-        {visibility.attention && attention}
       </div>
     </div>
   )

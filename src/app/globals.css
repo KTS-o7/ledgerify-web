@@ -7,7 +7,7 @@
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-sans);
+    --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
     --font-display: var(--font-manrope);
     --font-heading: var(--font-manrope);
@@ -210,6 +210,7 @@
     }
     html {
         @apply font-sans;
+        font-family: var(--font-geist-sans), system-ui, sans-serif;
         font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         text-rendering: optimizeLegibility;
     }
@@ -240,13 +241,18 @@
     :where(.tabular-nums, [data-financial-value]) {
         font-variant-numeric: tabular-nums;
     }
+    :where(body, button, input, textarea, select) {
+        font-family: var(--font-geist-sans), system-ui, sans-serif;
+    }
     :where(h1, h2, h3, .font-heading, .font-display, [data-display-text]) {
-        font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+        font-family: var(--font-manrope), var(--font-geist-sans), system-ui, sans-serif;
+        letter-spacing: 0;
     }
     :where([data-financial-value], .financial-display) {
-        font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+        font-family: var(--font-manrope), var(--font-geist-sans), system-ui, sans-serif;
         font-variant-numeric: tabular-nums;
         line-height: 1.05;
+        letter-spacing: 0;
     }
     ::selection {
         background: color-mix(in oklch, var(--primary) 24%, transparent);

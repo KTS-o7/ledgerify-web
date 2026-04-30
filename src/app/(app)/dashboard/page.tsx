@@ -149,13 +149,14 @@ export default async function DashboardPage() {
         }
         snapshot={<NetworthCard {...networthData} currency={baseCurrency} />}
         basics={
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             <MetricCard
               label="Accounts"
               value={accountList.length}
               description="Places where money lives: bank, wallet, cash, or savings."
               icon={WalletCards}
               tone={hasAccounts ? "positive" : "warning"}
+              className="rounded-[1.5rem]"
             />
             <MetricCard
               label="Categories"
@@ -163,6 +164,7 @@ export default async function DashboardPage() {
               description="Simple labels that make spending easier to understand."
               icon={Settings}
               tone={hasCategories ? "positive" : "warning"}
+              className="rounded-[1.5rem]"
             />
             <MetricCard
               label="Recent entries"
@@ -170,6 +172,7 @@ export default async function DashboardPage() {
               description="Latest activity captured in your private ledger."
               icon={ReceiptText}
               tone={hasTransactions ? "positive" : "neutral"}
+              className="rounded-[1.5rem]"
             />
           </div>
         }
