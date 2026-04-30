@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
+import { signOut } from '@/lib/auth/config'
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -31,4 +32,8 @@ export async function registerUser(_: unknown, formData: FormData) {
   })
 
   redirect('/auth/login')
+}
+
+export async function logoutUser() {
+  await signOut({ redirectTo: '/auth/login' })
 }

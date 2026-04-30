@@ -13,8 +13,10 @@ import {
   Settings,
   PiggyBank,
   Plus,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logoutUser } from "@/app/actions/auth";
 
 const navSections = [
   {
@@ -133,7 +135,7 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </nav>
 
-      <div className="border-t border-sidebar-border p-4">
+      <div className="space-y-3 border-t border-sidebar-border p-4">
         <div className="rounded-2xl bg-background/70 p-3">
           <p className="text-xs font-medium text-foreground">
             Private money home
@@ -142,6 +144,15 @@ export function Sidebar({ className }: { className?: string }) {
             Built for daily clarity, family setup, and trusted use.
           </p>
         </div>
+        <form action={logoutUser}>
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-sidebar-border bg-background/80 px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="size-4" />
+            Log out
+          </button>
+        </form>
       </div>
     </aside>
   );
