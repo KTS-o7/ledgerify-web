@@ -16,9 +16,11 @@ import {
   Target,
   TrendingUp,
   Upload,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { logoutUser } from "@/app/actions/auth";
 import {
   Sheet,
   SheetContent,
@@ -126,6 +128,15 @@ export function BottomNav({ className }: { className?: string }) {
                 );
               })}
             </div>
+            <form action={logoutUser} className="mt-3">
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background/70 p-3 text-sm font-semibold text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </form>
           </div>
         </div>
       )}
