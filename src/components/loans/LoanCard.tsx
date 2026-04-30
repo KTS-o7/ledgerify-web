@@ -1,7 +1,15 @@
 'use client'
 import { useTransition } from 'react'
+import { Landmark, Trash2 } from 'lucide-react'
+
 import { deleteLoan } from '@/app/actions/loans'
-import { FinancialAmount, ProgressMeter, StatusPill } from '@/components/shared/quiet-ledger'
+import {
+  FinancialAmount,
+  IconBadge,
+  ProgressMeter,
+  StatusPill,
+  TonalWidget,
+} from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import type { Loan } from '@/lib/db/schema'
 
@@ -32,27 +40,30 @@ export function LoanCard({ loan }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+    <TonalWidget tone="loan" className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-base font-semibold tracking-tight">{loan.name}</p>
-          <StatusPill tone="negative">
-            {LOAN_TYPE_LABELS[loan.loanType] ?? loan.loanType}
-          </StatusPill>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon={Landmark} tone="loan" className="size-12 rounded-[1.35rem]" />
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-base font-semibold">{loan.name}</p>
+            <StatusPill tone="loan">
+              {LOAN_TYPE_LABELS[loan.loanType] ?? loan.loanType}
+            </StatusPill>
+          </div>
         </div>
         <StatusPill>{loan.currency}</StatusPill>
       </div>
 
-      <div className="mt-5 space-y-1">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Outstanding
         </p>
-        <p className="financial-display text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-300">
+        <p className="financial-display mt-2 text-3xl font-bold text-rose-700 dark:text-rose-300">
           <FinancialAmount amount={outstanding} currency={loan.currency} sign="never" />
         </p>
       </div>
 
-      <div className="mt-5 space-y-2 text-sm">
+      <div className="space-y-2 rounded-[1.5rem] border bg-background/70 p-4 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Principal</span>
           <span className="font-medium">
@@ -75,19 +86,20 @@ export function LoanCard({ loan }: Props) {
         </div>
       </div>
 
-      <div className="mt-5">
+      <div>
         <ProgressMeter value={paidPct} tone="positive" label="Repaid" />
       </div>
 
       <Button
         variant="outline"
         size="sm"
-        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
+        className="w-full rounded-2xl text-destructive hover:text-destructive"
         onClick={handleDelete}
         disabled={isPending}
       >
+        <Trash2 className="size-4" />
         {isPending ? 'Deleting...' : 'Delete loan'}
       </Button>
-    </div>
+    </TonalWidget>
   )
 }
