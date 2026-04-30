@@ -7,6 +7,29 @@
 
 ---
 
+## 0. Current Status and Correction
+
+**Status as of PR #3:** A first follow-up pass was implemented and merged, but it was too conservative.
+
+Completed in PR #3:
+
+- Added this Cashew-inspired planning document.
+- Added Manrope display typography for headings and large financial values.
+- Added local-only accent color and density preferences under Settings.
+- Added transaction account/category filters and quick-action type defaults.
+- Added basic report chart panels and derived insight copy.
+- Added dashboard section visibility preferences stored in `localStorage`.
+
+Important correction:
+
+> PR #3 does **not** yet make Ledgerify visually feel like Cashew.
+
+The work shipped in PR #3 is technically valid and keeps the no-schema-change boundary, but it mostly adds infrastructure and mild polish. It does not sufficiently adopt Cashew’s visible UI language: Material You tonal cards, mobile-first transaction composition, expressive widgets, richer category/account visuals, or graph-forward home surfaces.
+
+The next implementation should be treated as **Cashew Visual Rework v2**, not as a continuation of small polish.
+
+---
+
 ## 1. Why Cashew Is a Useful Reference
 
 Cashew is a strong inspiration because it makes a finance app feel personal and adaptable instead of rigid. Its README highlights the qualities most relevant to Ledgerify:
@@ -21,6 +44,23 @@ Cashew is a strong inspiration because it makes a finance app feel personal and 
 - Flexible budgets, accounts, currencies, and goals.
 
 Ledgerify should not copy Cashew directly. Ledgerify should keep the **Quiet Ledger** positioning: private, family-friendly, calm, web-first, and trustworthy. Cashew should influence the next layer of polish: softer personalization, more expressive financial state, better typography, richer mobile ergonomics, and more useful chart surfaces.
+
+### 1.1 Concrete Cashew Code Findings
+
+The next pass should be grounded in the actual Cashew app structure, not only its README or screenshots. Relevant reference points from the local Cashew checkout:
+
+- `budget/lib/colors.dart`: Cashew builds a Material 3 `ColorScheme` from a user accent seed, then derives light/dark backgrounds, navigation colors, splash colors, and local theme extensions from that seed.
+- `budget/lib/pages/homePage/homePage.dart`: the home page is assembled from named widgets such as wallet switcher, wallet list, budgets, upcoming transactions, spending summary, net worth, objectives, credit/debts, line graph, pie chart, heatmap, and transactions.
+- `budget/lib/pages/editHomePage.dart`: the home screen is not a fixed report; it has a real edit surface with enable/disable controls and per-widget settings.
+- `budget/lib/widgets/transactionEntry/transactionEntry.dart`: transaction rows are visually led by category icon, transaction/category labels, tags, note indicator, transaction type affordance, and amount hierarchy.
+- `budget/lib/widgets/categoryIcon.dart`: categories have dedicated colored icon containers, optional tinting, tooltip support, labels, and long-press edit affordances.
+- `budget/lib/widgets/budgetContainer.dart`: budgets are treated as expressive containers with colored backgrounds, animated values, timeline context, and progress bars.
+- `budget/lib/widgets/slidingSelectorIncomeExpense.dart` and `budget/lib/widgets/selectChips.dart`: filtering uses tactile segmented controls and chips, not plain select controls.
+- `budget/lib/widgets/transactionsAmountBox.dart`: summary totals are compact tappable boxes with amount, label, and transaction count.
+- `budget/lib/widgets/fab.dart` and `budget/lib/widgets/bottomNavBar.dart`: mobile primary action and navigation are first-class surfaces with custom sizes, tonal colors, and long-press/shortcut behavior.
+- `budget/lib/widgets/importCSV.dart`: import is a guided mapping flow with progress and explicit required fields.
+
+Translate these ideas into Ledgerify components. Do not copy Flutter code, names, animations, or implementation details directly.
 
 ---
 
@@ -60,6 +100,28 @@ Do not borrow:
 - Excessive customization before core workflows are stable.
 - Dense feature sprawl.
 - Any schema-heavy concepts that would require backend changes.
+
+### 2.3 Cashew Visual Rework v2 Direction
+
+The next pass must be visibly different at first glance. It should focus on concrete UI composition, not preferences infrastructure.
+
+Primary visual moves:
+
+- Replace generic metric-card grids with larger, colorful, widget-like financial tiles.
+- Use Material You-style tonal containers for each domain:
+  - Cash/accounts: sky tonal surface.
+  - Spending: rose tonal surface.
+  - Budgets: amber/teal tonal surface.
+  - Goals: teal tonal surface.
+  - Investments: emerald/violet tonal surface.
+  - Loans: rose/orange tonal surface.
+  - Insurance: indigo tonal surface.
+- Add stronger icon-led cards with more useful subtitles and progress states.
+- Make dashboard feel like a configurable mobile finance home, not a desktop report page.
+- Make transaction entry and review feel like the center of the app.
+- Make reports chart-first and visually richer.
+
+This v2 pass should modify visible page composition before adding more settings or preferences.
 
 ---
 
@@ -196,6 +258,47 @@ Dashboard should include:
 
 Each section should answer one question.
 
+### 5.3 Cashew Visual Dashboard Rework
+
+Replace the current conservative dashboard with a widget-style composition:
+
+1. **Balance Snapshot Widget**
+   - Large net worth number.
+   - Small asset/liability split chips.
+   - Tonal background using the active accent.
+   - Quick links to net worth, accounts, investments, and loans.
+
+2. **Daily Money Widget**
+   - This month income, expenses, and net.
+   - Use a compact visual bar/ring.
+   - Show one plain-language status:
+     - “Spending is below income this month.”
+     - “Expenses are ahead this month.”
+
+3. **Quick Add Strip**
+   - Prominent actions:
+     - Expense
+     - Income
+     - Transfer
+   - Designed as pill/tile buttons with meaningful colors.
+
+4. **Planning Widgets**
+   - Budget health tile.
+   - Goal progress tile.
+   - Use progress rings/bars and status text.
+
+5. **Protection and Debt Widgets**
+   - Next EMI.
+   - Next insurance renewal.
+   - Show due dates as calm countdowns.
+
+6. **Recent Activity**
+   - Denser Cashew-like transaction rows.
+   - Category/account context visible.
+   - Destructive actions hidden behind overflow.
+
+No schema changes required. Use currently available server data.
+
 ---
 
 ## 6. Transaction UX Follow-Up Plan
@@ -233,6 +336,44 @@ Improve transaction rows:
   - Income
   - Transfer
 - This can be done via query params and form defaults, no schema changes.
+
+### 6.4 Cashew Visual Transaction Rework
+
+The next transaction pass should go beyond filters:
+
+- Add a top summary strip:
+  - Income this month.
+  - Expenses this month.
+  - Net this month.
+- Convert type chips into Material-style segmented controls.
+- Add category/account filter chips with active color.
+- Replace visible delete icon with an overflow menu or secondary inline action.
+- Show transaction category/account metadata as the primary scanning line.
+- Use compact rows on mobile with:
+  - Category icon/tone.
+  - Note/category.
+  - Account/date.
+  - Amount.
+- Add a proper empty state with three action tiles:
+  - Add expense.
+  - Add income.
+  - Import CSV.
+
+### 6.5 Cashew-Specific Transaction Targets
+
+Ledgerify should visibly adopt these transaction patterns:
+
+- A reusable category/account glyph component with a colored tonal square or circle, not just text labels.
+- Amount boxes above the list that include label, amount, and count, similar in purpose to Cashew's `TransactionsAmountBox`.
+- A segmented income/expense/all control with a filled active indicator.
+- Horizontal chips for account/category filtering with active tint and optional glyphs.
+- Row layout order:
+  - category glyph
+  - title or category name
+  - account/date/note context
+  - tags or status chips
+  - signed amount
+- Mobile entry actions should be reachable from a prominent FAB or equivalent bottom action, with long-press or secondary sheet reserved for advanced add flows.
 
 ---
 
@@ -298,6 +439,19 @@ Improve utility pages:
 - Import should preview required columns.
 - Add CSV template field list.
 - Keep errors calm and readable.
+
+### 8.3 Cashew-Inspired Import Polish
+
+Use Cashew's import flow as a UX reference for Ledgerify's existing CSV import, without changing backend behavior:
+
+- Present import as a short guided flow:
+  - choose file
+  - review required columns
+  - map/confirm columns
+  - preview import result
+- Make required fields visually explicit.
+- Show a compact progress indicator when parsing.
+- Keep sample/template CSV access close to the error and empty states.
 
 ---
 
@@ -385,6 +539,36 @@ Validation:
 - Preferences persist locally.
 - Dashboard remains useful on first run.
 
+### Milestone 6: Cashew Visual Rework v2
+
+Goal: make the visible app feel meaningfully Cashew-inspired while preserving Ledgerify's Quiet Ledger identity.
+
+Tasks:
+
+- Replace plain dashboard metric grids with colorful financial widgets for balance, monthly movement, budgets, goals, obligations, and recent activity.
+- Build shared visual primitives:
+  - tonal finance widget
+  - category/account glyph
+  - amount summary box
+  - segmented transaction selector
+  - chip rail
+  - progress/timeline bar
+- Rework budgets and goals into expressive progress surfaces with clear remaining/spent/saved values.
+- Rework accounts, loans, insurance, and investments into domain-colored summary widgets.
+- Rework reports around chart-first cards and stronger empty states.
+- Rework import/export surfaces into guided utility flows.
+
+Validation:
+
+- `/dashboard`, `/transactions`, `/budgets`, `/goals`, `/reports`, `/accounts`, `/loans`, `/insurance`, and `/settings` should all be visibly upgraded.
+- Desktop and mobile screenshots should show Cashew-like widget composition, not only typography and settings changes.
+- No schema changes.
+- No backend/domain logic changes.
+- Existing validation commands must pass:
+  - `bunx tsc --noEmit`
+  - `bun run lint`
+  - `bun run build`
+
 ---
 
 ## 10. Concrete Design Decisions
@@ -445,6 +629,8 @@ Do not include in this plan:
 - Full widget customization stored in database.
 - Cashew feature parity.
 
+Also do not substitute preferences for visible product work. Accent settings, density settings, and dashboard visibility toggles are useful, but they do not satisfy the Cashew-inspired UI goal by themselves.
+
 ---
 
 ## 12. Success Criteria
@@ -459,3 +645,37 @@ The follow-up succeeds if:
 - Daily transaction review becomes faster.
 - No schema or backend/domain behavior changes are required.
 
+## 13. Next PR Scope: Cashew Visual Rework v2
+
+The next implementation PR should be a UI-only rework on top of latest `main`.
+
+Recommended segments, committed and pushed separately:
+
+1. **Dashboard Widgets**
+   - Add shared tonal widget primitives.
+   - Rebuild the dashboard as a Cashew-style money home.
+   - Keep all data derived from existing loaders/actions.
+
+2. **Transactions**
+   - Add category/account glyphs, amount summary boxes, segmented controls, chip rails, and denser rows.
+   - Keep existing create/update/delete behavior unchanged.
+
+3. **Budgets and Goals**
+   - Rework list/detail cards into progress-first surfaces.
+   - Add timeline/remaining/spent visual treatment using existing fields only.
+
+4. **Accounts, Wealth, and Obligations**
+   - Rework accounts, investments, loans, and insurance into domain-colored widgets.
+   - Improve setup/empty states without new data requirements.
+
+5. **Reports and Import**
+   - Make reports chart-first.
+   - Turn import/export into clearer guided flows.
+
+Acceptance criteria:
+
+- The UI should be visibly different from PR #3 at first glance.
+- Cashew-inspired elements must appear in app surfaces, not only settings.
+- No database schema migration.
+- No backend/domain logic change.
+- Validation must pass with Bun.
