@@ -136,10 +136,10 @@ export function PageShell({
   return (
     <div
       className={cn(
-        'mx-auto flex w-full flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8',
+        'flex w-full flex-col gap-5 px-4 py-4 sm:px-5 lg:px-6 lg:py-6',
         size === 'narrow' && 'max-w-3xl',
         size === 'default' && 'max-w-6xl',
-        size === 'wide' && 'max-w-7xl',
+        size === 'wide' && 'max-w-none',
         className
       )}
     >
@@ -166,7 +166,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-3xl border bg-card/80 p-5 shadow-sm shadow-foreground/5 backdrop-blur sm:p-6 lg:flex-row lg:items-end lg:justify-between',
+        'flex flex-col gap-4 rounded-[1.75rem] border bg-card/90 p-4 shadow-sm shadow-foreground/5 backdrop-blur sm:p-5 lg:flex-row lg:items-end lg:justify-between',
         className
       )}
     >
@@ -179,12 +179,12 @@ export function PageHeader({
         <div className="space-y-1">
           <h1
             data-display-text
-            className="text-2xl font-bold text-foreground sm:text-3xl"
+            className="text-2xl font-extrabold text-foreground sm:text-[2rem]"
           >
             {title}
           </h1>
           {description && (
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               {description}
             </p>
           )}
@@ -360,7 +360,7 @@ export function TonalWidget({
   return (
     <section
       className={cn(
-        'relative overflow-hidden rounded-[2rem] border p-5 shadow-sm shadow-foreground/5 sm:p-6',
+        'relative overflow-hidden rounded-[1.75rem] border p-4 shadow-sm shadow-foreground/5 sm:p-5',
         toneStyles[tone].bg,
         toneStyles[tone].border,
         className
@@ -651,14 +651,14 @@ export function SetupChecklist({
   }
 
   return (
-    <Card className={cn('rounded-3xl bg-card/85 shadow-sm ring-0', className)}>
-      <CardHeader>
-        <CardTitle>Finish your money home</CardTitle>
+    <Card className={cn('rounded-[1.75rem] bg-card/90 shadow-sm ring-0', className)}>
+      <CardHeader className="px-4 py-4">
+        <CardTitle className="text-base">Finish your money home</CardTitle>
         <CardDescription>
           A few basics make Ledgerify easier to use every day.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="grid gap-2 px-4 pb-4 md:grid-cols-3">
         {items.map((item) => (
           <Link
             key={item.href}

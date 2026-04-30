@@ -18,7 +18,7 @@ export default async function AppLayout({
 
       {/* Main content — add bottom padding on mobile for bottom nav */}
       <main className="min-w-0 flex-1 overflow-y-auto pb-24 md:pb-0">
-        <div className="min-h-screen bg-background/45">{children}</div>
+        <div className="min-h-screen bg-background/70">{children}</div>
       </main>
 
       {/* Mobile bottom nav */}

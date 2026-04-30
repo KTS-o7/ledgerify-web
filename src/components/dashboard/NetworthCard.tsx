@@ -36,7 +36,7 @@ export function NetworthCard({
     networth > 0 ? "positive" : networth < 0 ? "negative" : "neutral";
 
   return (
-    <TonalWidget tone="primary" className="space-y-6">
+    <TonalWidget tone="primary" className="space-y-5">
       <WidgetHeading
         icon={PiggyBank}
         tone="primary"
@@ -54,11 +54,11 @@ export function NetworthCard({
         }
       />
 
-      <div className="rounded-[1.75rem] border bg-background/75 p-5 shadow-sm shadow-foreground/5 sm:p-6">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5 sm:p-5">
         <p className="text-sm font-medium text-muted-foreground">
           Family balance
         </p>
-        <h2 className="financial-display mt-2 text-4xl font-bold text-foreground sm:text-5xl">
+        <h2 className="financial-display mt-2 text-3xl font-extrabold text-foreground sm:text-4xl">
           <FinancialAmount amount={networth} currency={currency} />
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
@@ -67,7 +67,7 @@ export function NetworthCard({
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         <div className="space-y-3">
           <AmountBox
             label="Cash"
