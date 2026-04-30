@@ -61,17 +61,17 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "sticky top-0 h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar/90 text-sidebar-foreground backdrop-blur flex flex-col",
+        "sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/95 text-sidebar-foreground backdrop-blur",
         className,
       )}
     >
-      <div className="border-b border-sidebar-border px-4 py-5">
+      <div className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+          <div className="flex size-9 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
             <PiggyBank className="size-5" />
           </div>
           <div className="min-w-0">
-            <span className="block text-lg font-bold tracking-tight">
+            <span className="block text-base font-bold">
               Ledgerify
             </span>
             <span className="block text-xs text-muted-foreground">
@@ -81,7 +81,7 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </div>
 
-      <div className="px-3 py-4">
+      <div className="px-3 py-3">
         <Link
           href="/transactions"
           className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
@@ -92,7 +92,7 @@ export function Sidebar({ className }: { className?: string }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        <div className="space-y-5">
+        <div className="space-y-4">
           {navSections.map((section) => (
             <div key={section.label} className="space-y-1.5">
               <p className="px-3 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -109,7 +109,7 @@ export function Sidebar({ className }: { className?: string }) {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
+                        "group flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
