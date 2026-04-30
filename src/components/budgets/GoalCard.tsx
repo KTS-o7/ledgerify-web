@@ -1,7 +1,16 @@
 'use client'
 import { useState, useTransition } from 'react'
+import { PiggyBank, Target, Trash2 } from 'lucide-react'
+
 import { contributeToGoal, deleteSavingsGoal } from '@/app/actions/budgets'
-import { FinancialAmount, ProgressMeter, StatusPill } from '@/components/shared/quiet-ledger'
+import {
+  AmountBox,
+  FinancialAmount,
+  IconBadge,
+  ProgressMeter,
+  StatusPill,
+  TonalWidget,
+} from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -69,13 +78,16 @@ export function GoalCard({ goal }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+    <TonalWidget tone="goal" className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-base font-semibold tracking-tight">{goal.name}</p>
-          {goal.description && (
-            <p className="truncate text-sm text-muted-foreground">{goal.description}</p>
-          )}
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon={Target} tone="goal" className="size-12 rounded-[1.35rem]" />
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-base font-semibold">{goal.name}</p>
+            {goal.description && (
+              <p className="truncate text-sm text-muted-foreground">{goal.description}</p>
+            )}
+          </div>
         </div>
         <StatusPill
           tone={STATUS_TONES[goal.status as keyof typeof STATUS_TONES] ?? 'neutral'}
@@ -85,11 +97,11 @@ export function GoalCard({ goal }: Props) {
         </StatusPill>
       </div>
 
-      <div className="mt-5 space-y-1">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Saved
         </p>
-        <p className="financial-display text-3xl font-bold tracking-tight">
+        <p className="financial-display mt-2 text-3xl font-bold">
           <FinancialAmount amount={current} currency={goal.currency} sign="never" />
         </p>
         <p className="text-sm text-muted-foreground">
@@ -97,23 +109,26 @@ export function GoalCard({ goal }: Props) {
         </p>
       </div>
 
-      <div className="mt-5">
+      <div>
         <ProgressMeter
           value={current}
           max={target}
           tone={STATUS_PROGRESS_TONES[goal.status as keyof typeof STATUS_PROGRESS_TONES] ?? 'primary'}
           label="Goal progress"
         />
-        <div className="mt-3 rounded-2xl bg-muted/50 p-3 text-sm">
-          <p className="text-xs text-muted-foreground">Still needed</p>
-          <p className="font-semibold">
-            <FinancialAmount amount={remaining} currency={goal.currency} sign="never" />
-          </p>
+        <div className="mt-3">
+          <AmountBox
+            label="Still needed"
+            amount={remaining}
+            currency={goal.currency}
+            icon={PiggyBank}
+            tone={remaining === 0 ? 'positive' : 'goal'}
+          />
         </div>
       </div>
 
       {deadlineDate && (
-        <p className="mt-4 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Deadline: {deadlineDate.toLocaleDateString()}{' '}
           {daysRemaining !== null && (
             <span className={daysRemaining < 0 ? 'text-destructive' : ''}>
@@ -123,7 +138,7 @@ export function GoalCard({ goal }: Props) {
         </p>
       )}
 
-      <div className="mt-5 flex gap-2">
+      <div className="flex gap-2">
         {goal.status === 'active' && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={<Button variant="default" size="sm" className="flex-1 rounded-2xl" />}>
@@ -164,9 +179,10 @@ export function GoalCard({ goal }: Props) {
           onClick={handleDelete}
           disabled={isPending}
         >
+          <Trash2 className="size-4" />
           {isPending ? 'Deleting...' : 'Delete'}
         </Button>
       </div>
-    </div>
+    </TonalWidget>
   )
 }
