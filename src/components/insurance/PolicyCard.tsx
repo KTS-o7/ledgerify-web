@@ -1,8 +1,15 @@
 'use client'
 import { useTransition } from 'react'
 import { differenceInDays } from 'date-fns'
+import { ShieldCheck, Trash2 } from 'lucide-react'
+
 import { deletePolicy } from '@/app/actions/insurance'
-import { FinancialAmount, StatusPill } from '@/components/shared/quiet-ledger'
+import {
+  FinancialAmount,
+  IconBadge,
+  StatusPill,
+  TonalWidget,
+} from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import type { InsurancePolicy } from '@/lib/db/schema'
 
@@ -41,29 +48,32 @@ export function PolicyCard({ policy }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+    <TonalWidget tone="insurance" className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate text-base font-semibold tracking-tight">{policy.name}</p>
-          <div className="flex flex-wrap gap-2">
-            <StatusPill tone="info">
-              {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
-            </StatusPill>
-            {renewsSoon && <StatusPill tone="warning">Renews soon</StatusPill>}
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <IconBadge icon={ShieldCheck} tone="insurance" className="size-12 rounded-[1.35rem]" />
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-base font-semibold">{policy.name}</p>
+            <div className="flex flex-wrap gap-2">
+              <StatusPill tone="insurance">
+                {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
+              </StatusPill>
+              {renewsSoon && <StatusPill tone="warning">Renews soon</StatusPill>}
+            </div>
           </div>
         </div>
         <StatusPill>{policy.currency}</StatusPill>
       </div>
 
       {policy.provider && (
-        <p className="mt-3 text-sm text-muted-foreground">{policy.provider}</p>
+        <p className="text-sm text-muted-foreground">{policy.provider}</p>
       )}
 
-      <div className="mt-5 space-y-1">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Premium
         </p>
-        <p className="financial-display text-3xl font-bold tracking-tight">
+        <p className="financial-display mt-2 text-3xl font-bold">
           <FinancialAmount amount={Number(policy.premiumAmount)} currency={policy.currency} sign="never" />
           <span className="text-sm font-normal text-muted-foreground ml-1">
             / {FREQUENCY_LABELS[policy.premiumFrequency] ?? policy.premiumFrequency}
@@ -72,7 +82,7 @@ export function PolicyCard({ policy }: Props) {
       </div>
 
       {policy.coverageAmount && (
-        <div className="mt-5 rounded-2xl bg-muted/50 p-3 text-sm">
+        <div className="rounded-2xl border bg-background/70 p-3 text-sm">
           <span className="text-muted-foreground">Coverage: </span>
           <span className="font-medium">
             <FinancialAmount amount={Number(policy.coverageAmount)} currency={policy.currency} sign="never" />
@@ -81,7 +91,7 @@ export function PolicyCard({ policy }: Props) {
       )}
 
       {policy.renewalDate && (
-        <div className="mt-4 text-sm">
+        <div className="text-sm">
           <span className="text-muted-foreground">Renewal: </span>
           <span className={renewsSoon ? 'font-medium text-orange-600 dark:text-orange-400' : ''}>
             {policy.renewalDate}
@@ -95,12 +105,13 @@ export function PolicyCard({ policy }: Props) {
       <Button
         variant="outline"
         size="sm"
-        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
+        className="w-full rounded-2xl text-destructive hover:text-destructive"
         onClick={handleDelete}
         disabled={isPending}
       >
+        <Trash2 className="size-4" />
         {isPending ? 'Deleting...' : 'Delete policy'}
       </Button>
-    </div>
+    </TonalWidget>
   )
 }

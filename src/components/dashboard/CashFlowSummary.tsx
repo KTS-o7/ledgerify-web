@@ -9,10 +9,11 @@ import {
 
 import type { Transaction } from "@/lib/db/schema";
 import {
-  FinancialAmount,
-  IconBadge,
+  AmountBox,
   ProgressMeter,
   StatusPill,
+  TonalWidget,
+  WidgetHeading,
 } from "@/components/shared/quiet-ledger";
 
 interface Props {
@@ -43,90 +44,53 @@ export function CashFlowSummary({ transactions, currency }: Props) {
   const netTone = net > 0 ? "positive" : net < 0 ? "negative" : "neutral";
 
   return (
-    <section className="rounded-[2rem] border bg-card/85 p-5 shadow-sm shadow-foreground/5 backdrop-blur sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <IconBadge icon={WalletCards} tone="primary" className="size-10" />
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Month in motion
-              </p>
-              <h2 className="text-xl font-bold tracking-tight">Cash flow</h2>
-            </div>
-          </div>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            A simple view of money coming in, money going out, and whether this
-            month is staying healthy.
-          </p>
-        </div>
+    <TonalWidget tone="cash" className="space-y-6">
+      <WidgetHeading
+        icon={WalletCards}
+        tone="cash"
+        eyebrow="Month in motion"
+        title="Cash flow"
+        description="Money coming in, money going out, and whether this month is staying healthy."
+        action={
+          <StatusPill tone={netTone}>
+            {net > 0
+              ? "Ahead this month"
+              : net < 0
+                ? "Spending ahead"
+                : "Balanced"}
+          </StatusPill>
+        }
+      />
 
-        <StatusPill tone={netTone}>
-          {net > 0
-            ? "Ahead this month"
-            : net < 0
-              ? "Spending ahead"
-              : "Balanced"}
-        </StatusPill>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <AmountBox
+          label="Income"
+          amount={income}
+          currency={currency}
+          icon={ArrowUpRight}
+          tone="positive"
+          count="Money received this month"
+        />
+        <AmountBox
+          label="Expenses"
+          amount={expense}
+          currency={currency}
+          icon={ArrowDownLeft}
+          tone="negative"
+          count="Spending recorded this month"
+        />
+        <AmountBox
+          label="Net"
+          amount={net}
+          currency={currency}
+          icon={Landmark}
+          tone={netTone}
+          sign="always"
+          count="Income less expenses"
+        />
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-3xl border bg-background/70 p-4">
-          <div className="flex items-center gap-3">
-            <IconBadge
-              icon={ArrowUpRight}
-              tone="positive"
-              className="size-10"
-            />
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Income
-              </p>
-              <p className="mt-1 text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                <FinancialAmount amount={income} currency={currency} />
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border bg-background/70 p-4">
-          <div className="flex items-center gap-3">
-            <IconBadge
-              icon={ArrowDownLeft}
-              tone="negative"
-              className="size-10"
-            />
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Expenses
-              </p>
-              <p className="mt-1 text-lg font-bold text-rose-700 dark:text-rose-300">
-                <FinancialAmount amount={expense} currency={currency} />
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border bg-background/70 p-4">
-          <div className="flex items-center gap-3">
-            <IconBadge icon={Landmark} tone={netTone} className="size-10" />
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Net
-              </p>
-              <p className="mt-1 text-lg font-bold">
-                <FinancialAmount
-                  amount={net}
-                  currency={currency}
-                  sign="always"
-                />
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 rounded-3xl border bg-background/70 p-4">
+      <div className="rounded-3xl border bg-background/70 p-4 shadow-sm shadow-foreground/5">
         <ProgressMeter
           value={expensePace}
           tone={expensePace > 85 ? "warning" : "positive"}
@@ -141,6 +105,6 @@ export function CashFlowSummary({ transactions, currency }: Props) {
           </span>
         </div>
       </div>
-    </section>
+    </TonalWidget>
   );
 }

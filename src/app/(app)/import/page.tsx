@@ -5,10 +5,10 @@ import { generateTemplateCSV } from '@/lib/utils/csv'
 import { Download, FileSpreadsheet, ShieldCheck, Upload } from 'lucide-react'
 import {
   IconBadge,
-  MetricCard,
   PageHeader,
   PageShell,
   SectionHeader,
+  TonalWidget,
 } from '@/components/shared/quiet-ledger'
 
 interface ImportResult { imported: number; errors: string[]; total: number }
@@ -70,10 +70,10 @@ export default function ImportPage() {
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+            <TonalWidget tone="info" className="p-5 sm:p-5">
               <IconBadge icon={Download} tone="info" />
               <div className="mt-4 space-y-2">
-                <h2 className="text-base font-semibold tracking-tight">
+                <h2 className="text-base font-semibold">
                   Download template
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
@@ -84,12 +84,12 @@ export default function ImportPage() {
                   Download template
                 </Button>
               </div>
-            </div>
+            </TonalWidget>
 
-            <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+            <TonalWidget tone="primary" className="p-5 sm:p-5">
               <IconBadge icon={Upload} tone="primary" />
               <div className="mt-4 space-y-2">
-                <h2 className="text-base font-semibold tracking-tight">Upload CSV</h2>
+                <h2 className="text-base font-semibold">Upload CSV</h2>
                 <form onSubmit={handleUpload} className="space-y-3">
                   <input
                     ref={fileRef}
@@ -104,25 +104,31 @@ export default function ImportPage() {
                   </Button>
                 </form>
               </div>
-            </div>
+            </TonalWidget>
           </div>
         </div>
 
         <aside className="space-y-4">
-          <MetricCard
-            label="Format"
-            value="CSV"
-            description="Best for bank exports and spreadsheet cleanup."
-            icon={FileSpreadsheet}
-            tone="info"
-          />
-          <MetricCard
-            label="Safety"
-            value="Review"
-            description="Import reports row errors instead of silently hiding them."
-            icon={ShieldCheck}
-            tone="positive"
-          />
+          <TonalWidget tone="info" className="p-5 sm:p-5">
+            <IconBadge icon={FileSpreadsheet} tone="info" />
+            <p className="mt-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Format
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">CSV</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Best for bank exports and spreadsheet cleanup.
+            </p>
+          </TonalWidget>
+          <TonalWidget tone="positive" className="p-5 sm:p-5">
+            <IconBadge icon={ShieldCheck} tone="positive" />
+            <p className="mt-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Safety
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">Review</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Import reports row errors instead of silently hiding them.
+            </p>
+          </TonalWidget>
         </aside>
       </div>
 

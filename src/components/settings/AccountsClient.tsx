@@ -6,6 +6,7 @@ import {
   IconBadge,
   SectionHeader,
   StatusPill,
+  TonalWidget,
 } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -132,9 +133,10 @@ export function AccountsClient({ accountList }: AccountsClientProps) {
           {accountList.map((account) => {
             const meta = accountMeta[account.type]
             return (
-              <div
+              <TonalWidget
                 key={account.id}
-                className="flex items-center justify-between gap-3 rounded-3xl border bg-card/85 p-4 shadow-sm shadow-foreground/5"
+                tone={meta.tone}
+                className="flex items-center justify-between gap-3 p-4 sm:p-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <IconBadge icon={meta.icon} tone={meta.tone} className="size-11" />
@@ -147,7 +149,7 @@ export function AccountsClient({ accountList }: AccountsClientProps) {
                   </div>
                 </div>
                 <DeleteAccountButton id={account.id} />
-              </div>
+              </TonalWidget>
             )
           })}
         </div>

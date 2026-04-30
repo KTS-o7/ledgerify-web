@@ -1,7 +1,14 @@
 'use client'
 import { useState, useTransition } from 'react'
+import { ChartNoAxesCombined, Trash2 } from 'lucide-react'
+
 import { updateInvestmentPrice, deleteInvestment } from '@/app/actions/investments'
-import { FinancialAmount, StatusPill } from '@/components/shared/quiet-ledger'
+import {
+  FinancialAmount,
+  IconBadge,
+  StatusPill,
+  TonalWidget,
+} from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -64,27 +71,30 @@ export function AssetCard({ investment }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+    <TonalWidget tone="investment" className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-base font-semibold tracking-tight">{investment.name}</p>
-          <StatusPill tone="primary">
-            {ASSET_TYPE_LABELS[investment.assetType] ?? investment.assetType}
-          </StatusPill>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon={ChartNoAxesCombined} tone="investment" className="size-12 rounded-[1.35rem]" />
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-base font-semibold">{investment.name}</p>
+            <StatusPill tone="investment">
+              {ASSET_TYPE_LABELS[investment.assetType] ?? investment.assetType}
+            </StatusPill>
+          </div>
         </div>
         <StatusPill>{investment.currency}</StatusPill>
       </div>
 
-      <div className="mt-5 space-y-1">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Current value
         </p>
-        <p className="financial-display text-3xl font-bold tracking-tight">
+        <p className="financial-display mt-2 text-3xl font-bold">
           <FinancialAmount amount={currentValue} currency={investment.currency} sign="never" />
         </p>
       </div>
 
-      <div className="mt-5 space-y-2 text-sm">
+      <div className="space-y-2 rounded-[1.5rem] border bg-background/70 p-4 text-sm">
         {buy > 0 && (
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Invested</span>
@@ -109,7 +119,7 @@ export function AssetCard({ investment }: Props) {
         )}
       </div>
 
-      <div className="mt-5 flex gap-2">
+      <div className="flex gap-2">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button variant="outline" size="sm" className="flex-1 rounded-2xl" />}>
             Update price
@@ -147,9 +157,10 @@ export function AssetCard({ investment }: Props) {
           onClick={handleDelete}
           disabled={isPending}
         >
+          <Trash2 className="size-4" />
           Delete
         </Button>
       </div>
-    </div>
+    </TonalWidget>
   )
 }
