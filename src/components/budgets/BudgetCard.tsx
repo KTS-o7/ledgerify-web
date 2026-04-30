@@ -1,7 +1,16 @@
 'use client'
 import { useTransition } from 'react'
+import { Gauge, Trash2, WalletCards } from 'lucide-react'
+
 import { deleteBudget } from '@/app/actions/budgets'
-import { FinancialAmount, ProgressMeter, StatusPill } from '@/components/shared/quiet-ledger'
+import {
+  AmountBox,
+  FinancialAmount,
+  IconBadge,
+  ProgressMeter,
+  StatusPill,
+  TonalWidget,
+} from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import type { Budget } from '@/lib/db/schema'
 
@@ -27,13 +36,16 @@ export function BudgetCard({ budget, spent }: Props) {
   }
 
   return (
-    <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+    <TonalWidget tone="budget" className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-base font-semibold tracking-tight">{budget.name}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconBadge icon={Gauge} tone="budget" className="size-12 rounded-[1.35rem]" />
+          <div className="min-w-0 space-y-1">
+          <p className="truncate text-base font-semibold">{budget.name}</p>
           <div className="flex flex-wrap gap-2">
             <StatusPill className="capitalize">{budget.periodType}</StatusPill>
             <StatusPill tone={tone}>{status}</StatusPill>
+          </div>
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
@@ -41,36 +53,32 @@ export function BudgetCard({ budget, spent }: Props) {
         </span>
       </div>
 
-      <div className="mt-5 space-y-1">
+      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Planned
         </p>
-        <p className="financial-display text-3xl font-bold tracking-tight">
+        <p className="financial-display mt-2 text-3xl font-bold">
           <FinancialAmount amount={total} currency={budget.currency} sign="never" />
         </p>
       </div>
 
-      <div className="mt-5">
+      <div>
         <ProgressMeter value={spent} max={total} tone={tone} label="Spent so far" />
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-2xl bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">Spent</p>
-            <p className="font-semibold">
-              <FinancialAmount amount={spent} currency={budget.currency} sign="never" />
-            </p>
-          </div>
-          <div className="rounded-2xl bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">
-              {remaining >= 0 ? 'Left' : 'Over'}
-            </p>
-            <p className="font-semibold">
-              <FinancialAmount
-                amount={Math.abs(remaining)}
-                currency={budget.currency}
-                sign="never"
-              />
-            </p>
-          </div>
+          <AmountBox
+            label="Spent"
+            amount={spent}
+            currency={budget.currency}
+            icon={WalletCards}
+            tone={tone}
+          />
+          <AmountBox
+            label={remaining >= 0 ? 'Left' : 'Over'}
+            amount={Math.abs(remaining)}
+            currency={budget.currency}
+            icon={WalletCards}
+            tone={remaining >= 0 ? 'positive' : 'negative'}
+          />
         </div>
       </div>
 
@@ -81,8 +89,9 @@ export function BudgetCard({ budget, spent }: Props) {
         onClick={handleDelete}
         disabled={isPending}
       >
+        <Trash2 className="size-4" />
         {isPending ? 'Deleting...' : 'Delete budget'}
       </Button>
-    </div>
+    </TonalWidget>
   )
 }

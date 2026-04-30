@@ -6,6 +6,7 @@ import {
   IconBadge,
   SectionHeader,
   StatusPill,
+  TonalWidget,
 } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,7 +85,7 @@ function CategoryRow({ category, userId }: { category: Category; userId: string 
   const Icon = category.type === 'income' ? ArrowUpRight : ArrowDownRight
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-3xl border bg-card/85 p-4 shadow-sm shadow-foreground/5">
+    <TonalWidget tone={tone} className="flex items-center justify-between gap-3 p-4 sm:p-4">
       <div className="flex min-w-0 items-center gap-3">
         <IconBadge icon={Icon} tone={tone} className="size-11" />
         <div className="min-w-0">
@@ -106,7 +107,7 @@ function CategoryRow({ category, userId }: { category: Category; userId: string 
         </div>
       </div>
       {isOwned && <DeleteCategoryButton id={category.id} />}
-    </div>
+    </TonalWidget>
   )
 }
 

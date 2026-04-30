@@ -14,7 +14,19 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-type Tone = 'neutral' | 'positive' | 'negative' | 'warning' | 'info' | 'primary'
+type Tone =
+  | 'neutral'
+  | 'positive'
+  | 'negative'
+  | 'warning'
+  | 'info'
+  | 'primary'
+  | 'cash'
+  | 'budget'
+  | 'goal'
+  | 'investment'
+  | 'loan'
+  | 'insurance'
 
 const toneStyles: Record<
   Tone,
@@ -67,6 +79,48 @@ const toneStyles: Record<
     border: 'border-primary/20',
     icon: 'text-primary',
     ring: 'ring-primary/20',
+  },
+  cash: {
+    text: 'text-sky-800 dark:text-sky-200',
+    bg: 'bg-sky-100/80 dark:bg-sky-950/50',
+    border: 'border-sky-200/90 dark:border-sky-900',
+    icon: 'text-sky-700 dark:text-sky-300',
+    ring: 'ring-sky-200/90 dark:ring-sky-900',
+  },
+  budget: {
+    text: 'text-amber-800 dark:text-amber-200',
+    bg: 'bg-amber-100/80 dark:bg-amber-950/50',
+    border: 'border-amber-200/90 dark:border-amber-900',
+    icon: 'text-amber-700 dark:text-amber-300',
+    ring: 'ring-amber-200/90 dark:ring-amber-900',
+  },
+  goal: {
+    text: 'text-teal-800 dark:text-teal-200',
+    bg: 'bg-teal-100/80 dark:bg-teal-950/50',
+    border: 'border-teal-200/90 dark:border-teal-900',
+    icon: 'text-teal-700 dark:text-teal-300',
+    ring: 'ring-teal-200/90 dark:ring-teal-900',
+  },
+  investment: {
+    text: 'text-violet-800 dark:text-violet-200',
+    bg: 'bg-violet-100/80 dark:bg-violet-950/50',
+    border: 'border-violet-200/90 dark:border-violet-900',
+    icon: 'text-violet-700 dark:text-violet-300',
+    ring: 'ring-violet-200/90 dark:ring-violet-900',
+  },
+  loan: {
+    text: 'text-orange-800 dark:text-orange-200',
+    bg: 'bg-orange-100/80 dark:bg-orange-950/50',
+    border: 'border-orange-200/90 dark:border-orange-900',
+    icon: 'text-orange-700 dark:text-orange-300',
+    ring: 'ring-orange-200/90 dark:ring-orange-900',
+  },
+  insurance: {
+    text: 'text-indigo-800 dark:text-indigo-200',
+    bg: 'bg-indigo-100/80 dark:bg-indigo-950/50',
+    border: 'border-indigo-200/90 dark:border-indigo-900',
+    icon: 'text-indigo-700 dark:text-indigo-300',
+    ring: 'ring-indigo-200/90 dark:ring-indigo-900',
   },
 }
 
@@ -125,7 +179,7 @@ export function PageHeader({
         <div className="space-y-1">
           <h1
             data-display-text
-            className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+            className="text-2xl font-bold text-foreground sm:text-3xl"
           >
             {title}
           </h1>
@@ -158,7 +212,7 @@ export function SectionHeader({
       <div className="min-w-0 space-y-1">
         <h2
           data-display-text
-          className="text-base font-semibold tracking-tight text-foreground"
+          className="text-base font-semibold text-foreground"
         >
           {title}
         </h2>
@@ -294,6 +348,104 @@ export function IconBadge({
   )
 }
 
+export function TonalWidget({
+  children,
+  tone = 'neutral',
+  className,
+}: {
+  children: React.ReactNode
+  tone?: Tone
+  className?: string
+}) {
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden rounded-[2rem] border p-5 shadow-sm shadow-foreground/5 sm:p-6',
+        toneStyles[tone].bg,
+        toneStyles[tone].border,
+        className
+      )}
+    >
+      {children}
+    </section>
+  )
+}
+
+export function WidgetHeading({
+  icon: Icon,
+  tone = 'primary',
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  icon: LucideIcon
+  tone?: Tone
+  eyebrow?: string
+  title: string
+  description?: React.ReactNode
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <IconBadge icon={Icon} tone={tone} className="size-12 rounded-[1.35rem]" />
+        <div className="min-w-0 space-y-1">
+          {eyebrow && (
+            <p className={cn('text-xs font-semibold uppercase tracking-[0.14em]', toneStyles[tone].text)}>
+              {eyebrow}
+            </p>
+          )}
+          <h2 data-display-text className="text-xl font-bold text-foreground">
+            {title}
+          </h2>
+          {description && (
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  )
+}
+
+export function AmountBox({
+  label,
+  amount,
+  currency,
+  count,
+  icon: Icon,
+  tone = 'neutral',
+  sign = 'never',
+}: {
+  label: string
+  amount: number
+  currency: string
+  count?: React.ReactNode
+  icon?: LucideIcon
+  tone?: Tone
+  sign?: 'auto' | 'always' | 'never'
+}) {
+  return (
+    <div className="rounded-3xl border bg-background/70 p-4 shadow-sm shadow-foreground/5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {label}
+          </p>
+          <p className={cn('mt-2 text-xl font-bold', toneStyles[tone].text)}>
+            <FinancialAmount amount={amount} currency={currency} sign={sign} />
+          </p>
+        </div>
+        {Icon && <IconBadge icon={Icon} tone={tone} className="size-10" />}
+      </div>
+      {count && <p className="mt-3 text-xs leading-5 text-muted-foreground">{count}</p>}
+    </div>
+  )
+}
+
 export function MetricCard({
   label,
   value,
@@ -326,7 +478,7 @@ export function MetricCard({
             <CardDescription className="text-xs font-medium uppercase tracking-[0.14em]">
               {label}
             </CardDescription>
-            <CardTitle className="financial-display text-2xl font-bold tracking-tight sm:text-3xl">
+            <CardTitle className="financial-display text-2xl font-bold sm:text-3xl">
               {value}
             </CardTitle>
           </div>
@@ -374,6 +526,12 @@ export function ProgressMeter({
             tone === 'warning' && 'bg-amber-500',
             tone === 'info' && 'bg-sky-500',
             tone === 'primary' && 'bg-primary',
+            tone === 'cash' && 'bg-sky-500',
+            tone === 'budget' && 'bg-amber-500',
+            tone === 'goal' && 'bg-teal-500',
+            tone === 'investment' && 'bg-violet-500',
+            tone === 'loan' && 'bg-orange-500',
+            tone === 'insurance' && 'bg-indigo-500',
             tone === 'neutral' && 'bg-muted-foreground'
           )}
           style={{ width: `${percentage}%` }}

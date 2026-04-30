@@ -6,6 +6,7 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
+  CircleDollarSign,
   Search,
   Trash2,
   WalletCards,
@@ -17,12 +18,23 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { EmptyState, StatusPill } from "@/components/shared/quiet-ledger";
+import {
+  AmountBox,
+  EmptyState,
+  IconBadge,
+  StatusPill,
+  TonalWidget,
+} from "@/components/shared/quiet-ledger";
 
 interface Props {
   transactions: Transaction[];
   accounts: Array<{ id: string; name: string; currency: string }>;
-  categories: Array<{ id: string; name: string; type: "income" | "expense" }>;
+  categories: Array<{
+    id: string;
+    name: string;
+    type: "income" | "expense";
+    color?: string | null;
+  }>;
 }
 
 type TransactionFilter = "all" | Transaction["type"];
@@ -65,6 +77,12 @@ function getTransactionIcon(type: Transaction["type"]) {
   if (type === "income") return ArrowUpRight;
   if (type === "expense") return ArrowDownLeft;
   return ArrowLeftRight;
+}
+
+function getSignedAmount(transaction: Transaction) {
+  return transaction.type === "expense"
+    ? -Number(transaction.amount)
+    : Number(transaction.amount);
 }
 
 function getDateLabel(date: string) {
@@ -143,6 +161,42 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
     [filteredTransactions],
   );
 
+  const summary = useMemo(() => {
+    return filteredTransactions.reduce(
+      (totals, transaction) => {
+        const amount = Number(transaction.amount);
+
+        if (transaction.type === "income") {
+          totals.income += amount;
+          totals.incomeCount += 1;
+        }
+
+        if (transaction.type === "expense") {
+          totals.expense += amount;
+          totals.expenseCount += 1;
+        }
+
+        if (transaction.type === "transfer") {
+          totals.transfer += amount;
+          totals.transferCount += 1;
+        }
+
+        return totals;
+      },
+      {
+        income: 0,
+        expense: 0,
+        transfer: 0,
+        incomeCount: 0,
+        expenseCount: 0,
+        transferCount: 0,
+      },
+    );
+  }, [filteredTransactions]);
+
+  const summaryCurrency =
+    filteredTransactions[0]?.currency ?? accounts[0]?.currency ?? "INR";
+
   if (transactions.length === 0) {
     return (
       <EmptyState
@@ -155,7 +209,34 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl border bg-card/85 p-3 shadow-sm shadow-foreground/5 backdrop-blur">
+      <div className="grid gap-3 md:grid-cols-3">
+        <AmountBox
+          label="Income"
+          amount={summary.income}
+          currency={summaryCurrency}
+          icon={ArrowUpRight}
+          tone="positive"
+          count={`${summary.incomeCount} entries in view`}
+        />
+        <AmountBox
+          label="Expenses"
+          amount={summary.expense}
+          currency={summaryCurrency}
+          icon={ArrowDownLeft}
+          tone="negative"
+          count={`${summary.expenseCount} entries in view`}
+        />
+        <AmountBox
+          label="Transfers"
+          amount={summary.transfer}
+          currency={summaryCurrency}
+          icon={ArrowLeftRight}
+          tone="info"
+          count={`${summary.transferCount} entries in view`}
+        />
+      </div>
+
+      <TonalWidget tone="primary" className="p-3 sm:p-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -214,7 +295,7 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
             ))}
           </select>
         </div>
-      </div>
+      </TonalWidget>
 
       {groupedTransactions.length === 0 ? (
         <EmptyState
@@ -228,22 +309,17 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
           {groupedTransactions.map((group) => (
             <section key={group.date} className="space-y-2">
               <div className="flex items-center justify-between px-1">
-                <h2 className="text-sm font-semibold tracking-tight">
-                  {group.label}
-                </h2>
+                <h2 className="text-sm font-semibold">{group.label}</h2>
                 <span className="text-xs text-muted-foreground">
                   {format(parseISO(group.date), "MMM d, yyyy")}
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-3xl border bg-card/85 shadow-sm shadow-foreground/5 backdrop-blur">
+              <TonalWidget tone="neutral" className="space-y-2 p-3 sm:p-3">
                 {group.items.map((transaction, index) => {
                   const Icon = getTransactionIcon(transaction.type);
                   const tone = getTransactionTone(transaction.type);
-                  const signedAmount =
-                    transaction.type === "expense"
-                      ? -Number(transaction.amount)
-                      : Number(transaction.amount);
+                  const signedAmount = getSignedAmount(transaction);
                   const account = accountMap.get(transaction.accountId);
                   const category = transaction.categoryId
                     ? categoryMap.get(transaction.categoryId)
@@ -253,29 +329,34 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
                     <div
                       key={transaction.id}
                       className={cn(
-                        "group flex items-center justify-between gap-3 p-3 transition hover:bg-muted/40 sm:p-4",
-                        index > 0 && "border-t",
+                        "group flex items-center justify-between gap-3 rounded-[1.5rem] border bg-background/70 p-3 shadow-sm shadow-foreground/5 transition hover:bg-background sm:p-4",
+                        index === 0 && "border-primary/20",
                       )}
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <div
-                          className={cn(
-                            "flex size-11 shrink-0 items-center justify-center rounded-2xl border",
-                            tone === "positive" &&
-                              "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
-                            tone === "negative" &&
-                              "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300",
-                            tone === "info" &&
-                              "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300",
+                        <div className="relative">
+                          <IconBadge
+                            icon={Icon}
+                            tone={tone}
+                            className="size-12 rounded-[1.35rem]"
+                          />
+                          {category?.color && (
+                            <span
+                              className="absolute -bottom-1 -right-1 size-4 rounded-full border-2 border-background"
+                              style={{ backgroundColor: category.color }}
+                            />
                           )}
-                        >
-                          <Icon className="size-5" />
                         </div>
 
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {transaction.note || "Untitled transaction"}
-                          </p>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {transaction.note || "Untitled transaction"}
+                            </p>
+                            {!category && (
+                              <CircleDollarSign className="size-3.5 shrink-0 text-muted-foreground" />
+                            )}
+                          </div>
                           <div className="mt-1 flex flex-wrap items-center gap-2">
                             <StatusPill tone={tone}>
                               {transaction.type}
@@ -314,7 +395,7 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
                     </div>
                   );
                 })}
-              </div>
+              </TonalWidget>
             </section>
           ))}
         </div>

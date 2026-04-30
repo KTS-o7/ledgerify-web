@@ -15,10 +15,9 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import {
+  AmountBox,
   EmptyState,
-  FinancialAmount,
   HeaderActionLink,
-  MetricCard,
   PageHeader,
   PageShell,
   SectionHeader,
@@ -126,26 +125,29 @@ export default async function BudgetsPage() {
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
+        <AmountBox
           label="Planned"
-          value={<FinancialAmount amount={totalPlanned} currency={baseCurrency} sign="never" />}
-          description="Total active budget boundaries for this period."
+          amount={totalPlanned}
+          currency={baseCurrency}
           icon={Gauge}
-          tone={budgetList.length > 0 ? 'info' : 'neutral'}
+          tone={budgetList.length > 0 ? 'budget' : 'neutral'}
+          count="Total active budget boundaries"
         />
-        <MetricCard
+        <AmountBox
           label="Spent"
-          value={<FinancialAmount amount={totalSpent} currency={baseCurrency} sign="never" />}
-          description="Expenses matched to weekly and monthly budget windows."
+          amount={totalSpent}
+          currency={baseCurrency}
           icon={TrendingDown}
           tone={totalSpent > totalPlanned && totalPlanned > 0 ? 'negative' : 'positive'}
+          count="Expenses in weekly and monthly windows"
         />
-        <MetricCard
+        <AmountBox
           label={remaining >= 0 ? 'Still available' : 'Over planned'}
-          value={<FinancialAmount amount={Math.abs(remaining)} currency={baseCurrency} sign="never" />}
-          description={`${atRiskCount} budget${atRiskCount === 1 ? '' : 's'} need attention.`}
+          amount={Math.abs(remaining)}
+          currency={baseCurrency}
           icon={WalletCards}
           tone={remaining < 0 ? 'negative' : atRiskCount > 0 ? 'warning' : 'positive'}
+          count={`${atRiskCount} budget${atRiskCount === 1 ? '' : 's'} need attention`}
         />
       </div>
 

@@ -6,6 +6,7 @@ import {
   PageShell,
   QuickActionCard,
   SectionHeader,
+  TonalWidget,
 } from '@/components/shared/quiet-ledger'
 
 const reports = [
@@ -32,17 +33,19 @@ export default function ReportsPage() {
         />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {reports.map(r => (
-          <Link
+          <TonalWidget
             key={r.href}
-            href={r.href}
-            className="group rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5 transition hover:-translate-y-0.5 hover:bg-card hover:shadow-md"
+            tone="primary"
+            className="group p-5 transition hover:-translate-y-0.5 hover:bg-card hover:shadow-md sm:p-5"
           >
-            <IconBadge icon={r.icon} tone="primary" />
-            <div className="mt-4 space-y-2">
-              <h2 className="text-base font-semibold tracking-tight">{r.title}</h2>
-              <p className="text-sm leading-6 text-muted-foreground">{r.description}</p>
-            </div>
-          </Link>
+            <Link href={r.href} className="block">
+              <IconBadge icon={r.icon} tone="primary" />
+              <div className="mt-4 space-y-2">
+                <h2 className="text-base font-semibold">{r.title}</h2>
+                <p className="text-sm leading-6 text-muted-foreground">{r.description}</p>
+              </div>
+            </Link>
+          </TonalWidget>
         ))}
         </div>
       </section>

@@ -1,6 +1,6 @@
 import { DatabaseBackup, Download, ShieldAlert } from 'lucide-react'
 
-import { IconBadge, SectionHeader } from '@/components/shared/quiet-ledger'
+import { IconBadge, SectionHeader, TonalWidget } from '@/components/shared/quiet-ledger'
 
 export default function DataPage() {
   return (
@@ -11,11 +11,11 @@ export default function DataPage() {
           description="Export your ledger when you want a local copy or a spreadsheet backup."
         />
 
-        <div className="rounded-3xl border bg-card/85 p-5 shadow-sm shadow-foreground/5">
+        <TonalWidget tone="info" className="p-5 sm:p-5">
           <div className="flex items-start gap-3">
             <IconBadge icon={DatabaseBackup} tone="info" />
             <div className="min-w-0 space-y-2">
-              <h2 className="text-base font-semibold tracking-tight">
+              <h2 className="text-base font-semibold">
                 Export transactions
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
@@ -32,13 +32,13 @@ export default function DataPage() {
               </a>
             </div>
           </div>
-        </div>
+        </TonalWidget>
       </div>
 
-      <aside className="rounded-3xl border border-destructive/20 bg-card/70 p-5 shadow-sm shadow-foreground/5">
+      <TonalWidget tone="warning" className="p-5 sm:p-5">
         <IconBadge icon={ShieldAlert} tone="warning" />
         <div className="mt-4 space-y-2">
-          <h2 className="text-base font-semibold tracking-tight text-destructive">
+          <h2 className="text-base font-semibold text-destructive">
             Data safety
           </h2>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -46,7 +46,7 @@ export default function DataPage() {
             you need a copy of your data before any manual cleanup.
           </p>
         </div>
-      </aside>
+      </TonalWidget>
     </section>
   )
 }

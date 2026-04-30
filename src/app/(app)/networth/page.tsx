@@ -4,12 +4,13 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { computeNetworth } from '@/lib/utils/networth'
 import {
+  AmountBox,
   FinancialAmount,
-  MetricCard,
   PageHeader,
   PageShell,
   ProgressMeter,
   SectionHeader,
+  TonalWidget,
 } from '@/components/shared/quiet-ledger'
 import { Landmark, Scale, TrendingUp, WalletCards } from 'lucide-react'
 
@@ -37,11 +38,11 @@ export default async function NetworthPage() {
         </div>
       </PageHeader>
 
-      <div className="rounded-3xl border bg-card/85 p-6 shadow-sm shadow-foreground/5 sm:p-8">
+      <TonalWidget tone="primary" className="p-6 sm:p-8">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Total net worth
         </p>
-        <p className="financial-display mt-2 text-4xl font-bold tracking-tight sm:text-6xl">
+        <p className="financial-display mt-2 text-4xl font-bold sm:text-6xl">
           <FinancialAmount amount={networth} currency={baseCurrency} sign="never" />
         </p>
         <div className="mt-6 max-w-xl">
@@ -52,29 +53,32 @@ export default async function NetworthPage() {
             label="Owned after liabilities"
           />
         </div>
-      </div>
+      </TonalWidget>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
+        <AmountBox
           label="Cash and accounts"
-          value={<FinancialAmount amount={totalCash} currency={baseCurrency} sign="never" />}
-          description="Accessible money containers included in the snapshot."
+          amount={totalCash}
+          currency={baseCurrency}
           icon={WalletCards}
-          tone="info"
+          tone="cash"
+          count="Accessible money containers"
         />
-        <MetricCard
+        <AmountBox
           label="Investments"
-          value={<FinancialAmount amount={totalInvestments} currency={baseCurrency} sign="never" />}
-          description="Longer-term assets counted toward household wealth."
+          amount={totalInvestments}
+          currency={baseCurrency}
           icon={TrendingUp}
-          tone="positive"
+          tone="investment"
+          count="Longer-term household assets"
         />
-        <MetricCard
+        <AmountBox
           label="Liabilities"
-          value={<FinancialAmount amount={totalLiabilities} currency={baseCurrency} sign="never" />}
-          description={`${liabilityRatio.toFixed(0)}% of tracked assets.`}
+          amount={totalLiabilities}
+          currency={baseCurrency}
           icon={Landmark}
-          tone={totalLiabilities > 0 ? 'negative' : 'neutral'}
+          tone={totalLiabilities > 0 ? 'loan' : 'neutral'}
+          count={`${liabilityRatio.toFixed(0)}% of tracked assets`}
         />
       </div>
 

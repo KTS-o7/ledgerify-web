@@ -14,9 +14,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import {
+  AmountBox,
   EmptyState,
-  FinancialAmount,
-  MetricCard,
   PageHeader,
   PageShell,
   SectionHeader,
@@ -81,27 +80,42 @@ export default async function SavingsGoalsPage() {
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
+        <AmountBox
           label="Saved"
-          value={<FinancialAmount amount={totalSaved} currency={baseCurrency} sign="never" />}
-          description="Total progress recorded across all goals."
+          amount={totalSaved}
+          currency={baseCurrency}
           icon={PiggyBank}
-          tone={totalSaved > 0 ? 'positive' : 'neutral'}
+          tone={totalSaved > 0 ? 'goal' : 'neutral'}
+          count="Total progress across goals"
         />
-        <MetricCard
+        <AmountBox
           label="Targets"
-          value={<FinancialAmount amount={totalTarget} currency={baseCurrency} sign="never" />}
-          description="Money assigned to future plans."
+          amount={totalTarget}
+          currency={baseCurrency}
           icon={Target}
           tone={goalList.length > 0 ? 'primary' : 'neutral'}
+          count="Money assigned to future plans"
         />
-        <MetricCard
-          label="Next milestone"
-          value={nextDeadline?.deadline ? new Date(nextDeadline.deadline).toLocaleDateString() : 'None'}
-          description={nextDeadline ? nextDeadline.name : 'Add a deadline to make progress easier to pace.'}
-          icon={Flag}
-          tone={nextDeadline ? 'info' : 'neutral'}
-        />
+        <div className="rounded-3xl border bg-background/70 p-4 shadow-sm shadow-foreground/5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Next milestone
+              </p>
+              <p className="mt-2 truncate text-xl font-bold text-sky-800 dark:text-sky-200">
+                {nextDeadline?.deadline
+                  ? new Date(nextDeadline.deadline).toLocaleDateString()
+                  : 'None'}
+              </p>
+            </div>
+            <Flag className="mt-1 size-5 shrink-0 text-sky-700 dark:text-sky-300" />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            {nextDeadline
+              ? nextDeadline.name
+              : 'Add a deadline to make progress easier to pace'}
+          </p>
+        </div>
       </div>
 
       {goalList.length === 0 ? (

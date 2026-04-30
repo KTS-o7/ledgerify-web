@@ -16,6 +16,7 @@ import {
   IconBadge,
   SectionHeader,
   StatusPill,
+  TonalWidget,
 } from "@/components/shared/quiet-ledger";
 
 interface Props {
@@ -103,7 +104,7 @@ export function UpcomingAlerts({ loans, policies }: Props) {
         description="The next few money items worth keeping an eye on."
       />
 
-      <div className="overflow-hidden rounded-[2rem] border bg-card/85 shadow-sm shadow-foreground/5 backdrop-blur">
+      <TonalWidget tone="insurance" className="space-y-2 p-3 sm:p-3">
         {alerts.map((alert, index) => {
           const tone = getUrgencyTone(alert.daysUntil);
           const Icon = alert.kind === "loan" ? CreditCard : ShieldCheck;
@@ -111,12 +112,16 @@ export function UpcomingAlerts({ loans, policies }: Props) {
           return (
             <div
               key={alert.id}
-              className={`flex items-center justify-between gap-3 p-4 ${
-                index > 0 ? "border-t" : ""
+              className={`flex items-center justify-between gap-3 rounded-[1.5rem] border bg-background/70 p-3 shadow-sm shadow-foreground/5 sm:p-4 ${
+                index === 0 ? "border-primary/20" : ""
               }`}
             >
               <div className="flex min-w-0 items-center gap-3">
-                <IconBadge icon={Icon} tone={tone} className="size-11" />
+                <IconBadge
+                  icon={Icon}
+                  tone={alert.kind === "loan" ? "loan" : tone}
+                  className="size-12 rounded-[1.35rem]"
+                />
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -148,7 +153,7 @@ export function UpcomingAlerts({ loans, policies }: Props) {
             </div>
           );
         })}
-      </div>
+      </TonalWidget>
 
       {alerts.some((alert) => alert.daysUntil <= 7) && (
         <div className="flex items-start gap-2 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">

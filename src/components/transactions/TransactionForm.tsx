@@ -1,10 +1,14 @@
 "use client";
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from "lucide-react";
+
 import { createTransaction } from "@/app/actions/transactions";
+import { IconBadge } from "@/components/shared/quiet-ledger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { Account, Category } from "@/lib/db/schema";
 
 interface Props {
@@ -28,28 +32,48 @@ export function TransactionForm({ accounts, categories }: Props) {
     (category) => category.type === "expense",
   );
   const hasAccounts = accounts.length > 0;
+  const transactionTypes = [
+    {
+      value: "expense",
+      label: "Expense",
+      icon: ArrowDownLeft,
+      tone: "negative" as const,
+    },
+    {
+      value: "income",
+      label: "Income",
+      icon: ArrowUpRight,
+      tone: "positive" as const,
+    },
+    {
+      value: "transfer",
+      label: "Transfer",
+      icon: ArrowLeftRight,
+      tone: "info" as const,
+    },
+  ];
 
   return (
     <form action={formAction} className="space-y-5">
-      <div className="rounded-3xl border bg-muted/40 p-1">
-        <div className="grid grid-cols-3 gap-1">
-          {[
-            ["expense", "Expense"],
-            ["income", "Income"],
-            ["transfer", "Transfer"],
-          ].map(([value, label]) => (
+      <div className="rounded-3xl border bg-primary/10 p-2">
+        <div className="grid grid-cols-3 gap-2">
+          {transactionTypes.map((item) => (
             <label
-              key={value}
-              className="cursor-pointer rounded-2xl px-3 py-2 text-center text-sm font-medium text-muted-foreground transition has-[:checked]:bg-card has-[:checked]:text-foreground has-[:checked]:shadow-sm"
+              key={item.value}
+              className={cn(
+                "flex cursor-pointer flex-col items-center gap-2 rounded-[1.35rem] border border-transparent px-2 py-3 text-center text-xs font-semibold text-muted-foreground transition",
+                "has-[:checked]:border-primary/20 has-[:checked]:bg-background has-[:checked]:text-foreground has-[:checked]:shadow-sm",
+              )}
             >
               <input
                 type="radio"
                 name="type"
-                value={value}
-                defaultChecked={value === defaultType}
+                value={item.value}
+                defaultChecked={item.value === defaultType}
                 className="sr-only"
               />
-              {label}
+              <IconBadge icon={item.icon} tone={item.tone} className="size-10" />
+              {item.label}
             </label>
           ))}
         </div>
@@ -67,7 +91,7 @@ export function TransactionForm({ accounts, categories }: Props) {
             inputMode="decimal"
             placeholder="0.00"
             required
-            className="h-14 text-2xl font-semibold tabular-nums"
+            className="h-14 rounded-2xl text-2xl font-semibold tabular-nums"
           />
           <Input
             id="currency"
@@ -75,7 +99,7 @@ export function TransactionForm({ accounts, categories }: Props) {
             defaultValue={defaultCurrency}
             maxLength={3}
             required
-            className="h-14 text-center font-semibold uppercase"
+            className="h-14 rounded-2xl text-center font-semibold uppercase"
           />
         </div>
       </div>
@@ -88,7 +112,7 @@ export function TransactionForm({ accounts, categories }: Props) {
             id="accountId"
             required
             disabled={!hasAccounts}
-            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-2xl border border-input bg-background px-3 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {hasAccounts ? (
               accounts.map((account) => (
@@ -110,7 +134,7 @@ export function TransactionForm({ accounts, categories }: Props) {
             type="date"
             required
             defaultValue={new Date().toISOString().slice(0, 10)}
-            className="h-11"
+            className="h-11 rounded-2xl"
           />
         </div>
       </div>
@@ -120,7 +144,7 @@ export function TransactionForm({ accounts, categories }: Props) {
         <select
           name="categoryId"
           id="categoryId"
-          className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm shadow-sm"
+          className="h-11 w-full rounded-2xl border border-input bg-background px-3 text-sm shadow-sm"
         >
           <option value="">No category yet</option>
           {expenseCategories.length > 0 && (
@@ -152,7 +176,7 @@ export function TransactionForm({ accounts, categories }: Props) {
           type="text"
           placeholder="Coffee, rent, salary, transfer…"
           autoComplete="off"
-          className="h-11"
+          className="h-11 rounded-2xl"
         />
       </div>
 
