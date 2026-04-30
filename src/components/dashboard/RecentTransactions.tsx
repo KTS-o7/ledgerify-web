@@ -16,6 +16,7 @@ import {
   IconBadge,
   SectionHeader,
   StatusPill,
+  TonalWidget,
 } from "@/components/shared/quiet-ledger";
 
 interface Props {
@@ -58,7 +59,7 @@ export function RecentTransactions({ transactions }: Props) {
           className="py-8"
         />
       ) : (
-        <div className="overflow-hidden rounded-[2rem] border bg-card/85 shadow-sm shadow-foreground/5 backdrop-blur">
+        <TonalWidget tone="neutral" className="space-y-2 p-3 sm:p-3">
           {transactions.map((transaction, index) => {
             const Icon = getTransactionIcon(transaction.type);
             const tone = getTransactionTone(transaction.type);
@@ -71,12 +72,16 @@ export function RecentTransactions({ transactions }: Props) {
               <div
                 key={transaction.id}
                 className={cn(
-                  "flex items-center justify-between gap-3 p-4 transition hover:bg-muted/40",
-                  index > 0 && "border-t",
+                  "flex items-center justify-between gap-3 rounded-[1.5rem] border bg-background/70 p-3 shadow-sm shadow-foreground/5 transition hover:bg-background sm:p-4",
+                  index === 0 && "border-primary/20",
                 )}
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <IconBadge icon={Icon} tone={tone} className="size-11" />
+                  <IconBadge
+                    icon={Icon}
+                    tone={tone}
+                    className="size-12 rounded-[1.35rem]"
+                  />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {transaction.note || "Untitled transaction"}
@@ -108,7 +113,7 @@ export function RecentTransactions({ transactions }: Props) {
               </div>
             );
           })}
-        </div>
+        </TonalWidget>
       )}
     </section>
   );
