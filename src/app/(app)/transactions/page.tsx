@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { transactions, accounts, categories } from "@/lib/db/schema";
 import { auth } from "@/lib/auth/config";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull, desc, or } from "drizzle-orm";
 import { TransactionList } from "@/components/transactions/TransactionList";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,12 @@ export default async function TransactionsPage() {
       .select()
       .from(accounts)
       .where(and(eq(accounts.userId, userId), isNull(accounts.deletedAt))),
-    db.select().from(categories).where(isNull(categories.deletedAt)),
+    db.select().from(categories).where(
+      and(
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, userId), isNull(categories.userId)),
+      )
+    ),
   ]);
 
   const hasAccounts = accountList.length > 0;

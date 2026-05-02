@@ -1,9 +1,9 @@
 'use server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { budgets, savingsGoals } from '@/lib/db/schema'
+import { budgets, savingsGoals, categories } from '@/lib/db/schema'
 import { budgetSchema, savingsGoalSchema } from '@/lib/validations/budget'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
 export async function createBudget(_: unknown, formData: FormData) {
@@ -20,6 +20,19 @@ export async function createBudget(_: unknown, formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data
+
+  // Verify categoryId is current-user-owned or system
+  if (d.categoryId) {
+    const catCheck = await db.query.categories.findFirst({
+      where: and(
+        eq(categories.id, d.categoryId),
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, session.user.id), isNull(categories.userId)),
+      ),
+    });
+    if (!catCheck) return { error: 'Category not found or not yours' }
+  }
+
   await db.insert(budgets).values({
     userId: session.user.id,
     name: d.name,

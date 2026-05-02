@@ -8,7 +8,7 @@ import {
   transactions,
   users,
 } from "@/lib/db/schema";
-import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { Plus, ReceiptText, Settings, WalletCards } from "lucide-react";
 
@@ -88,7 +88,12 @@ export default async function DashboardPage() {
       .select()
       .from(accounts)
       .where(and(eq(accounts.userId, userId), isNull(accounts.deletedAt))),
-    db.select().from(categories).where(isNull(categories.deletedAt)),
+    db.select().from(categories).where(
+      and(
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, userId), isNull(categories.userId)),
+      )
+    ),
   ]);
 
   const displayName = user?.name?.split(" ")[0] ?? "there";

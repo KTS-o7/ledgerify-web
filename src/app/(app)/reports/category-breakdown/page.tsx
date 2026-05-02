@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
 import { users, categories } from '@/lib/db/schema'
-import { eq, isNull, and } from 'drizzle-orm'
+import { eq, isNull, and, or } from 'drizzle-orm'
 import { getCategoryBreakdown } from '@/lib/utils/reports'
 import { CategoryPieChart } from '@/components/reports/CategoryPieChart'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
@@ -21,7 +21,12 @@ export default async function CategoryBreakdownPage() {
 
   const [breakdown, categoryRows] = await Promise.all([
     getCategoryBreakdown(userId, monthStart, monthEnd),
-    db.select().from(categories).where(and(isNull(categories.deletedAt))),
+    db.select().from(categories).where(
+      and(
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, userId), isNull(categories.userId)),
+      )
+    ),
   ])
 
   const catMap = new Map(categoryRows.map(c => [c.id, c.name]))

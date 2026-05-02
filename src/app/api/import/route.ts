@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth/config'
 import { parseCSV } from '@/lib/utils/csv'
 import { db } from '@/lib/db'
 import { transactions, categories, accounts } from '@/lib/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, or } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
       let categoryId: string | null = null
       if (row.category) {
         const catRows = await db.select().from(categories)
-          .where(and(eq(categories.name, row.category), isNull(categories.deletedAt)))
+          .where(and(
+            eq(categories.name, row.category),
+            isNull(categories.deletedAt),
+            or(eq(categories.userId, userId), isNull(categories.userId)),
+          ))
           .limit(1)
         if (catRows.length) {
           categoryId = catRows[0].id
