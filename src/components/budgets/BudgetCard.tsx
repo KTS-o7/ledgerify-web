@@ -99,6 +99,7 @@ export function BudgetCard({ budget, spent }: Props) {
               variant="outline"
               size="sm"
               className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
+              disabled={isPending}
             />
           }
         >

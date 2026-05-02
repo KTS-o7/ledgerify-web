@@ -52,6 +52,12 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      const amount = parseFloat(row.amount)
+      if (!isFinite(amount) || amount <= 0) {
+        errors.push(`Row ${rowNum}: invalid amount "${row.amount}"`)
+        continue
+      }
+
       // resolve or create category
       let categoryId: string | null = null
       if (row.category) {
@@ -73,12 +79,6 @@ export async function POST(req: NextRequest) {
           }).returning()
           categoryId = newCat.id
         }
-      }
-
-      const amount = parseFloat(row.amount)
-      if (!isFinite(amount) || amount <= 0) {
-        errors.push(`Row ${rowNum}: invalid amount "${row.amount}"`)
-        continue
       }
       const currency = row.currency || 'INR'
       const cacheKey = `${currency}→${baseCurrency}`

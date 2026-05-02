@@ -49,7 +49,7 @@ interface Props {
 
 type TransactionFilter = "all" | Transaction["type"];
 
-const filters: Array<{ value: TransactionFilter; label: string }> = [
+const BASE_FILTERS: Array<{ value: TransactionFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "expense", label: "Expenses" },
   { value: "income", label: "Income" },
@@ -154,6 +154,19 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const hasTransfers = useMemo(
+    () => transactions.some((t) => t.type === "transfer"),
+    [transactions],
+  );
+
+  const filters = useMemo(
+    () =>
+      hasTransfers
+        ? BASE_FILTERS
+        : BASE_FILTERS.filter((f) => f.value !== "transfer"),
+    [hasTransfers],
+  );
 
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -260,14 +273,16 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
           tone="negative"
           count={`${summary.expenseCount} entries in view`}
         />
-        <AmountBox
-          label="Transfers"
-          amount={summary.transfer}
-          currency={summaryCurrency}
-          icon={ArrowLeftRight}
-          tone="info"
-          count={`${summary.transferCount} entries in view`}
-        />
+        {hasTransfers && (
+          <AmountBox
+            label="Transfers"
+            amount={summary.transfer}
+            currency={summaryCurrency}
+            icon={ArrowLeftRight}
+            tone="info"
+            count={`${summary.transferCount} entries in view`}
+          />
+        )}
       </div>
 
       <TonalWidget tone="primary" className="p-3 sm:p-3">
