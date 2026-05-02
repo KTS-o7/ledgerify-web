@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
 
     let updated = 0
     for (const [target, rate] of Object.entries(data.rates)) {
-      // Store direct rate: INR → target
       await db
         .insert(exchangeRates)
         .values({ base: 'INR', target, rate: String(rate), fetchedAt: new Date() })
@@ -26,17 +25,6 @@ export async function GET(req: NextRequest) {
           target: [exchangeRates.base, exchangeRates.target],
           set: { rate: String(rate), fetchedAt: new Date() },
         })
-
-      // Store inverse rate: target → INR
-      const inverseRate = rate !== 0 ? 1 / rate : 0
-      await db
-        .insert(exchangeRates)
-        .values({ base: target, target: 'INR', rate: String(inverseRate), fetchedAt: new Date() })
-        .onConflictDoUpdate({
-          target: [exchangeRates.base, exchangeRates.target],
-          set: { rate: String(inverseRate), fetchedAt: new Date() },
-        })
-
       updated++
     }
 
