@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth/config'
 import { parseCSV } from '@/lib/utils/csv'
 import { db } from '@/lib/db'
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   const errors: string[] = []
   let imported = 0
+  const rateCache = new Map<string, number>()
 
   for (const [i, row] of rows.entries()) {
     const rowNum = i + 2
@@ -74,8 +76,17 @@ export async function POST(req: NextRequest) {
       }
 
       const amount = parseFloat(row.amount)
+      if (!isFinite(amount) || amount <= 0) {
+        errors.push(`Row ${rowNum}: invalid amount "${row.amount}"`)
+        continue
+      }
       const currency = row.currency || 'INR'
-      const rate = await getRate(currency, baseCurrency)
+      const cacheKey = `${currency}→${baseCurrency}`
+      let rate = rateCache.get(cacheKey)
+      if (rate === undefined) {
+        rate = await getRate(currency, baseCurrency)
+        rateCache.set(cacheKey, rate)
+      }
       const convertedAmount = amount * rate
 
       await db.insert(transactions).values({
@@ -94,6 +105,11 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       errors.push(`Row ${rowNum}: ${String(e)}`)
     }
+  }
+
+  if (imported > 0) {
+    revalidatePath('/transactions')
+    revalidatePath('/dashboard')
   }
 
   return NextResponse.json({ imported, errors, total: rows.length })
