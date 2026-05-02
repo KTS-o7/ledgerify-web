@@ -165,7 +165,7 @@ export function TransactionForm({ accounts, categories }: Props) {
           id="note"
           name="note"
           type="text"
-          placeholder="Coffee, rent, salary, transfer…"
+          placeholder="Coffee, rent, salary…"
           autoComplete="off"
           className="h-11 rounded-2xl"
         />

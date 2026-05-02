@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      const txType = row.type as 'income' | 'expense'
+      if (!['income', 'expense'].includes(txType)) {
+        errors.push(`Row ${rowNum}: type "${row.type}" is not supported. Use "income" or "expense".`)
+        continue
+      }
+
       // resolve or create category
       let categoryId: string | null = null
       if (row.category) {
@@ -67,12 +73,6 @@ export async function POST(req: NextRequest) {
           }).returning()
           categoryId = newCat.id
         }
-      }
-
-      const txType = row.type as 'income' | 'expense'
-      if (!['income', 'expense'].includes(txType)) {
-        errors.push(`Row ${rowNum}: type "${row.type}" is not supported. Use "income" or "expense".`)
-        continue
       }
 
       const amount = parseFloat(row.amount)
