@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,13 +24,16 @@ export function TransactionSheetTrigger({ accounts, categories }: Props) {
   const typeParam = searchParams.get("type");
   const shouldAutoOpen = typeParam === "expense" || typeParam === "income";
   const [open, setOpen] = useState(false);
+  const hasAutoOpened = useRef(false);
 
   // Auto-open the sheet when a ?type= param is present on mount
   useEffect(() => {
-    if (shouldAutoOpen) {
+    if (shouldAutoOpen && !hasAutoOpened.current) {
+      hasAutoOpened.current = true;
       setOpen(true);
     }
-  }, [shouldAutoOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount only
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
