@@ -69,9 +69,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const txType = row.type as 'income' | 'expense' | 'transfer'
-      if (!['income', 'expense', 'transfer'].includes(txType)) {
-        errors.push(`Row ${rowNum}: invalid type "${row.type}"`)
+      const txType = row.type as 'income' | 'expense'
+      if (!['income', 'expense'].includes(txType)) {
+        errors.push(`Row ${rowNum}: type "${row.type}" is not supported. Use "income" or "expense".`)
         continue
       }
 
