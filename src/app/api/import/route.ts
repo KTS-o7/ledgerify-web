@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/config'
 import { parseCSV } from '@/lib/utils/csv'
 import { db } from '@/lib/db'
-import { transactions, categories, accounts } from '@/lib/db/schema'
+import { transactions, categories, accounts, users } from '@/lib/db/schema'
 import { eq, and, isNull, or } from 'drizzle-orm'
+import { getRate } from '@/lib/utils/currency'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -11,6 +12,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const userId = session.user.id
+
+  const userRow = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  const baseCurrency = userRow[0]?.defaultCurrency ?? 'INR'
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -69,12 +73,19 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      const amount = parseFloat(row.amount)
+      const currency = row.currency || 'INR'
+      const rate = await getRate(currency, baseCurrency)
+      const convertedAmount = amount * rate
+
       await db.insert(transactions).values({
         userId,
         accountId: accountRows[0].id,
         type: txType,
-        amount: row.amount,
-        currency: row.currency || 'INR',
+        amount: String(amount),
+        currency,
+        convertedAmount: String(convertedAmount),
+        baseCurrency,
         categoryId,
         note: row.note || null,
         date: row.date,
