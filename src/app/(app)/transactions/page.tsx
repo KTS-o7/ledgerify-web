@@ -2,17 +2,10 @@ import { db } from "@/lib/db";
 import { transactions, accounts, categories } from "@/lib/db/schema";
 import { auth } from "@/lib/auth/config";
 import { eq, and, isNull, desc, or } from "drizzle-orm";
+import { Suspense } from "react";
 import { TransactionList } from "@/components/transactions/TransactionList";
-import { TransactionForm } from "@/components/transactions/TransactionForm";
+import { TransactionSheetTrigger } from "@/components/transactions/TransactionSheetTrigger";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   EmptyState,
   HeaderActionLink,
@@ -56,29 +49,19 @@ export default async function TransactionsPage() {
         description="Record income, expenses, and transfers quickly so your money picture stays current."
         action={
           hasAccounts ? (
-            <Sheet>
-              <SheetTrigger
-                render={<Button size="lg" className="rounded-2xl" />}
-              >
-                <Plus className="h-4 w-4" />
-                Add transaction
-              </SheetTrigger>
-              <SheetContent className="sm:max-w-md">
-                <SheetHeader>
-                  <SheetTitle>New transaction</SheetTitle>
-                  <SheetDescription>
-                    Capture the basics first. You can keep it simple and add
-                    more detail later.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="overflow-y-auto px-4 pb-4">
-                  <TransactionForm
-                    accounts={accountList}
-                    categories={categoryList}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Suspense
+              fallback={
+                <Button size="lg" className="rounded-2xl" disabled>
+                  <Plus className="h-4 w-4" />
+                  Add transaction
+                </Button>
+              }
+            >
+              <TransactionSheetTrigger
+                accounts={accountList}
+                categories={categoryList}
+              />
+            </Suspense>
           ) : (
             <HeaderActionLink href="/settings/accounts">
               <Plus className="h-4 w-4" />
