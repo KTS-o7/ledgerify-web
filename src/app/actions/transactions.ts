@@ -102,6 +102,26 @@ export async function updateTransaction(_: unknown, formData: FormData) {
 
   const { tagIds: _tagIds, ...data } = parsed.data;
 
+  // Verify accountId belongs to the current user
+  if (data.accountId) {
+    const accountCheck = await db.query.accounts.findFirst({
+      where: and(eq(accounts.id, data.accountId), eq(accounts.userId, session.user.id), isNull(accounts.deletedAt)),
+    });
+    if (!accountCheck) return { error: "Account not found or not yours" };
+  }
+
+  // Verify categoryId is current-user-owned or system
+  if (data.categoryId) {
+    const catCheck = await db.query.categories.findFirst({
+      where: and(
+        eq(categories.id, data.categoryId),
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, session.user.id), isNull(categories.userId)),
+      ),
+    });
+    if (!catCheck) return { error: "Category not found or not yours" };
+  }
+
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.user.id),
   });
