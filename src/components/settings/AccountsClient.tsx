@@ -19,6 +19,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Banknote, Landmark, Plus, Trash2, Wallet, WalletCards } from 'lucide-react'
 import type { Account } from '@/lib/db/schema'
 
@@ -81,17 +91,44 @@ function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string 
 
 function DeleteAccountButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(() => void deleteAccount(id))
+  }
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="rounded-2xl text-muted-foreground hover:text-destructive"
-      disabled={pending}
-      onClick={() => startTransition(() => void deleteAccount(id))}
-      aria-label="Delete account"
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-muted-foreground hover:text-destructive"
+            aria-label="Delete account"
+          />
+        }
+      >
+        <Trash2 className="h-4 w-4" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete account?</DialogTitle>
+          <DialogDescription>
+            This account will be removed. Existing transaction history will be kept, but this account will no longer appear in dropdowns. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={pending}
+          >
+            {pending ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

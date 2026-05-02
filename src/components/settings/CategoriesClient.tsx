@@ -19,6 +19,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { ArrowDownRight, ArrowUpRight, FolderTree, Plus, Trash2 } from 'lucide-react'
 import type { Category } from '@/lib/db/schema'
 
@@ -65,17 +75,44 @@ function AddCategoryForm() {
 
 function DeleteCategoryButton({ id }: { id: string }) {
   const [pending, startTransition] = useTransition()
+
+  function handleDelete() {
+    startTransition(() => void deleteCategory(id))
+  }
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="rounded-2xl text-muted-foreground hover:text-destructive"
-      disabled={pending}
-      onClick={() => startTransition(() => void deleteCategory(id))}
-      aria-label="Delete category"
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-muted-foreground hover:text-destructive"
+            aria-label="Delete category"
+          />
+        }
+      >
+        <Trash2 className="h-4 w-4" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete category?</DialogTitle>
+          <DialogDescription>
+            This category will be removed. Existing transactions will keep their category label but you won&apos;t be able to select it for new ones. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={pending}
+          >
+            {pending ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

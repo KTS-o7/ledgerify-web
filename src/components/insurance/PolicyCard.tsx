@@ -11,6 +11,16 @@ import {
   TonalWidget,
 } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import type { InsurancePolicy } from '@/lib/db/schema'
 
 const POLICY_TYPE_LABELS: Record<string, string> = {
@@ -102,16 +112,38 @@ export function PolicyCard({ policy }: Props) {
         </div>
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full rounded-2xl text-destructive hover:text-destructive"
-        onClick={handleDelete}
-        disabled={isPending}
-      >
-        <Trash2 className="size-4" />
-        {isPending ? 'Deleting...' : 'Delete policy'}
-      </Button>
+      <Dialog>
+        <DialogTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full rounded-2xl text-destructive hover:text-destructive"
+            />
+          }
+        >
+          <Trash2 className="size-4" />
+          Delete policy
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete policy?</DialogTitle>
+            <DialogDescription>
+              This insurance policy record will be permanently removed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
+              {isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TonalWidget>
   )
 }

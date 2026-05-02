@@ -19,6 +19,16 @@ import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   AmountBox,
   EmptyState,
   IconBadge,
@@ -49,21 +59,45 @@ const filters: Array<{ value: TransactionFilter; label: string }> = [
 function DeleteButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
 
+  function handleDelete() {
+    startTransition(() => {
+      deleteTransaction(id);
+    });
+  }
+
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      disabled={isPending}
-      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-      aria-label="Delete transaction"
-      onClick={() =>
-        startTransition(() => {
-          deleteTransaction(id);
-        })
-      }
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete transaction"
+          />
+        }
+      >
+        <Trash2 className="h-4 w-4" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete transaction?</DialogTitle>
+          <DialogDescription>
+            This transaction will be permanently removed. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+          >
+            {isPending ? "Deleting…" : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
