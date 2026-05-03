@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 
 const createSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card']),
+  type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card', 'investment']),
   currency: z.string().length(3),
   openingBalance: z.coerce.number().default(0),
   creditLimit: z.coerce.number().optional(),
