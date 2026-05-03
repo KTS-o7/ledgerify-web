@@ -53,6 +53,7 @@ export async function computeNetworth(userId: string, baseCurrency: string): Pro
       .from(transactions)
       .where(and(
         eq(transactions.accountId, account.id),
+        eq(transactions.userId, userId),
         isNull(transactions.deletedAt),
       ))
 
