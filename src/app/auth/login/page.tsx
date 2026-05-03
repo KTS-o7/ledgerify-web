@@ -49,7 +49,7 @@ export default function LoginPage() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </Button>
           <p className="text-sm text-center text-muted-foreground">
             No account?{' '}

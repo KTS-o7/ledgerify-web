@@ -166,7 +166,7 @@ export function GoalCard({ goal }: Props) {
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                 <Button onClick={handleContribute} disabled={isPending}>
-                  {isPending ? 'Saving...' : 'Add'}
+                  {isPending ? 'Saving…' : 'Add'}
                 </Button>
               </DialogFooter>
             </DialogContent>

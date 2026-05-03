@@ -83,7 +83,7 @@ function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string 
         <p className="text-sm text-destructive">{state.error}</p>
       )}
       <Button type="submit" disabled={pending} className="w-full rounded-2xl">
-        {pending ? 'Adding...' : 'Add account'}
+        {pending ? 'Adding…' : 'Add account'}
       </Button>
     </form>
   )

@@ -145,7 +145,7 @@ export function AssetCard({ investment }: Props) {
             <DialogFooter>
               <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
               <Button onClick={handleUpdatePrice} disabled={isPending}>
-                {isPending ? 'Saving...' : 'Save'}
+                {isPending ? 'Saving…' : 'Save'}
               </Button>
             </DialogFooter>
           </DialogContent>

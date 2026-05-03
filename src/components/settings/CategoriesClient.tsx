@@ -67,7 +67,7 @@ function AddCategoryForm() {
         <p className="text-sm text-destructive">{state.error}</p>
       )}
       <Button type="submit" disabled={pending} className="w-full rounded-2xl">
-        {pending ? 'Adding...' : 'Add category'}
+        {pending ? 'Adding…' : 'Add category'}
       </Button>
     </form>
   )
