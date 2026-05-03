@@ -14,6 +14,7 @@ import {
   PiggyBank,
   Plus,
   LogOut,
+  WalletCards,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutUser } from "@/app/actions/auth";
@@ -24,6 +25,7 @@ const navSections = [
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { href: "/accounts", label: "Accounts", icon: WalletCards },
     ],
   },
   {
