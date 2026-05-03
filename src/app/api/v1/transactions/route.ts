@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const accountId = searchParams.get('accountId')
   const from = searchParams.get('from')
   const to = searchParams.get('to')
-  const limit = Math.min(Number(searchParams.get('limit') ?? 100), 500)
+  const limit = Math.min(parseInt(searchParams.get('limit') ?? '100', 10) || 100, 500)
 
   const conditions: SQL[] = [
     eq(transactions.userId, auth.userId),
@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
     .where(and(...conditions as [SQL, ...SQL[]]))
     .limit(limit)
     .orderBy(transactions.date)
-
   return NextResponse.json(rows)
 }
 

@@ -21,5 +21,6 @@ export async function DELETE(
   revalidatePath('/dashboard')
   revalidatePath('/transactions')
   revalidatePath('/networth')
+  revalidatePath('/reports/cash-flow')
   return NextResponse.json({ success: true })
 }

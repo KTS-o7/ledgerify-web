@@ -40,5 +40,6 @@ export async function POST(req: NextRequest) {
   revalidatePath('/dashboard')
   revalidatePath('/transactions')
   revalidatePath('/networth')
+  revalidatePath('/reports/cash-flow')
   return NextResponse.json(row, { status: 201 })
 }

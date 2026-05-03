@@ -21,9 +21,7 @@ export async function PATCH(
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
 
   const { currentPrice } = parsed.data
-  if (!Number.isFinite(currentPrice) || currentPrice < 0) {
-    return NextResponse.json({ error: 'Price must be a non-negative number' }, { status: 400 })
-  }
+  // z.number().min(0) in schema already rejects negatives and non-numbers
 
   const [row] = await db.update(investments)
     .set({ currentPrice: String(currentPrice), currentPriceUpdatedAt: new Date(), updatedAt: new Date() })
