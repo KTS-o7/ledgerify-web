@@ -18,8 +18,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
+        const email = parsed.data.email.toLowerCase().trim()
         const user = await db.query.users.findFirst({
-          where: eq(users.email, parsed.data.email),
+          where: eq(users.email, email),
         })
         if (!user || !user.passwordHash) return null
 

@@ -1,7 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 import { createTransaction } from "@/app/actions/transactions";
 import { IconBadge } from "@/components/shared/quiet-ledger";
@@ -21,10 +21,7 @@ export function TransactionForm({ accounts, categories }: Props) {
   const searchParams = useSearchParams();
   const defaultCurrency = accounts[0]?.currency ?? "INR";
   const requestedType = searchParams.get("type");
-  const defaultType =
-    requestedType === "income" || requestedType === "transfer"
-      ? requestedType
-      : "expense";
+  const defaultType = requestedType === "income" ? "income" : "expense";
   const incomeCategories = categories.filter(
     (category) => category.type === "income",
   );
@@ -45,18 +42,12 @@ export function TransactionForm({ accounts, categories }: Props) {
       icon: ArrowUpRight,
       tone: "positive" as const,
     },
-    {
-      value: "transfer",
-      label: "Transfer",
-      icon: ArrowLeftRight,
-      tone: "info" as const,
-    },
   ];
 
   return (
     <form action={formAction} className="space-y-5">
       <div className="rounded-3xl border bg-primary/10 p-2">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {transactionTypes.map((item) => (
             <label
               key={item.value}
@@ -174,7 +165,7 @@ export function TransactionForm({ accounts, categories }: Props) {
           id="note"
           name="note"
           type="text"
-          placeholder="Coffee, rent, salary, transfer…"
+          placeholder="Coffee, rent, salary…"
           autoComplete="off"
           className="h-11 rounded-2xl"
         />

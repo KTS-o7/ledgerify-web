@@ -52,13 +52,6 @@ const quickActions = [
     tone: "text-emerald-600 bg-emerald-50 border-emerald-200",
   },
   {
-    href: "/transactions?type=transfer",
-    label: "Transfer",
-    description: "Move money between accounts",
-    icon: ArrowLeftRight,
-    tone: "text-sky-600 bg-sky-50 border-sky-200",
-  },
-  {
     href: "/budgets/goals",
     label: "Goal contribution",
     description: "Update savings progress",

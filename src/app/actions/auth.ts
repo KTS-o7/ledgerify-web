@@ -19,15 +19,17 @@ export async function registerUser(_: unknown, formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
+  const email = parsed.data.email.toLowerCase().trim()
+
   const existing = await db.query.users.findFirst({
-    where: eq(users.email, parsed.data.email),
+    where: eq(users.email, email),
   })
   if (existing) return { error: 'Email already registered' }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12)
   await db.insert(users).values({
     name: parsed.data.name,
-    email: parsed.data.email,
+    email,
     passwordHash,
   })
 

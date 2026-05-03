@@ -9,11 +9,14 @@ export const insuranceSchema = z.object({
   coverageAmount: z.coerce.number().optional(),
   currency: z.string().length(3),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().optional(),
-  renewalDate: z.string().optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  renewalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   nominee: z.string().optional(),
   notes: z.string().optional(),
-})
+}).refine(
+  (d) => !d.endDate || !d.startDate || d.endDate >= d.startDate,
+  { message: 'End date must be on or after start date', path: ['endDate'] },
+)
 
 export const insurancePaymentSchema = z.object({
   policyId: z.string().uuid(),

@@ -19,6 +19,16 @@ import { formatCurrency } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   AmountBox,
   EmptyState,
   IconBadge,
@@ -39,7 +49,7 @@ interface Props {
 
 type TransactionFilter = "all" | Transaction["type"];
 
-const filters: Array<{ value: TransactionFilter; label: string }> = [
+const BASE_FILTERS: Array<{ value: TransactionFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "expense", label: "Expenses" },
   { value: "income", label: "Income" },
@@ -49,21 +59,45 @@ const filters: Array<{ value: TransactionFilter; label: string }> = [
 function DeleteButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
 
+  function handleDelete() {
+    startTransition(() => {
+      deleteTransaction(id);
+    });
+  }
+
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      disabled={isPending}
-      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-      aria-label="Delete transaction"
-      onClick={() =>
-        startTransition(() => {
-          deleteTransaction(id);
-        })
-      }
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete transaction"
+          />
+        }
+      >
+        <Trash2 className="h-4 w-4" />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete transaction?</DialogTitle>
+          <DialogDescription>
+            This transaction will be permanently removed. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+          >
+            {isPending ? "Deleting…" : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -120,6 +154,19 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const hasTransfers = useMemo(
+    () => transactions.some((t) => t.type === "transfer"),
+    [transactions],
+  );
+
+  const filters = useMemo(
+    () =>
+      hasTransfers
+        ? BASE_FILTERS
+        : BASE_FILTERS.filter((f) => f.value !== "transfer"),
+    [hasTransfers],
+  );
 
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -226,14 +273,16 @@ export function TransactionList({ transactions, accounts, categories }: Props) {
           tone="negative"
           count={`${summary.expenseCount} entries in view`}
         />
-        <AmountBox
-          label="Transfers"
-          amount={summary.transfer}
-          currency={summaryCurrency}
-          icon={ArrowLeftRight}
-          tone="info"
-          count={`${summary.transferCount} entries in view`}
-        />
+        {hasTransfers && (
+          <AmountBox
+            label="Transfers"
+            amount={summary.transfer}
+            currency={summaryCurrency}
+            icon={ArrowLeftRight}
+            tone="info"
+            count={`${summary.transferCount} entries in view`}
+          />
+        )}
       </div>
 
       <TonalWidget tone="primary" className="p-3 sm:p-3">

@@ -10,7 +10,11 @@ export async function createInvestment(_: unknown, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
-  const parsed = investmentSchema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = investmentSchema.safeParse({
+    ...raw,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const data = parsed.data
@@ -27,6 +31,9 @@ export async function createInvestment(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }
 
@@ -62,11 +69,18 @@ export async function updateInvestmentPrice(id: string, currentPrice: number) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
+  if (!Number.isFinite(currentPrice) || currentPrice < 0) {
+    return { error: 'Price must be a non-negative number' }
+  }
+
   await db.update(investments)
     .set({ currentPrice: String(currentPrice), currentPriceUpdatedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(investments.id, id), eq(investments.userId, session.user.id)))
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }
 
@@ -79,5 +93,8 @@ export async function deleteInvestment(id: string) {
     .where(and(eq(investments.id, id), eq(investments.userId, session.user.id)))
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }

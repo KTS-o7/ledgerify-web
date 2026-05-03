@@ -1,14 +1,19 @@
 import { z } from 'zod'
 
+const optionalPositiveNumber = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.coerce.number().positive().optional(),
+)
+
 export const investmentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   assetType: z.enum(['stock', 'mf', 'crypto', 'fd', 'ppf', 'nps', 'gold', 'silver', 'real_estate', 'savings', 'other']),
   currency: z.string().length(3),
-  quantity: z.coerce.number().optional(),
-  buyPrice: z.coerce.number().optional(),
-  currentPrice: z.coerce.number().optional(),
+  quantity: optionalPositiveNumber,
+  buyPrice: optionalPositiveNumber,
+  currentPrice: optionalPositiveNumber,
   maturityDate: z.string().optional(),
-  interestRate: z.coerce.number().optional(),
+  interestRate: optionalPositiveNumber,
 })
 
 export const investmentTxSchema = z.object({
@@ -20,3 +25,6 @@ export const investmentTxSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   note: z.string().optional(),
 })
+
+export type InvestmentInput = z.infer<typeof investmentSchema>
+export type InvestmentTxInput = z.infer<typeof investmentTxSchema>

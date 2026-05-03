@@ -5,8 +5,8 @@ import { exchangeRates } from '@/lib/db/schema'
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'SGD', 'AED', 'CAD', 'AUD']
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || req.headers.get('x-cron-secret') !== cronSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

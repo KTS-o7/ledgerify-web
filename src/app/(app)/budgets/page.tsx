@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { budgets, categories, transactions, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/config'
-import { eq, and, isNull, gte, lte } from 'drizzle-orm'
+import { eq, and, isNull, gte, lte, or } from 'drizzle-orm'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, format } from 'date-fns'
 import { BudgetCard } from '@/components/budgets/BudgetCard'
 import { BudgetForm } from '@/components/budgets/BudgetForm'
@@ -72,7 +72,12 @@ export default async function BudgetsPage() {
           lte(transactions.date, weekEnd),
         ),
       ),
-    db.select().from(categories).where(isNull(categories.deletedAt)),
+    db.select().from(categories).where(
+      and(
+        isNull(categories.deletedAt),
+        or(eq(categories.userId, userId), isNull(categories.userId)),
+      )
+    ),
   ])
   const baseCurrency = userRow[0]?.defaultCurrency ?? 'INR'
 

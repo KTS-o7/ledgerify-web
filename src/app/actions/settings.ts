@@ -13,7 +13,17 @@ export async function updateProfile(_: unknown, formData: FormData) {
   const schema = z.object({
     name: z.string().min(1),
     defaultCurrency: z.string().length(3),
-    timezone: z.string().min(1),
+    timezone: z.string().min(1).refine(
+      (tz) => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz })
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: 'Invalid timezone' },
+    ),
   })
   const raw = Object.fromEntries(formData)
   const parsed = schema.safeParse({
@@ -27,6 +37,8 @@ export async function updateProfile(_: unknown, formData: FormData) {
     .where(eq(users.id, session.user.id))
 
   revalidatePath('/settings/profile')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
   return { success: true }
 }
 
@@ -48,6 +60,10 @@ export async function createAccount(_: unknown, formData: FormData) {
 
   await db.insert(accounts).values({ ...parsed.data, userId: session.user.id })
   revalidatePath('/settings/accounts')
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/networth')
+  revalidatePath('/reports/cash-flow')
   return { success: true }
 }
 
@@ -58,6 +74,10 @@ export async function deleteAccount(id: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(accounts.id, id), eq(accounts.userId, session.user.id)))
   revalidatePath('/settings/accounts')
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/networth')
+  revalidatePath('/reports/cash-flow')
   return { success: true }
 }
 
@@ -79,6 +99,10 @@ export async function createCategory(_: unknown, formData: FormData) {
 
   await db.insert(categories).values({ ...parsed.data, userId: session.user.id })
   revalidatePath('/settings/categories')
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/budgets')
+  revalidatePath('/reports/category-breakdown')
   return { success: true }
 }
 
@@ -89,5 +113,9 @@ export async function deleteCategory(id: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(categories.id, id), eq(categories.userId, session.user.id)))
   revalidatePath('/settings/categories')
+  revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/budgets')
+  revalidatePath('/reports/category-breakdown')
   return { success: true }
 }

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -165,23 +166,45 @@ export function GoalCard({ goal }: Props) {
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                 <Button onClick={handleContribute} disabled={isPending}>
-                  {isPending ? 'Saving...' : 'Add'}
+                  {isPending ? 'Saving…' : 'Add'}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         )}
 
-        <Button
-          variant="destructive"
-          size="sm"
-          className={goal.status === 'active' ? 'rounded-2xl' : 'flex-1 rounded-2xl'}
-          onClick={handleDelete}
-          disabled={isPending}
-        >
-          <Trash2 className="size-4" />
-          {isPending ? 'Deleting...' : 'Delete'}
-        </Button>
+        <Dialog>
+          <DialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                size="sm"
+                className={goal.status === 'active' ? 'rounded-2xl' : 'flex-1 rounded-2xl'}
+              />
+            }
+          >
+            <Trash2 className="size-4" />
+            Delete
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete goal?</DialogTitle>
+              <DialogDescription>
+                This savings goal will be permanently removed. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                {isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TonalWidget>
   )

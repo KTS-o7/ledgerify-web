@@ -12,6 +12,16 @@ import {
   TonalWidget,
 } from '@/components/shared/quiet-ledger'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import type { Budget } from '@/lib/db/schema'
 
 interface Props {
@@ -82,16 +92,39 @@ export function BudgetCard({ budget, spent }: Props) {
         </div>
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
-        onClick={handleDelete}
-        disabled={isPending}
-      >
-        <Trash2 className="size-4" />
-        {isPending ? 'Deleting...' : 'Delete budget'}
-      </Button>
+      <Dialog>
+        <DialogTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-5 w-full rounded-2xl text-destructive hover:text-destructive"
+              disabled={isPending}
+            />
+          }
+        >
+          <Trash2 className="size-4" />
+          Delete budget
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete budget?</DialogTitle>
+            <DialogDescription>
+              &ldquo;{budget.name}&rdquo; will be permanently removed. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
+              {isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TonalWidget>
   )
 }
