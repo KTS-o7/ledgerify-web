@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, date, timestamp, pgEnum, text } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, numeric, date, boolean, timestamp, pgEnum, text } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { categories } from './categories'
 import { accounts } from './accounts'
@@ -14,6 +14,8 @@ export const budgets = pgTable('budgets', {
   amount: numeric('amount', { precision: 18, scale: 4 }).notNull(),
   currency: varchar('currency', { length: 3 }).notNull(),
   periodType: periodTypeEnum('period_type').notNull(),
+  periodAnchorDate: date('period_anchor_date'),
+  rollover: boolean('rollover').notNull().default(false),
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
