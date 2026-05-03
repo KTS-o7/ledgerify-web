@@ -15,6 +15,13 @@
       "when": 1777806986503,
       "tag": "0001_soft_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777820252508,
+      "tag": "0002_lush_frightful_four",
+      "breakpoints": true
     }
   ]
 }

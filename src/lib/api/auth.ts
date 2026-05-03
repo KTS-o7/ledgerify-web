@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth/config'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function resolveSession(
-  req: NextRequest,
+  _req: NextRequest,
 ): Promise<{ userId: string } | NextResponse> {
   const session = await auth()
   if (!session?.user?.id) {

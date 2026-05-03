@@ -1,5 +1,5 @@
 'use client'
-import { useTransition, useActionState } from 'react'
+import { useTransition, useActionState, useState } from 'react'
 import { createAccount, deleteAccount } from '@/app/actions/settings'
 import {
   EmptyState,
@@ -41,10 +41,12 @@ const accountMeta = {
   wallet: { label: 'Wallet', icon: Wallet, tone: 'primary' },
   cash: { label: 'Cash', icon: Banknote, tone: 'positive' },
   savings: { label: 'Savings', icon: WalletCards, tone: 'warning' },
+  credit_card: { label: 'Credit Card', icon: WalletCards, tone: 'warning' },
 } as const
 
 function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string }) {
   const [state, action, pending] = useActionState(createAccount, null)
+  const [selectedType, setSelectedType] = useState('bank')
 
   return (
     <form action={action} className="mt-5 space-y-5 px-4">
@@ -59,12 +61,14 @@ function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string 
             id="acc-type"
             name="type"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            defaultValue="bank"
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
           >
             <option value="bank">Bank</option>
             <option value="wallet">Wallet</option>
             <option value="cash">Cash</option>
             <option value="savings">Savings</option>
+            <option value="credit_card">Credit Card</option>
           </select>
         </div>
         <div className="space-y-1">
@@ -79,6 +83,46 @@ function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string 
           />
         </div>
       </div>
+
+      {selectedType === 'credit_card' && (
+        <div className="space-y-4 rounded-lg border border-border p-4">
+          <div className="space-y-1">
+            <Label htmlFor="acc-credit-limit">Credit limit</Label>
+            <Input
+              id="acc-credit-limit"
+              name="creditLimit"
+              type="number"
+              placeholder="e.g. 100000"
+              min={0}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="acc-statement-day">Statement date (day of month)</Label>
+              <Input
+                id="acc-statement-day"
+                name="statementDay"
+                type="number"
+                placeholder="e.g. 5"
+                min={1}
+                max={28}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="acc-payment-due-day">Payment due (day of month)</Label>
+              <Input
+                id="acc-payment-due-day"
+                name="paymentDueDay"
+                type="number"
+                placeholder="e.g. 25"
+                min={1}
+                max={28}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {state && 'error' in state && state.error && (
         <p className="text-sm text-destructive">{state.error}</p>
       )}

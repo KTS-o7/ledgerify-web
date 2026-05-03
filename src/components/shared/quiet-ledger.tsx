@@ -151,7 +151,6 @@ export function PageShell({
 export function PageHeader({
   title,
   description,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   eyebrow: _eyebrow,
   action,
   children,

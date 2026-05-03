@@ -48,7 +48,7 @@ export async function createAccount(_: unknown, formData: FormData) {
 
   const schema = z.object({
     name: z.string().min(1),
-    type: z.enum(['bank', 'wallet', 'cash', 'savings']),
+    type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card']),
     currency: z.string().length(3),
   })
   const raw = Object.fromEntries(formData)
@@ -58,7 +58,17 @@ export async function createAccount(_: unknown, formData: FormData) {
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  await db.insert(accounts).values({ ...parsed.data, userId: session.user.id })
+  const creditLimit = formData.get('creditLimit') ? String(formData.get('creditLimit')) : null
+  const statementDay = formData.get('statementDay') ? String(formData.get('statementDay')) : null
+  const paymentDueDay = formData.get('paymentDueDay') ? String(formData.get('paymentDueDay')) : null
+
+  await db.insert(accounts).values({
+    ...parsed.data,
+    userId: session.user.id,
+    creditLimit,
+    statementDay,
+    paymentDueDay,
+  })
   revalidatePath('/settings/accounts')
   revalidatePath('/dashboard')
   revalidatePath('/transactions')

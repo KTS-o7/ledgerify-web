@@ -4,7 +4,7 @@ import { accounts } from './accounts'
 import { categories } from './categories'
 import { tags } from './tags'
 
-export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense', 'transfer'])
+export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense', 'transfer', 'credit_payment'])
 
 export const transactions = pgTable('transactions', {
   id: uuid('id').primaryKey().defaultRandom(),
