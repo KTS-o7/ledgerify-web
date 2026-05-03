@@ -10,7 +10,11 @@ export async function createPolicy(_: unknown, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
-  const parsed = insuranceSchema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = insuranceSchema.safeParse({
+    ...raw,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data

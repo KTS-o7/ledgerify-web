@@ -10,7 +10,11 @@ export async function createInvestment(_: unknown, formData: FormData) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
-  const parsed = investmentSchema.safeParse(Object.fromEntries(formData))
+  const raw = Object.fromEntries(formData)
+  const parsed = investmentSchema.safeParse({
+    ...raw,
+    currency: String(raw.currency ?? '').toUpperCase(),
+  })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const data = parsed.data
