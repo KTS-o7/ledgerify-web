@@ -1,9 +1,10 @@
 'use client'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { differenceInDays } from 'date-fns'
 import { ShieldCheck, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { deletePolicy } from '@/app/actions/insurance'
+import { deletePolicy, recordPremiumPayment } from '@/app/actions/insurance'
 import {
   FinancialAmount,
   IconBadge,
@@ -21,6 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { InsurancePolicy } from '@/lib/db/schema'
 
 const POLICY_TYPE_LABELS: Record<string, string> = {
@@ -44,6 +47,8 @@ interface Props {
 
 export function PolicyCard({ policy }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [isPayPending, startPayTransition] = useTransition()
+  const [payOpen, setPayOpen] = useState(false)
 
   const daysUntilRenewal = policy.renewalDate
     ? differenceInDays(new Date(policy.renewalDate), new Date())
@@ -51,9 +56,25 @@ export function PolicyCard({ policy }: Props) {
 
   const renewsSoon = daysUntilRenewal !== null && daysUntilRenewal >= 0 && daysUntilRenewal <= 30
 
+  const today = new Date().toISOString().split('T')[0]
+
   function handleDelete() {
     startTransition(async () => {
       await deletePolicy(policy.id)
+    })
+  }
+
+  function handleRecordPayment(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    startPayTransition(async () => {
+      const result = await recordPremiumPayment(null, fd)
+      if (result?.error) {
+        toast.error(result.error)
+      } else {
+        toast.success('Payment recorded')
+        setPayOpen(false)
+      }
     })
   }
 
@@ -112,38 +133,105 @@ export function PolicyCard({ policy }: Props) {
         </div>
       )}
 
-      <Dialog>
-        <DialogTrigger
-          render={
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-2xl text-destructive hover:text-destructive"
-            />
-          }
-        >
-          <Trash2 className="size-4" />
-          Delete policy
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete policy?</DialogTitle>
-            <DialogDescription>
-              This insurance policy record will be permanently removed. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isPending}
-            >
-              {isPending ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <div className="flex gap-2">
+        <Dialog open={payOpen} onOpenChange={setPayOpen}>
+          <DialogTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-2xl"
+              />
+            }
+          >
+            Record payment
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record payment</DialogTitle>
+              <DialogDescription>
+                Record a premium payment for {policy.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleRecordPayment} className="space-y-4">
+              <input type="hidden" name="policyId" value={policy.id} />
+              <div className="space-y-1">
+                <Label htmlFor="pay-date">Date</Label>
+                <Input
+                  id="pay-date"
+                  name="date"
+                  type="date"
+                  defaultValue={today}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-amount">Amount</Label>
+                <Input
+                  id="pay-amount"
+                  name="amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="pay-status">Status</Label>
+                <select
+                  id="pay-status"
+                  name="status"
+                  defaultValue="paid"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="paid">Paid</option>
+                  <option value="due">Due</option>
+                  <option value="missed">Missed</option>
+                </select>
+              </div>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
+                <Button type="submit" disabled={isPayPending}>
+                  {isPayPending ? 'Recording…' : 'Record payment'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog>
+          <DialogTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-2xl text-destructive hover:text-destructive"
+              />
+            }
+          >
+            <Trash2 className="size-4" />
+            Delete policy
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete policy?</DialogTitle>
+              <DialogDescription>
+                This insurance policy record will be permanently removed. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                {isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </TonalWidget>
   )
 }
