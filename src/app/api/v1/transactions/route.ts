@@ -9,11 +9,12 @@ import { revalidatePath } from 'next/cache'
 
 const createSchema = z.object({
   accountId: z.string().uuid(),
-  type: z.enum(['income', 'expense']),
+  type: z.enum(['income', 'expense', 'transfer', 'credit_payment']),
   amount: z.coerce.number().positive(),
   currency: z.string().length(3),
   categoryId: z.string().uuid().optional(),
   note: z.string().max(500).optional(),
+  title: z.string().max(255).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   isRecurring: z.coerce.boolean().default(false),
 })
