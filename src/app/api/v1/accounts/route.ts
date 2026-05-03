@@ -8,8 +8,12 @@ import { revalidatePath } from 'next/cache'
 
 const createSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(['bank', 'wallet', 'cash', 'savings']),
+  type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card']),
   currency: z.string().length(3),
+  openingBalance: z.coerce.number().default(0),
+  creditLimit: z.coerce.number().optional(),
+  statementDay: z.coerce.number().int().min(1).max(28).optional(),
+  paymentDueDay: z.coerce.number().int().min(1).max(28).optional(),
 })
 
 export async function GET(req: NextRequest) {
@@ -32,8 +36,17 @@ export async function POST(req: NextRequest) {
   })
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
 
+  const { openingBalance, creditLimit, statementDay, paymentDueDay, ...rest } = parsed.data
+
   const [row] = await db.insert(accounts)
-    .values({ ...parsed.data, userId: auth.userId })
+    .values({
+      ...rest,
+      userId: auth.userId,
+      openingBalance: String(openingBalance),
+      creditLimit: creditLimit != null ? String(creditLimit) : null,
+      statementDay: statementDay != null ? String(statementDay) : null,
+      paymentDueDay: paymentDueDay != null ? String(paymentDueDay) : null,
+    })
     .returning()
 
   revalidatePath('/settings/accounts')
