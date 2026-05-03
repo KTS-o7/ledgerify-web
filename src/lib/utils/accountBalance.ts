@@ -15,15 +15,15 @@ export async function getAccountBalance(accountId: string, userId: string): Prom
 
   const txBalance = txs.reduce((sum, t) => {
     if (isCreditCard) {
-      // Credit card: expenses increase outstanding debt, credit_payments reduce it
       if (t.type === 'expense') return sum + Number(t.amount)
       if (t.type === 'credit_payment') return sum - Number(t.amount)
       return sum
     } else {
-      // Normal accounts: income adds, expense/credit_payment deduct
       if (t.type === 'income') return sum + Number(t.amount)
       if (t.type === 'expense') return sum - Number(t.amount)
       if (t.type === 'credit_payment') return sum - Number(t.amount)
+      // transfer: deduct from this account (the receiving side is a separate income tx)
+      if (t.type === 'transfer') return sum - Number(t.amount)
       return sum
     }
   }, 0)
@@ -46,6 +46,7 @@ export function attachRunningBalance(
       if (t.type === 'income') running += Number(t.amount)
       else if (t.type === 'expense') running -= Number(t.amount)
       else if (t.type === 'credit_payment') running -= Number(t.amount)
+      else if (t.type === 'transfer') running -= Number(t.amount)
     }
     return { ...t, runningBalance: running }
   })
