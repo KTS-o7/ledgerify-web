@@ -151,47 +151,35 @@ export function PageShell({
 export function PageHeader({
   title,
   description,
-  eyebrow,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  eyebrow: _eyebrow,
   action,
   children,
   className,
 }: {
   title: string
   description?: string
+  /** @deprecated Eyebrows are not rendered — kept for backward compat only */
   eyebrow?: string
   action?: React.ReactNode
   children?: React.ReactNode
   className?: string
 }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-4 rounded-[1.75rem] border bg-card/90 p-4 shadow-sm shadow-foreground/5 backdrop-blur sm:p-5 lg:flex-row lg:items-end lg:justify-between',
-        className
-      )}
-    >
-      <div className="min-w-0 space-y-2">
-        {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            {eyebrow}
-          </p>
+    <div className={cn('flex items-start justify-between gap-4 pb-2', className)}>
+      <div className="min-w-0">
+        <h1
+          className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          style={{ textWrap: 'balance' } as React.CSSProperties}
+        >
+          {title}
+        </h1>
+        {description && (
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
-        <div className="space-y-1">
-          <h1
-            data-display-text
-            className="text-2xl font-extrabold text-foreground sm:text-[2rem]"
-          >
-            {title}
-          </h1>
-          {description && (
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              {description}
-            </p>
-          )}
-        </div>
-        {children}
+        {children && <div className="mt-2">{children}</div>}
       </div>
-      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }

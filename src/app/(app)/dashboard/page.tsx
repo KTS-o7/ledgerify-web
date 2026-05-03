@@ -11,21 +11,17 @@ import {
 } from "@/lib/db/schema";
 import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { endOfMonth, format, startOfMonth, subDays } from "date-fns";
-import { Plus, ReceiptText, Settings, WalletCards } from "lucide-react";
+import { Plus } from "lucide-react";
 import { getBudgetPeriod } from "@/lib/utils/budgetPeriod";
 import { BudgetHealthBar } from "@/components/dashboard/BudgetHealthBar";
 import { UpcomingRecurring } from "@/components/dashboard/UpcomingRecurring";
 import { SpendingHeatmap } from "@/components/dashboard/SpendingHeatmap";
-
 import { CashFlowSummary } from "@/components/dashboard/CashFlowSummary";
-import { DashboardSections } from "@/components/dashboard/DashboardSections";
 import { NetworthCard } from "@/components/dashboard/NetworthCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { UpcomingAlerts } from "@/components/dashboard/UpcomingAlerts";
 import {
   HeaderActionLink,
-  MetricCard,
-  PageHeader,
   PageShell,
   SetupChecklist,
 } from "@/components/shared/quiet-ledger";
@@ -106,7 +102,6 @@ export default async function DashboardPage() {
   const hasCategories = categoryList.length > 0;
   const hasTransactions = recentTxs.length > 0;
 
-  // New triage data fetches
   const budgetList = await db
     .select()
     .from(budgets)
@@ -164,106 +159,86 @@ export default async function DashboardPage() {
 
   return (
     <PageShell size="wide">
-      <PageHeader
-        eyebrow="Quiet Ledger"
-        title={`Good to see you, ${displayName}`}
-        description="Your private money home for cash flow, net worth, upcoming obligations, and daily activity."
-        action={
-          hasAccounts ? (
-            <HeaderActionLink href="/transactions">
-              <Plus className="h-4 w-4" />
-              Add transaction
-            </HeaderActionLink>
-          ) : (
-            <HeaderActionLink href="/settings/accounts">
-              <Plus className="h-4 w-4" />
-              Set up account
-            </HeaderActionLink>
-          )
-        }
-      >
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span>{accountList.length} accounts</span>
-          <span>·</span>
-          <span>{monthlyTxs.length} this month</span>
-          <span>·</span>
-          <span>{baseCurrency} home currency</span>
+      {/* Header — date + name + action, no description filler */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">
+            {format(now, "EEEE, d MMMM")}
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {displayName}
+          </h1>
         </div>
-      </PageHeader>
-
-      <DashboardSections
-        setup={
-          <SetupChecklist
-            items={[
-              {
-                label: "Add your first account",
-                href: "/settings/accounts",
-                complete: hasAccounts,
-              },
-              {
-                label: "Review categories",
-                href: "/settings/categories",
-                complete: hasCategories,
-              },
-              {
-                label: "Record your first transaction",
-                href: "/transactions",
-                complete: hasTransactions,
-              },
-            ]}
-          />
-        }
-        snapshot={<NetworthCard {...networthData} currency={baseCurrency} />}
-        basics={
-          <div className="grid gap-3 md:grid-cols-3">
-            <MetricCard
-              label="Accounts"
-              value={accountList.length}
-              description="Places where money lives: bank, wallet, cash, or savings."
-              icon={WalletCards}
-              tone={hasAccounts ? "positive" : "warning"}
-              className="rounded-[1.5rem]"
-            />
-            <MetricCard
-              label="Categories"
-              value={categoryList.length}
-              description="Simple labels that make spending easier to understand."
-              icon={Settings}
-              tone={hasCategories ? "positive" : "warning"}
-              className="rounded-[1.5rem]"
-            />
-            <MetricCard
-              label="Recent entries"
-              value={recentTxs.length}
-              description="Latest activity captured in your private ledger."
-              icon={ReceiptText}
-              tone={hasTransactions ? "positive" : "neutral"}
-              className="rounded-[1.5rem]"
-            />
-          </div>
-        }
-        cashFlow={<CashFlowSummary transactions={monthlyTxs} currency={baseCurrency} />}
-        recent={<RecentTransactions transactions={recentTxs} />}
-        attention={<UpcomingAlerts loans={loanList} policies={policyList} />}
-      />
-
-      {/* Triage control tower sections */}
-      <div className="space-y-6 mt-5">
-        {budgetHealth.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Budget health</h2>
-            <div className="space-y-2">
-              {budgetHealth.map(({ budget, spent, period }) => (
-                <BudgetHealthBar key={budget.id} budget={budget} spent={spent} period={period} />
-              ))}
-            </div>
-          </section>
+        {hasAccounts ? (
+          <HeaderActionLink href="/transactions">
+            <Plus className="h-4 w-4 mr-1" /> Add transaction
+          </HeaderActionLink>
+        ) : (
+          <HeaderActionLink href="/settings/accounts">
+            <Plus className="h-4 w-4 mr-1" /> Add account
+          </HeaderActionLink>
         )}
-
-        <UpcomingRecurring transactions={recurringTxs} />
-
-        <SpendingHeatmap dailySpend={dailySpend} currency={baseCurrency} />
       </div>
+
+      {/* Setup checklist — only when incomplete */}
+      {(!hasAccounts || !hasCategories || !hasTransactions) && (
+        <SetupChecklist
+          items={[
+            {
+              label: "Add your first account",
+              href: "/settings/accounts",
+              complete: hasAccounts,
+            },
+            {
+              label: "Review categories",
+              href: "/settings/categories",
+              complete: hasCategories,
+            },
+            {
+              label: "Record your first transaction",
+              href: "/transactions",
+              complete: hasTransactions,
+            },
+          ]}
+        />
+      )}
+
+      {/* Net worth hero */}
+      <NetworthCard {...networthData} currency={baseCurrency} />
+
+      {/* Budget health */}
+      {budgetHealth.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+            Budgets
+          </h2>
+          <div className="space-y-2">
+            {budgetHealth.map(({ budget, spent, period }) => (
+              <BudgetHealthBar
+                key={budget.id}
+                budget={budget}
+                spent={spent}
+                period={period}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Upcoming recurring */}
+      <UpcomingRecurring transactions={recurringTxs} />
+
+      {/* Cash flow + recent side by side on desktop */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
+        <CashFlowSummary transactions={monthlyTxs} currency={baseCurrency} />
+        <RecentTransactions transactions={recentTxs} />
+      </div>
+
+      {/* Spending heatmap */}
+      <SpendingHeatmap dailySpend={dailySpend} currency={baseCurrency} />
+
+      {/* Loans / insurance alerts — only if non-empty */}
+      <UpcomingAlerts loans={loanList} policies={policyList} />
     </PageShell>
   );
 }
