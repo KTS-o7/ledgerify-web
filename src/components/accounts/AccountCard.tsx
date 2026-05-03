@@ -17,7 +17,7 @@ const TYPE_DOT: Record<string, string> = {
 
 export function AccountCard({ account }: Props) {
   const isCreditCard = account.type === 'credit_card'
-  const creditLimit = (account as any).creditLimit ? Number((account as any).creditLimit) : null
+  const creditLimit = account.creditLimit ? Number(account.creditLimit) : null
   const utilisationPct = creditLimit && creditLimit > 0
     ? Math.round((account.balance / creditLimit) * 100)
     : null

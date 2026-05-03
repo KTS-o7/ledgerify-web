@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveSession } from '@/lib/api/auth'
 import { db } from '@/lib/db'
-import { transactions, accounts, budgets, users, loans, insurancePolicies, investments } from '@/lib/db/schema'
+import { transactions, accounts, budgets, loans, insurancePolicies, investments } from '@/lib/db/schema'
 import { eq, and, isNull, gte } from 'drizzle-orm'
 import { getBudgetPeriod, getDailyAllowance } from '@/lib/utils/budgetPeriod'
 import { getAccountBalance } from '@/lib/utils/accountBalance'
