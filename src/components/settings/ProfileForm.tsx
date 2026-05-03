@@ -45,7 +45,7 @@ export function ProfileForm({ name, defaultCurrency, timezone }: ProfileFormProp
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button type="submit" disabled={pending} className="rounded-2xl">
-          {pending ? 'Saving...' : 'Save profile'}
+          {pending ? 'Saving…' : 'Save profile'}
         </Button>
         {state && 'error' in state && state.error && (
           <p className="text-sm text-destructive">{state.error}</p>

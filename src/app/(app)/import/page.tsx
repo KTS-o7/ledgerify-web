@@ -100,7 +100,7 @@ export default function ImportPage() {
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   <Button type="submit" disabled={loading} className="rounded-2xl">
                     <Upload className="h-4 w-4 mr-2" />
-                    {loading ? 'Importing...' : 'Import transactions'}
+                    {loading ? 'Importing…' : 'Import transactions'}
                   </Button>
                 </form>
               </div>

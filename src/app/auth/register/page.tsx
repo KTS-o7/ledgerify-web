@@ -32,7 +32,7 @@ export default function RegisterPage() {
           </div>
           {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
           <Button type="submit" className="w-full rounded-2xl" disabled={pending}>
-            {pending ? 'Creating account...' : 'Create account'}
+            {pending ? 'Creating account…' : 'Create account'}
           </Button>
           <p className="text-sm text-center text-muted-foreground">
             Already have an account?{' '}

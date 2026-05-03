@@ -93,7 +93,7 @@ export function BudgetForm({
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <Button type="submit" className="w-full rounded-2xl" disabled={pending}>
-        {pending ? 'Saving...' : 'Create budget'}
+        {pending ? 'Saving…' : 'Create budget'}
       </Button>
     </form>
   )

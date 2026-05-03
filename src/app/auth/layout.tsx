@@ -1,4 +1,10 @@
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth/config'
+
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+  if (session?.user?.id) redirect('/dashboard')
+
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:px-6">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
