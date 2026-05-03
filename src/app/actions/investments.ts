@@ -62,6 +62,10 @@ export async function updateInvestmentPrice(id: string, currentPrice: number) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
+  if (!Number.isFinite(currentPrice) || currentPrice < 0) {
+    return { error: 'Price must be a non-negative number' }
+  }
+
   await db.update(investments)
     .set({ currentPrice: String(currentPrice), currentPriceUpdatedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(investments.id, id), eq(investments.userId, session.user.id)))
