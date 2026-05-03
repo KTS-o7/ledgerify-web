@@ -6,6 +6,7 @@ export const transactionSchema = z.object({
   amount: z.coerce.number().positive(),
   currency: z.string().length(3),
   categoryId: z.string().uuid().optional(),
+  title: z.string().max(255).optional(),
   note: z.string().max(500).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   isRecurring: z.coerce.boolean().default(false),
