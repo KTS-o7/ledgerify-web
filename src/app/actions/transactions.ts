@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { transactions, transactionTags, users, categories, accounts } from "@/lib/db/schema";
 import { transactionSchema } from "@/lib/validations/transaction";
 import { getRate } from "@/lib/utils/currency";
+import { matchCategory } from "@/lib/utils/autoCategory";
 import { eq, and, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -18,6 +19,7 @@ function normalizeOptionalTransactionFields(
     "recurrenceRule",
     "tagIds",
     "note",
+    "title",
   ] as const) {
     if (normalized[key] === "") {
       delete normalized[key];
@@ -35,7 +37,8 @@ export async function createTransaction(_: unknown, formData: FormData) {
   const parsed = transactionSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { tagIds, ...data } = parsed.data;
+  const { tagIds, ...rest } = parsed.data;
+  let data = rest;
 
   // Verify accountId belongs to the current user
   if (data.accountId) {
@@ -62,6 +65,12 @@ export async function createTransaction(_: unknown, formData: FormData) {
   });
   const baseCurrency = user?.defaultCurrency ?? "INR";
   const rate = await getRate(data.currency, baseCurrency);
+
+  // Auto-categorise by title if no category selected
+  if (data.title && !data.categoryId) {
+    const suggested = await matchCategory(data.title, session.user.id)
+    if (suggested) data = { ...data, categoryId: suggested }
+  }
 
   const [tx] = await db
     .insert(transactions)
