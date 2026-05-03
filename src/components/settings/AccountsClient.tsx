@@ -29,7 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Banknote, Landmark, Plus, Trash2, Wallet, WalletCards } from 'lucide-react'
+import { Banknote, Landmark, Plus, TrendingUp, Trash2, Wallet, WalletCards } from 'lucide-react'
 import type { Account } from '@/lib/db/schema'
 
 interface AccountsClientProps {
@@ -42,6 +42,7 @@ const accountMeta = {
   cash: { label: 'Cash', icon: Banknote, tone: 'positive' },
   savings: { label: 'Savings', icon: WalletCards, tone: 'warning' },
   credit_card: { label: 'Credit Card', icon: WalletCards, tone: 'warning' },
+  investment: { label: 'Investment', icon: TrendingUp, tone: 'positive' },
 } as const
 
 function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string }) {
@@ -69,6 +70,7 @@ function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string 
             <option value="cash">Cash</option>
             <option value="savings">Savings</option>
             <option value="credit_card">Credit Card</option>
+            <option value="investment">Investment</option>
           </select>
         </div>
         <div className="space-y-1">

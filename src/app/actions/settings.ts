@@ -48,7 +48,7 @@ export async function createAccount(_: unknown, formData: FormData) {
 
   const schema = z.object({
     name: z.string().min(1),
-    type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card']),
+    type: z.enum(['bank', 'wallet', 'cash', 'savings', 'credit_card', 'investment']),
     currency: z.string().length(3),
   })
   const raw = Object.fromEntries(formData)

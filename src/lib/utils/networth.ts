@@ -51,6 +51,7 @@ export async function computeNetworth(userId: string, baseCurrency: string): Pro
               WHEN ${transactions.type} = 'income'          THEN  ${transactions.amount}::numeric
               WHEN ${transactions.type} = 'expense'         THEN -(${transactions.amount}::numeric)
               WHEN ${transactions.type} = 'credit_payment'  THEN -(${transactions.amount}::numeric)
+              WHEN ${transactions.type} = 'transfer'        THEN -(${transactions.amount}::numeric)
               ELSE 0
             END), 0
           )`,
@@ -90,6 +91,10 @@ export async function computeNetworth(userId: string, baseCurrency: string): Pro
         ))
       const outstanding = openingBalance + Number(ccResult[0]?.outstanding ?? 0)
       totalLiabilities += Math.max(0, outstanding) * rate
+    } else if (account.type === 'investment') {
+      // Investment accounts: openingBalance + transaction credits count as investments
+      const balance = openingBalance + txBalance
+      totalInvestments += balance * rate
     } else {
       const balance = openingBalance + txBalance
       totalCash += balance * rate

@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, numeric, timestamp, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
-export const accountTypeEnum = pgEnum('account_type', ['bank', 'wallet', 'cash', 'savings', 'credit_card'])
+export const accountTypeEnum = pgEnum('account_type', ['bank', 'wallet', 'cash', 'savings', 'credit_card', 'investment'])
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
