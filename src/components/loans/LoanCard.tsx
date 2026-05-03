@@ -144,9 +144,9 @@ export function LoanCard({ loan }: Props) {
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <input type="hidden" name="loanId" value={loan.id} />
               <div className="space-y-1">
-                <Label htmlFor="pay-date">Date</Label>
+                <Label htmlFor={`pay-date-${loan.id}`}>Date</Label>
                 <Input
-                  id="pay-date"
+                  id={`pay-date-${loan.id}`}
                   name="date"
                   type="date"
                   defaultValue={today}
@@ -154,9 +154,9 @@ export function LoanCard({ loan }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-amount">Amount</Label>
+                <Label htmlFor={`pay-amount-${loan.id}`}>Amount</Label>
                 <Input
-                  id="pay-amount"
+                  id={`pay-amount-${loan.id}`}
                   name="amount"
                   type="number"
                   min="0.01"
@@ -165,9 +165,9 @@ export function LoanCard({ loan }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-principal">Principal portion</Label>
+                <Label htmlFor={`pay-principal-${loan.id}`}>Principal portion</Label>
                 <Input
-                  id="pay-principal"
+                  id={`pay-principal-${loan.id}`}
                   name="principalComponent"
                   type="number"
                   min="0"
@@ -175,9 +175,9 @@ export function LoanCard({ loan }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-interest">Interest portion</Label>
+                <Label htmlFor={`pay-interest-${loan.id}`}>Interest portion</Label>
                 <Input
-                  id="pay-interest"
+                  id={`pay-interest-${loan.id}`}
                   name="interestComponent"
                   type="number"
                   min="0"
@@ -185,9 +185,9 @@ export function LoanCard({ loan }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-status">Status</Label>
+                <Label htmlFor={`pay-status-${loan.id}`}>Status</Label>
                 <select
-                  id="pay-status"
+                  id={`pay-status-${loan.id}`}
                   name="status"
                   defaultValue="paid"
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"

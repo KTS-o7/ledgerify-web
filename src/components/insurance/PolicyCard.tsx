@@ -156,9 +156,9 @@ export function PolicyCard({ policy }: Props) {
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <input type="hidden" name="policyId" value={policy.id} />
               <div className="space-y-1">
-                <Label htmlFor="pay-date">Date</Label>
+                <Label htmlFor={`pay-date-${policy.id}`}>Date</Label>
                 <Input
-                  id="pay-date"
+                  id={`pay-date-${policy.id}`}
                   name="date"
                   type="date"
                   defaultValue={today}
@@ -166,9 +166,9 @@ export function PolicyCard({ policy }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-amount">Amount</Label>
+                <Label htmlFor={`pay-amount-${policy.id}`}>Amount</Label>
                 <Input
-                  id="pay-amount"
+                  id={`pay-amount-${policy.id}`}
                   name="amount"
                   type="number"
                   min="0.01"
@@ -177,9 +177,9 @@ export function PolicyCard({ policy }: Props) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="pay-status">Status</Label>
+                <Label htmlFor={`pay-status-${policy.id}`}>Status</Label>
                 <select
-                  id="pay-status"
+                  id={`pay-status-${policy.id}`}
                   name="status"
                   defaultValue="paid"
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
