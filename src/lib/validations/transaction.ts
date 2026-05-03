@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const transactionSchema = z.object({
   accountId: z.string().uuid(),
-  type: z.enum(['income', 'expense']),
+  type: z.enum(['income', 'expense', 'transfer', 'credit_payment']),
   amount: z.coerce.number().positive(),
   currency: z.string().length(3),
   categoryId: z.string().uuid().optional(),
@@ -12,6 +12,9 @@ export const transactionSchema = z.object({
   isRecurring: z.coerce.boolean().default(false),
   recurrenceRule: z.string().optional(),
   tagIds: z.string().optional(), // comma-separated UUIDs from form
+  transferToId: z.string().uuid().optional(),
+  recurrenceInterval: z.coerce.number().int().positive().optional(),
+  recurrenceUnit: z.enum(['day', 'week', 'month']).optional(),
 })
 
 export type TransactionInput = z.infer<typeof transactionSchema>

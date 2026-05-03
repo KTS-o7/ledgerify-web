@@ -37,7 +37,11 @@ export default async function AccountDetailPage({
       )),
   ])
 
-  const withBalance = attachRunningBalance(txList, Number(account.openingBalance ?? 0))
+  const withBalance = attachRunningBalance(
+    txList,
+    Number(account.openingBalance ?? 0),
+    account.type === 'credit_card'
+  )
   const currentBalance = withBalance.length > 0
     ? withBalance[withBalance.length - 1].runningBalance
     : Number(account.openingBalance ?? 0)
@@ -50,7 +54,10 @@ export default async function AccountDetailPage({
       <PageHeader
         eyebrow={account.type}
         title={account.name}
-        description={`Live balance: ${formatCurrency(currentBalance, account.currency)} · ${txList.length} transactions`}
+        description={account.type === 'credit_card'
+          ? `Outstanding: ${formatCurrency(currentBalance, account.currency)} · ${txList.length} transactions`
+          : `Live balance: ${formatCurrency(currentBalance, account.currency)} · ${txList.length} transactions`
+        }
       />
       <AccountTransactionTable
         transactions={displayTxs}

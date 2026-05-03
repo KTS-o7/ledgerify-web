@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, numeric, timestamp, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
-export const accountTypeEnum = pgEnum('account_type', ['bank', 'wallet', 'cash', 'savings'])
+export const accountTypeEnum = pgEnum('account_type', ['bank', 'wallet', 'cash', 'savings', 'credit_card'])
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -10,6 +10,9 @@ export const accounts = pgTable('accounts', {
   type: accountTypeEnum('type').notNull(),
   currency: varchar('currency', { length: 3 }).notNull(),
   openingBalance: numeric('opening_balance', { precision: 18, scale: 4 }).notNull().default('0'),
+  creditLimit: numeric('credit_limit', { precision: 18, scale: 4 }),
+  statementDay: numeric('statement_day', { precision: 2, scale: 0 }),
+  paymentDueDay: numeric('payment_due_day', { precision: 2, scale: 0 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
