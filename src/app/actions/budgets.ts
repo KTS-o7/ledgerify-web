@@ -45,6 +45,8 @@ export async function createBudget(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/budgets')
+  revalidatePath('/dashboard')
+  revalidatePath('/reports/budget-vs-actual')
   return { success: true }
 }
 
@@ -55,6 +57,8 @@ export async function deleteBudget(id: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(budgets.id, id), eq(budgets.userId, session.user.id)))
   revalidatePath('/budgets')
+  revalidatePath('/dashboard')
+  revalidatePath('/reports/budget-vs-actual')
   return { success: true }
 }
 
@@ -96,6 +100,7 @@ export async function createSavingsGoal(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/budgets/goals')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -128,6 +133,7 @@ export async function contributeToGoal(goalId: string, amount: number) {
     .where(eq(savingsGoals.id, goalId))
 
   revalidatePath('/budgets/goals')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -138,5 +144,6 @@ export async function deleteSavingsGoal(id: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, session.user.id)))
   revalidatePath('/budgets/goals')
+  revalidatePath('/dashboard')
   return { success: true }
 }

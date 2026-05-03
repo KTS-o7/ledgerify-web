@@ -32,6 +32,9 @@ export async function createLoan(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/loans')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/debt-payoff')
   return { success: true }
 }
 
@@ -65,6 +68,9 @@ export async function recordLoanPayment(_: unknown, formData: FormData) {
     .where(eq(loans.id, d.loanId))
 
   revalidatePath('/loans')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/debt-payoff')
   return { success: true }
 }
 
@@ -77,5 +83,8 @@ export async function deleteLoan(id: string) {
     .where(and(eq(loans.id, id), eq(loans.userId, session.user.id)))
 
   revalidatePath('/loans')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/debt-payoff')
   return { success: true }
 }

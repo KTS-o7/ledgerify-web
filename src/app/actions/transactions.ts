@@ -86,6 +86,11 @@ export async function createTransaction(_: unknown, formData: FormData) {
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath('/reports/cash-flow')
+  revalidatePath('/reports/category-breakdown')
+  revalidatePath('/reports/budget-vs-actual')
+  revalidatePath('/networth')
+  revalidatePath('/budgets')
   return { success: true, id: tx.id };
 }
 
@@ -143,6 +148,11 @@ export async function updateTransaction(_: unknown, formData: FormData) {
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath('/reports/cash-flow')
+  revalidatePath('/reports/category-breakdown')
+  revalidatePath('/reports/budget-vs-actual')
+  revalidatePath('/networth')
+  revalidatePath('/budgets')
   return { success: true };
 }
 
@@ -159,5 +169,10 @@ export async function deleteTransaction(id: string) {
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath('/reports/cash-flow')
+  revalidatePath('/reports/category-breakdown')
+  revalidatePath('/reports/budget-vs-actual')
+  revalidatePath('/networth')
+  revalidatePath('/budgets')
   return { success: true };
 }

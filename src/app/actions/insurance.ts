@@ -35,6 +35,7 @@ export async function createPolicy(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/insurance')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -63,6 +64,7 @@ export async function recordPremiumPayment(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/insurance')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
@@ -75,5 +77,6 @@ export async function deletePolicy(id: string) {
     .where(and(eq(insurancePolicies.id, id), eq(insurancePolicies.userId, session.user.id)))
 
   revalidatePath('/insurance')
+  revalidatePath('/dashboard')
   return { success: true }
 }

@@ -31,6 +31,9 @@ export async function createInvestment(_: unknown, formData: FormData) {
   })
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }
 
@@ -75,6 +78,9 @@ export async function updateInvestmentPrice(id: string, currentPrice: number) {
     .where(and(eq(investments.id, id), eq(investments.userId, session.user.id)))
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }
 
@@ -87,5 +93,8 @@ export async function deleteInvestment(id: string) {
     .where(and(eq(investments.id, id), eq(investments.userId, session.user.id)))
 
   revalidatePath('/investments')
+  revalidatePath('/dashboard')
+  revalidatePath('/networth')
+  revalidatePath('/reports/investment-returns')
   return { success: true }
 }
