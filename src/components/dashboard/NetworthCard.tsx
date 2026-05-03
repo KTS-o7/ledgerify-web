@@ -1,121 +1,41 @@
-"use client";
-import { Landmark, PiggyBank, TrendingUp, WalletCards } from "lucide-react";
-import type { NetworthData } from "@/lib/utils/networth";
-import {
-  AmountBox,
-  FinancialAmount,
-  ProgressMeter,
-  StatusPill,
-  TonalWidget,
-  WidgetHeading,
-} from "@/components/shared/quiet-ledger";
+'use client'
+import { formatCurrency } from '@/lib/utils/format'
+import { cn } from '@/lib/utils'
+import type { NetworthData } from '@/lib/utils/networth'
 
 interface Props extends NetworthData {
-  currency: string;
+  currency: string
 }
 
-export function NetworthCard({
-  networth,
-  totalCash,
-  totalInvestments,
-  totalLiabilities,
-  currency,
-}: Props) {
-  const totalAssets = totalCash + totalInvestments;
-  const safeAssetTotal = Math.max(totalAssets, 1);
-  const cashShare = Math.max(
-    0,
-    Math.min(100, (totalCash / safeAssetTotal) * 100),
-  );
-  const investmentShare = Math.max(
-    0,
-    Math.min(100, (totalInvestments / safeAssetTotal) * 100),
-  );
-  const liabilityRatio = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
-  const networthTone =
-    networth > 0 ? "positive" : networth < 0 ? "negative" : "neutral";
-
+export function NetworthCard({ networth, totalCash, totalInvestments, totalLiabilities, currency }: Props) {
   return (
-    <TonalWidget tone="primary" className="space-y-5">
-      <WidgetHeading
-        icon={PiggyBank}
-        tone="primary"
-        eyebrow="Your money home"
-        title="Net worth snapshot"
-        description="Assets minus liabilities across cash, investments, and debt."
-        action={
-          <StatusPill tone={networthTone}>
-            {networth > 0
-              ? "Positive net worth"
-              : networth < 0
-                ? "Liabilities ahead"
-                : "Getting started"}
-          </StatusPill>
-        }
-      />
-
-      <div className="rounded-[1.5rem] border bg-background/75 p-4 shadow-sm shadow-foreground/5 sm:p-5">
-        <p className="text-sm font-medium text-muted-foreground">
-          Family balance
-        </p>
-        <h2 className="financial-display mt-2 text-3xl font-extrabold text-foreground sm:text-4xl">
-          <FinancialAmount amount={networth} currency={currency} />
-        </h2>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-          The calm headline number for the month: what you own, less what you
-          owe.
+    <div className="space-y-4">
+      {/* Big net worth number */}
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Net worth</p>
+        <p className={cn(
+          'text-5xl font-bold tabular-nums tracking-tight mt-1',
+          networth < 0 ? 'text-rose-600' : 'text-foreground'
+        )}>
+          {formatCurrency(networth, currency)}
         </p>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="space-y-3">
-          <AmountBox
-            label="Cash"
-            amount={totalCash}
-            currency={currency}
-            icon={WalletCards}
-            tone="cash"
-            count="Bank, wallet, cash, and savings balances"
-          />
-            <ProgressMeter
-              value={cashShare}
-              tone="cash"
-              label="Asset share"
-            />
-        </div>
-
-        <div className="space-y-3">
-          <AmountBox
-            label="Investments"
-            amount={totalInvestments}
-            currency={currency}
-            icon={TrendingUp}
-            tone="investment"
-            count="Long-term assets and market holdings"
-          />
-            <ProgressMeter
-              value={investmentShare}
-              tone="investment"
-              label="Asset share"
-            />
-        </div>
-
-        <div className="space-y-3">
-          <AmountBox
-            label="Liabilities"
-            amount={totalLiabilities}
-            currency={currency}
-            icon={Landmark}
-            tone="loan"
-            count="Loans, obligations, and debt to watch"
-          />
-            <ProgressMeter
-              value={Math.min(liabilityRatio * 100, 100)}
-              tone={liabilityRatio > 0.5 ? "negative" : "warning"}
-              label="Liability load"
-            />
-        </div>
+      {/* Three numbers flat — no cards */}
+      <div className="grid grid-cols-3 gap-px rounded-2xl bg-border overflow-hidden">
+        {[
+          { label: 'Cash', value: totalCash, color: 'text-sky-600' },
+          { label: 'Investments', value: totalInvestments, color: 'text-violet-600' },
+          { label: 'Debt', value: -totalLiabilities, color: totalLiabilities > 0 ? 'text-rose-600' : 'text-foreground' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className={cn('text-lg font-semibold tabular-nums mt-0.5', color)}>
+              {formatCurrency(Math.abs(value), currency)}
+            </p>
+          </div>
+        ))}
       </div>
-    </TonalWidget>
-  );
+    </div>
+  )
 }

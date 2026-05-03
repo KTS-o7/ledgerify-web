@@ -80,9 +80,6 @@ export function Sidebar({ className }: { className?: string }) {
             <span className="block text-base font-bold">
               Ledgerify
             </span>
-            <span className="block text-xs text-muted-foreground">
-              Quiet Ledger
-            </span>
           </div>
         </div>
       </div>
@@ -139,15 +136,7 @@ export function Sidebar({ className }: { className?: string }) {
         </div>
       </nav>
 
-      <div className="space-y-3 border-t border-sidebar-border p-4">
-        <div className="rounded-2xl bg-background/70 p-3">
-          <p className="text-xs font-medium text-foreground">
-            Private money home
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Built for daily clarity, family setup, and trusted use.
-          </p>
-        </div>
+      <div className="border-t border-sidebar-border p-4">
         <form action={logoutUser}>
           <button
             type="submit"
