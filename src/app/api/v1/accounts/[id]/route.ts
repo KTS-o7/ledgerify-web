@@ -2,8 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveSession } from '@/lib/api/auth'
 import { db } from '@/lib/db'
 import { accounts } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await resolveSession(req)
+  if (auth instanceof NextResponse) return auth
+
+  const { id } = await params
+  const row = await db.query.accounts.findFirst({
+    where: and(eq(accounts.id, id), eq(accounts.userId, auth.userId), isNull(accounts.deletedAt)),
+  })
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(row)
+}
 
 export async function DELETE(
   req: NextRequest,
