@@ -13,7 +13,10 @@ export const insuranceSchema = z.object({
   renewalDate: z.string().optional(),
   nominee: z.string().optional(),
   notes: z.string().optional(),
-})
+}).refine(
+  (d) => !d.endDate || !d.startDate || d.endDate >= d.startDate,
+  { message: 'End date must be on or after start date', path: ['endDate'] },
+)
 
 export const insurancePaymentSchema = z.object({
   policyId: z.string().uuid(),
