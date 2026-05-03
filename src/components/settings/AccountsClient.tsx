@@ -41,6 +41,7 @@ const accountMeta = {
   wallet: { label: 'Wallet', icon: Wallet, tone: 'primary' },
   cash: { label: 'Cash', icon: Banknote, tone: 'positive' },
   savings: { label: 'Savings', icon: WalletCards, tone: 'warning' },
+  credit_card: { label: 'Credit Card', icon: WalletCards, tone: 'warning' },
 } as const
 
 function AddAccountForm({ defaultCurrency = 'INR' }: { defaultCurrency?: string }) {

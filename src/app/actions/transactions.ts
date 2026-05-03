@@ -81,6 +81,7 @@ export async function createTransaction(_: unknown, formData: FormData) {
       convertedAmount: String(data.amount * rate),
       baseCurrency,
       isRecurring: data.isRecurring ?? false,
+      recurrenceInterval: data.recurrenceInterval != null ? String(data.recurrenceInterval) : undefined,
     })
     .returning();
 
@@ -150,6 +151,7 @@ export async function updateTransaction(_: unknown, formData: FormData) {
       convertedAmount: String(data.amount * rate),
       baseCurrency,
       updatedAt: new Date(),
+      recurrenceInterval: data.recurrenceInterval != null ? String(data.recurrenceInterval) : undefined,
     })
     .where(
       and(eq(transactions.id, id), eq(transactions.userId, session.user.id)),
