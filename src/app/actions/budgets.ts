@@ -1,7 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth/config'
 import { db } from '@/lib/db'
-import { budgets, savingsGoals, categories } from '@/lib/db/schema'
+import { budgets, savingsGoals, categories, accounts } from '@/lib/db/schema'
 import { budgetSchema, savingsGoalSchema } from '@/lib/validations/budget'
 import { eq, and, isNull, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -73,6 +73,18 @@ export async function createSavingsGoal(_: unknown, formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data
+
+  if (d.linkedAccountId) {
+    const acctCheck = await db.query.accounts.findFirst({
+      where: and(
+        eq(accounts.id, d.linkedAccountId),
+        eq(accounts.userId, session.user.id),
+        isNull(accounts.deletedAt),
+      ),
+    })
+    if (!acctCheck) return { error: 'Account not found or not yours' }
+  }
+
   await db.insert(savingsGoals).values({
     userId: session.user.id,
     name: d.name,
