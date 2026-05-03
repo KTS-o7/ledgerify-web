@@ -15,6 +15,7 @@ import {
   Plus,
   LogOut,
   WalletCards,
+  Repeat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutUser } from "@/app/actions/auth";
@@ -26,6 +27,7 @@ const navSections = [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
       { href: "/accounts", label: "Accounts", icon: WalletCards },
+      { href: "/recurring", label: "Recurring", icon: Repeat },
     ],
   },
   {
