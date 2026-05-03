@@ -91,12 +91,19 @@ export async function contributeToGoal(goalId: string, amount: number) {
   const session = await auth()
   if (!session?.user?.id) return { error: 'Unauthorized' }
 
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { error: 'Amount must be a positive number' }
+  }
+
   const rows = await db.select().from(savingsGoals)
     .where(and(eq(savingsGoals.id, goalId), eq(savingsGoals.userId, session.user.id), isNull(savingsGoals.deletedAt)))
     .limit(1)
   if (!rows.length) return { error: 'Not found' }
 
   const goal = rows[0]
+  if (goal.status === 'achieved') {
+    return { error: 'This goal has already been achieved' }
+  }
   const newAmount = Number(goal.currentAmount) + amount
   const isAchieved = newAmount >= Number(goal.targetAmount)
 
