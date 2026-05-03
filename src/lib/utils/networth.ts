@@ -33,19 +33,24 @@ export async function computeNetworth(userId: string, baseCurrency: string): Pro
     totalLiabilities += Number(loan.outstandingBalance ?? 0) * rate
   }
 
-  // 3. Account cash balances (sum of transactions per account)
+  // 3. Account balances — openingBalance + transaction deltas
+  //    Credit cards: outstanding is a liability (not cash)
   const accountRows = await db.select().from(accounts)
     .where(and(eq(accounts.userId, userId), isNull(accounts.deletedAt)))
 
   let totalCash = 0
   for (const account of accountRows) {
+    const isCreditCard = account.type === 'credit_card'
+    const rate = await getRate(account.currency, baseCurrency)
+
     const result = await db
       .select({
-        balance: sql<string>`
+        txBalance: sql<string>`
           COALESCE(
             SUM(CASE
-              WHEN ${transactions.type} = 'income' THEN ${transactions.amount}::numeric
-              WHEN ${transactions.type} = 'expense' THEN -(${transactions.amount}::numeric)
+              WHEN ${transactions.type} = 'income'          THEN  ${transactions.amount}::numeric
+              WHEN ${transactions.type} = 'expense'         THEN -(${transactions.amount}::numeric)
+              WHEN ${transactions.type} = 'credit_payment'  THEN -(${transactions.amount}::numeric)
               ELSE 0
             END), 0
           )`,
@@ -57,9 +62,38 @@ export async function computeNetworth(userId: string, baseCurrency: string): Pro
         isNull(transactions.deletedAt),
       ))
 
-    const balance = Number(result[0]?.balance ?? 0)
-    const rate = await getRate(account.currency, baseCurrency)
-    totalCash += balance * rate
+    const txBalance = Number(result[0]?.txBalance ?? 0)
+    const openingBalance = Number(account.openingBalance ?? 0)
+
+    if (isCreditCard) {
+      // Credit card: openingBalance = initial outstanding debt
+      // expenses add to debt, credit_payments reduce it
+      const creditOutstanding = openingBalance
+        + txBalance * -1  // txBalance already negates expenses via CASE above, flip back
+      // Actually recompute correctly for credit cards:
+      const ccResult = await db
+        .select({
+          outstanding: sql<string>`
+            COALESCE(
+              SUM(CASE
+                WHEN ${transactions.type} = 'expense'        THEN  ${transactions.amount}::numeric
+                WHEN ${transactions.type} = 'credit_payment' THEN -(${transactions.amount}::numeric)
+                ELSE 0
+              END), 0
+            )`,
+        })
+        .from(transactions)
+        .where(and(
+          eq(transactions.accountId, account.id),
+          eq(transactions.userId, userId),
+          isNull(transactions.deletedAt),
+        ))
+      const outstanding = openingBalance + Number(ccResult[0]?.outstanding ?? 0)
+      totalLiabilities += Math.max(0, outstanding) * rate
+    } else {
+      const balance = openingBalance + txBalance
+      totalCash += balance * rate
+    }
   }
 
   return {
