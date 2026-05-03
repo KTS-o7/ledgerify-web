@@ -2,7 +2,8 @@ import { db } from '@/lib/db'
 import { budgets, categories, transactions, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/config'
 import { eq, and, isNull, gte, lte, or } from 'drizzle-orm'
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, format } from 'date-fns'
+import { format } from 'date-fns'
+import { getBudgetPeriod, getDailyAllowance } from '@/lib/utils/budgetPeriod'
 import { BudgetCard } from '@/components/budgets/BudgetCard'
 import { BudgetForm } from '@/components/budgets/BudgetForm'
 import { Button } from '@/components/ui/button'
@@ -23,55 +24,17 @@ import {
   SectionHeader,
 } from '@/components/shared/quiet-ledger'
 import { Gauge, Plus, Target, TrendingDown, WalletCards } from 'lucide-react'
-import type { Budget, Transaction } from '@/lib/db/schema'
-
-function computeSpent(budget: Budget, txs: Transaction[]): number {
-  const relevant = budget.categoryId
-    ? txs.filter((t) => t.categoryId === budget.categoryId)
-    : txs
-  return relevant.reduce((sum, t) => sum + Number(t.convertedAmount ?? t.amount), 0)
-}
 
 export default async function BudgetsPage() {
   const session = await auth()
   const userId = session!.user!.id!
 
-  const now = new Date()
-  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-  const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
-  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-
-  const [userRow, budgetList, monthlyTxs, weeklyTxs, categoryList] = await Promise.all([
+  const [userRow, budgetList, categoryList] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)).limit(1),
     db
       .select()
       .from(budgets)
       .where(and(eq(budgets.userId, userId), isNull(budgets.deletedAt))),
-    db
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.type, 'expense'),
-          isNull(transactions.deletedAt),
-          gte(transactions.date, monthStart),
-          lte(transactions.date, monthEnd),
-        ),
-      ),
-    db
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.type, 'expense'),
-          isNull(transactions.deletedAt),
-          gte(transactions.date, weekStart),
-          lte(transactions.date, weekEnd),
-        ),
-      ),
     db.select().from(categories).where(
       and(
         isNull(categories.deletedAt),
@@ -81,13 +44,22 @@ export default async function BudgetsPage() {
   ])
   const baseCurrency = userRow[0]?.defaultCurrency ?? 'INR'
 
-  const budgetProgress = budgetList.map((budget) => {
-    const txs = budget.periodType === 'monthly' ? monthlyTxs : weeklyTxs
-    const spent = computeSpent(budget, txs)
+  const budgetProgress = await Promise.all(budgetList.map(async (budget) => {
+    const period = getBudgetPeriod(budget)
+    const periodTxs = await db.select().from(transactions).where(and(
+      eq(transactions.userId, userId),
+      eq(transactions.type, 'expense'),
+      isNull(transactions.deletedAt),
+      gte(transactions.date, format(period.start, 'yyyy-MM-dd')),
+      lte(transactions.date, format(period.end, 'yyyy-MM-dd')),
+      ...(budget.categoryId ? [eq(transactions.categoryId, budget.categoryId)] : []),
+    ))
+    const spent = periodTxs.reduce((s, t) => s + Number(t.convertedAmount ?? t.amount), 0)
     const amount = Number(budget.amount)
+    const allowance = getDailyAllowance(budget, spent)
     const percentage = amount > 0 ? (spent / amount) * 100 : 0
-    return { budget, spent, amount, percentage }
-  })
+    return { budget, spent, amount, period, allowance, percentage }
+  }))
 
   const totalPlanned = budgetProgress.reduce((sum, item) => sum + item.amount, 0)
   const totalSpent = budgetProgress.reduce((sum, item) => sum + item.spent, 0)
@@ -123,7 +95,7 @@ export default async function BudgetsPage() {
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           <span>{budgetList.length} budgets</span>
           <span>·</span>
-          <span>{monthlyTxs.length + weeklyTxs.length} expense entries in scope</span>
+          <span>{budgetProgress.length} budget periods active</span>
           <span>·</span>
           <span>{baseCurrency} home currency</span>
         </div>
@@ -144,7 +116,7 @@ export default async function BudgetsPage() {
           currency={baseCurrency}
           icon={TrendingDown}
           tone={totalSpent > totalPlanned && totalPlanned > 0 ? 'negative' : 'positive'}
-          count="Expenses in weekly and monthly windows"
+          count="Expenses in active budget period windows"
         />
         <AmountBox
           label={remaining >= 0 ? 'Still available' : 'Over planned'}
@@ -160,7 +132,7 @@ export default async function BudgetsPage() {
         <EmptyState
           icon={Target}
           title="Create your first spending envelope"
-          description="Start with one area that is easy to recognize, like groceries, eating out, fuel, or school. Ledgerify will compare it with expenses from the current week or month."
+          description="Start with one area that is easy to recognize, like groceries, eating out, fuel, or school. Ledgerify will compare it with expenses from the current period cycle."
           action={
             <HeaderActionLink href="/transactions" variant="outline">
               Review transactions
@@ -171,11 +143,11 @@ export default async function BudgetsPage() {
         <section className="space-y-3">
           <SectionHeader
             title="Active envelopes"
-            description="Progress is calculated from current weekly or monthly expenses."
+            description="Progress is calculated from each budget's current period cycle."
           />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {budgetProgress.map(({ budget, spent }) => (
-              <BudgetCard key={budget.id} budget={budget} spent={spent} />
+            {budgetProgress.map(({ budget, spent, allowance }) => (
+              <BudgetCard key={budget.id} budget={budget} spent={spent} allowance={allowance} />
             ))}
           </div>
         </section>

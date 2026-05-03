@@ -23,13 +23,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import type { Budget } from '@/lib/db/schema'
+import type { getDailyAllowance } from '@/lib/utils/budgetPeriod'
+
+type Allowance = ReturnType<typeof getDailyAllowance>
 
 interface Props {
   budget: Budget
   spent: number
+  allowance?: Allowance
 }
 
-export function BudgetCard({ budget, spent }: Props) {
+export function BudgetCard({ budget, spent, allowance }: Props) {
   const [isPending, startTransition] = useTransition()
 
   const total = Number(budget.amount)
@@ -91,6 +95,21 @@ export function BudgetCard({ budget, spent }: Props) {
           />
         </div>
       </div>
+
+      {allowance && allowance.daysRemaining > 0 && !allowance.isOverspent && (
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">
+            <FinancialAmount amount={allowance.dailyAllowance} currency={budget.currency} sign="never" />
+          </span>{' '}
+          / day for {allowance.daysRemaining} day{allowance.daysRemaining === 1 ? '' : 's'} left
+        </p>
+      )}
+      {allowance?.isOverspent && (
+        <p className="text-xs text-destructive font-medium">
+          Over by{' '}
+          <FinancialAmount amount={allowance.overspentBy} currency={budget.currency} sign="never" />
+        </p>
+      )}
 
       <Dialog>
         <DialogTrigger

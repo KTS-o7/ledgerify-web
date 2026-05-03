@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import {
   accounts,
+  budgets,
   categories,
   insurancePolicies,
   loans,
@@ -9,8 +10,12 @@ import {
   users,
 } from "@/lib/db/schema";
 import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { endOfMonth, format, startOfMonth, subDays } from "date-fns";
 import { Plus, ReceiptText, Settings, WalletCards } from "lucide-react";
+import { getBudgetPeriod } from "@/lib/utils/budgetPeriod";
+import { BudgetHealthBar } from "@/components/dashboard/BudgetHealthBar";
+import { UpcomingRecurring } from "@/components/dashboard/UpcomingRecurring";
+import { SpendingHeatmap } from "@/components/dashboard/SpendingHeatmap";
 
 import { CashFlowSummary } from "@/components/dashboard/CashFlowSummary";
 import { DashboardSections } from "@/components/dashboard/DashboardSections";
@@ -101,6 +106,62 @@ export default async function DashboardPage() {
   const hasCategories = categoryList.length > 0;
   const hasTransactions = recentTxs.length > 0;
 
+  // New triage data fetches
+  const budgetList = await db
+    .select()
+    .from(budgets)
+    .where(and(eq(budgets.userId, userId), isNull(budgets.deletedAt)));
+
+  const recurringTxs = await db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        eq(transactions.isRecurring, true),
+        isNull(transactions.deletedAt),
+      ),
+    );
+
+  const heatmapStart = format(subDays(now, 83), "yyyy-MM-dd");
+  const heatmapTxs = await db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        eq(transactions.type, "expense"),
+        isNull(transactions.deletedAt),
+        gte(transactions.date, heatmapStart),
+      ),
+    );
+
+  const dailySpend: Record<string, number> = {};
+  for (const t of heatmapTxs) {
+    dailySpend[t.date] =
+      (dailySpend[t.date] ?? 0) + Number(t.convertedAmount ?? t.amount);
+  }
+
+  const budgetHealth = await Promise.all(
+    budgetList.map(async (b) => {
+      const period = getBudgetPeriod(b);
+      const pStart = format(period.start, "yyyy-MM-dd");
+      const pEnd = format(period.end, "yyyy-MM-dd");
+      const bTxs = heatmapTxs.filter(
+        (t) =>
+          t.type === "expense" &&
+          t.date >= pStart &&
+          t.date <= pEnd &&
+          (!b.categoryId || t.categoryId === b.categoryId),
+      );
+      const spent = bTxs.reduce(
+        (s, t) => s + Number(t.convertedAmount ?? t.amount),
+        0,
+      );
+      return { budget: b, spent, period };
+    }),
+  );
+
   return (
     <PageShell size="wide">
       <PageHeader
@@ -185,6 +246,24 @@ export default async function DashboardPage() {
         recent={<RecentTransactions transactions={recentTxs} />}
         attention={<UpcomingAlerts loans={loanList} policies={policyList} />}
       />
+
+      {/* Triage control tower sections */}
+      <div className="space-y-6 mt-5">
+        {budgetHealth.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Budget health</h2>
+            <div className="space-y-2">
+              {budgetHealth.map(({ budget, spent, period }) => (
+                <BudgetHealthBar key={budget.id} budget={budget} spent={spent} period={period} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <UpcomingRecurring transactions={recurringTxs} />
+
+        <SpendingHeatmap dailySpend={dailySpend} currency={baseCurrency} />
+      </div>
     </PageShell>
   );
 }
