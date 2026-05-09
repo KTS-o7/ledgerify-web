@@ -57,7 +57,7 @@ type updateTransactionRequest struct {
 func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -138,8 +138,13 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	// POST Create
 	if req.AccountID == "" || req.Type == "" || req.Currency == "" || req.Date == "" {
 		utils.BadRequest(w, "account_id, type, currency, and date are required")
+		return
+	}
+	if req.Amount <= 0 {
+		utils.BadRequest(w, "amount must be greater than zero")
 		return
 	}
 
@@ -224,7 +229,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -275,7 +280,7 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -294,8 +299,13 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	// PUT Update
 	if req.AccountID == "" || req.Type == "" || req.Currency == "" || req.Date == "" {
 		utils.BadRequest(w, "account_id, type, currency, and date are required")
+		return
+	}
+	if req.Amount <= 0 {
+		utils.BadRequest(w, "amount must be greater than zero")
 		return
 	}
 
@@ -380,7 +390,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

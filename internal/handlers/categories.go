@@ -37,7 +37,7 @@ type updateCategoryRequest struct {
 func (h *CategoryHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -54,11 +54,33 @@ func (h *CategoryHandler) List(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, categories)
 }
 
+// GET /api/v1/categories/{id}
+func (h *CategoryHandler) Get(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	categoryID := stringToUUID(chi.URLParam(r, "id"))
+	category, err := h.q.GetCategoryByID(r.Context(), categoryID)
+	if err != nil {
+		utils.NotFound(w)
+		return
+	}
+	if category.UserID.Valid && category.UserID.Bytes != stringToUUID(claims.UserID).Bytes {
+		utils.NotFound(w)
+		return
+	}
+
+	utils.OK(w, category)
+}
+
 // POST /api/v1/categories
 func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -104,7 +126,7 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -152,7 +174,7 @@ func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

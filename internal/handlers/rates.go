@@ -29,7 +29,7 @@ type upsertExchangeRateRequest struct {
 func (h *ExchangeRateHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *ExchangeRateHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *ExchangeRateHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
