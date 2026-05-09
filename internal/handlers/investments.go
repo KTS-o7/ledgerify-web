@@ -57,7 +57,7 @@ type createInvestmentTxRequest struct {
 func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -328,7 +328,7 @@ func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -362,7 +362,7 @@ func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Requ
 func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

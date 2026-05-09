@@ -45,6 +45,8 @@ type Querier interface {
 	GetInsurancePolicyByID(ctx context.Context, id pgtype.UUID) (InsurancePolicy, error)
 	GetInvestmentByID(ctx context.Context, id pgtype.UUID) (Investment, error)
 	GetLoanByID(ctx context.Context, id pgtype.UUID) (Loan, error)
+	GetSavingsGoalByID(ctx context.Context, arg GetSavingsGoalByIDParams) (SavingsGoal, error)
+	GetTagByID(ctx context.Context, arg GetTagByIDParams) (Tag, error)
 	GetTransactionByID(ctx context.Context, id pgtype.UUID) (GetTransactionByIDRow, error)
 	GetTransactionTags(ctx context.Context, transactionID pgtype.UUID) ([]Tag, error)
 	// Summary / aggregation queries
@@ -87,6 +89,7 @@ type Querier interface {
 	UpdateInvestment(ctx context.Context, arg UpdateInvestmentParams) (Investment, error)
 	UpdateLoan(ctx context.Context, arg UpdateLoanParams) (Loan, error)
 	UpdateSavingsGoal(ctx context.Context, arg UpdateSavingsGoalParams) (SavingsGoal, error)
+	UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error)
 	UpdateTransaction(ctx context.Context, arg UpdateTransactionParams) (Transaction, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	// Exchange Rates

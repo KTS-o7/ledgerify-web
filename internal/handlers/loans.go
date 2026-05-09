@@ -55,7 +55,7 @@ type createLoanPaymentRequest struct {
 func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -273,7 +273,7 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -330,7 +330,7 @@ func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

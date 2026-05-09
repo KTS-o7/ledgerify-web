@@ -82,11 +82,12 @@ func main() {
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
-		r.Post("/logout", authHandler.Logout)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(jwtCfg))
+			r.Post("/logout", authHandler.Logout)
 			r.Get("/me", authHandler.Me)
+			r.Put("/me", authHandler.UpdateProfile)
 		})
 	})
 
@@ -104,6 +105,7 @@ func main() {
 		r.Route("/api/v1/categories", func(r chi.Router) {
 			r.Get("/", categoryHandler.List)
 			r.Post("/", categoryHandler.Create)
+			r.Get("/{id}", categoryHandler.Get)
 			r.Put("/{id}", categoryHandler.Update)
 			r.Delete("/{id}", categoryHandler.Delete)
 		})
@@ -111,6 +113,8 @@ func main() {
 		r.Route("/api/v1/tags", func(r chi.Router) {
 			r.Get("/", tagHandler.List)
 			r.Post("/", tagHandler.Create)
+			r.Get("/{id}", tagHandler.Get)
+			r.Put("/{id}", tagHandler.Update)
 			r.Delete("/{id}", tagHandler.Delete)
 		})
 
@@ -127,6 +131,7 @@ func main() {
 		r.Route("/api/v1/budgets", func(r chi.Router) {
 			r.Get("/", budgetHandler.List)
 			r.Post("/", budgetHandler.Create)
+			r.Get("/{id}", budgetHandler.Get)
 			r.Put("/{id}", budgetHandler.Update)
 			r.Delete("/{id}", budgetHandler.Delete)
 		})

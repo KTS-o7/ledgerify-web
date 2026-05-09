@@ -163,13 +163,53 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
 	q := db.New(h.pool)
 	userUUID := stringToUUID(claims.UserID)
 	user, err := q.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	utils.OK(w, userToResponse(user))
+}
+
+type updateProfileRequest struct {
+	Name            string `json:"name"`
+	DefaultCurrency string `json:"default_currency"`
+	Timezone        string `json:"timezone"`
+}
+
+// PUT /api/v1/auth/me
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	var req updateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.BadRequest(w, "invalid request body")
+		return
+	}
+	if req.Name == "" || req.DefaultCurrency == "" || req.Timezone == "" {
+		utils.BadRequest(w, "name, default_currency, and timezone are required")
+		return
+	}
+
+	q := db.New(h.pool)
+	userUUID := stringToUUID(claims.UserID)
+	user, err := q.UpdateUser(r.Context(), db.UpdateUserParams{
+		ID:              userUUID,
+		Name:            req.Name,
+		DefaultCurrency: req.DefaultCurrency,
+		Timezone:        req.Timezone,
+	})
 	if err != nil {
 		utils.InternalError(w)
 		return

@@ -41,11 +41,11 @@ type updateSavingsGoalRequest struct {
 	Status          string   `json:"status"`
 }
 
-// GET /api/v1/savings-goals
+// GET /api/v1/savings
 func (h *SavingsGoalHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -62,11 +62,11 @@ func (h *SavingsGoalHandler) List(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, goals)
 }
 
-// POST /api/v1/savings-goals
+// POST /api/v1/savings
 func (h *SavingsGoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -141,39 +141,34 @@ func (h *SavingsGoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 	utils.Created(w, goal)
 }
 
-// GET /api/v1/savings-goals/{id}
+// GET /api/v1/savings/{id}
 func (h *SavingsGoalHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
 	goalID := stringToUUID(chi.URLParam(r, "id"))
-
-	// Fetch all user goals and find by ID (no GetSavingsGoalByID query)
 	userUUID := stringToUUID(claims.UserID)
-	goals, err := h.q.ListSavingsGoalsByUser(r.Context(), userUUID)
+
+	goal, err := h.q.GetSavingsGoalByID(r.Context(), db.GetSavingsGoalByIDParams{
+		ID:     goalID,
+		UserID: userUUID,
+	})
 	if err != nil {
-		utils.InternalError(w)
+		utils.NotFound(w)
 		return
 	}
 
-	for _, g := range goals {
-		if g.ID.Bytes == goalID.Bytes {
-			utils.OK(w, g)
-			return
-		}
-	}
-
-	utils.NotFound(w)
+	utils.OK(w, goal)
 }
 
-// PUT /api/v1/savings-goals/{id}
+// PUT /api/v1/savings/{id}
 func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -250,11 +245,11 @@ func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, goal)
 }
 
-// DELETE /api/v1/savings-goals/{id}
+// DELETE /api/v1/savings/{id}
 func (h *SavingsGoalHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
