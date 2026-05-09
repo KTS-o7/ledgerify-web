@@ -1,10 +1,6 @@
 package handlers
 
-import (
-	"fmt"
-
-	"github.com/KTS-o7/ledgerify-web/internal/db"
-)
+import "github.com/KTS-o7/ledgerify-web/internal/db"
 
 // ParseTransactionType converts a string to db.TransactionType.
 func ParseTransactionType(s string) (db.TransactionType, error) {
@@ -98,7 +94,7 @@ func ParseInsurancePaymentStatus(s string) (db.InsurancePaymentStatus, error) {
 	case "missed":
 		return db.InsurancePaymentStatusMissed, nil
 	default:
-		return "", fmt.Errorf("invalid insurance payment status: %s (must be one of: paid, due, missed)", s)
+		return "", errInvalid("insurance payment status", "paid, due, missed")
 	}
 }
 
