@@ -21,7 +21,10 @@ import (
 )
 
 func main() {
-	cfg := auth.LoadConfig()
+	cfg, err := auth.LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
 
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
@@ -69,6 +72,7 @@ func main() {
 	r.Use(chimw.RealIP)
 	r.Use(chimw.RequestID)
 	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(middleware.BodyLimit(1 << 20)) // 1MB body size limit
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

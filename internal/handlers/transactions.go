@@ -148,17 +148,9 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Parse transaction type
 	var txType db.TransactionType
-	switch req.Type {
-	case "income":
-		txType = db.TransactionTypeIncome
-	case "expense":
-		txType = db.TransactionTypeExpense
-	case "transfer":
-		txType = db.TransactionTypeTransfer
-	case "credit_payment":
-		txType = db.TransactionTypeCreditPayment
-	default:
-		utils.BadRequest(w, "invalid transaction type. Must be: income, expense, transfer, credit_payment")
+	txType, err := ParseTransactionType(req.Type)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -310,17 +302,9 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	accountUUID := stringToUUID(req.AccountID)
 
 	var txType db.TransactionType
-	switch req.Type {
-	case "income":
-		txType = db.TransactionTypeIncome
-	case "expense":
-		txType = db.TransactionTypeExpense
-	case "transfer":
-		txType = db.TransactionTypeTransfer
-	case "credit_payment":
-		txType = db.TransactionTypeCreditPayment
-	default:
-		utils.BadRequest(w, "invalid transaction type")
+	txType, err = ParseTransactionType(req.Type)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -415,17 +399,25 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, map[string]string{"message": "transaction deleted"})
 }
 
-// setTransactionTags clears existing tags and inserts the given tag IDs.
+// setTransactionTags clears existing tags and inserts the given tag IDs within a transaction.
 func (h *TransactionHandler) setTransactionTags(ctx context.Context, transactionID pgtype.UUID, tagIDs []string) error {
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := h.q.WithTx(tx)
+
 	// Delete existing tags
-	if err := h.q.SetTransactionTags(ctx, transactionID); err != nil {
+	if err := qtx.SetTransactionTags(ctx, transactionID); err != nil {
 		return err
 	}
 
 	// Insert new tags
 	for _, tagID := range tagIDs {
 		tagUUID := stringToUUID(tagID)
-		_, err := h.pool.Exec(ctx,
+		_, err := tx.Exec(ctx,
 			"INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2)",
 			transactionID, tagUUID,
 		)
@@ -434,7 +426,7 @@ func (h *TransactionHandler) setTransactionTags(ctx context.Context, transaction
 		}
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 // uuidOrNil returns a string pointer for an optional pgtype.UUID.

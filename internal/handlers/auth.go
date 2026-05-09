@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -92,8 +94,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Timezone:        "UTC",
 	})
 	if err != nil {
-		// Likely duplicate email
-		utils.BadRequest(w, "email already registered")
+		// Distinguish unique violation from other errors to avoid email enumeration
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			utils.BadRequest(w, "registration failed")
+		} else {
+			utils.InternalError(w)
+		}
 		return
 	}
 
