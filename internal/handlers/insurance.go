@@ -427,15 +427,9 @@ func (h *InsuranceHandler) CreatePayment(w http.ResponseWriter, r *http.Request)
 	}
 
 	var paymentStatus db.InsurancePaymentStatus
-	switch req.Status {
-	case "paid":
-		paymentStatus = db.InsurancePaymentStatusPaid
-	case "due":
-		paymentStatus = db.InsurancePaymentStatusDue
-	case "missed":
-		paymentStatus = db.InsurancePaymentStatusMissed
-	default:
-		utils.BadRequest(w, "invalid status. Must be one of: paid, due, missed")
+	paymentStatus, err = ParseInsurancePaymentStatus(req.Status)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 

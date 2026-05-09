@@ -89,10 +89,16 @@ func (h *SavingsGoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var targetAmount, currentAmount pgtype.Numeric
 	if req.TargetAmount != nil {
-		targetAmount.Scan(*req.TargetAmount)
+		if err := targetAmount.Scan(*req.TargetAmount); err != nil {
+			utils.BadRequest(w, "invalid target amount")
+			return
+		}
 	}
 	if req.CurrentAmount != nil {
-		currentAmount.Scan(*req.CurrentAmount)
+		if err := currentAmount.Scan(*req.CurrentAmount); err != nil {
+			utils.BadRequest(w, "invalid current amount")
+			return
+		}
 	}
 
 	var linkedAccountID pgtype.UUID
@@ -102,20 +108,17 @@ func (h *SavingsGoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var deadline pgtype.Date
 	if req.Deadline != nil && *req.Deadline != "" {
-		deadline.Scan(*req.Deadline)
+		if err := deadline.Scan(*req.Deadline); err != nil {
+			utils.BadRequest(w, "invalid deadline")
+			return
+		}
 		deadline.Valid = true
 	}
 
 	var goalStatus db.GoalStatus
-	switch req.Status {
-	case "active":
-		goalStatus = db.GoalStatusActive
-	case "achieved":
-		goalStatus = db.GoalStatusAchieved
-	case "abandoned":
-		goalStatus = db.GoalStatusAbandoned
-	default:
-		utils.BadRequest(w, "invalid status. Must be one of: active, achieved, abandoned")
+	goalStatus, err := ParseGoalStatus(req.Status)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -194,10 +197,16 @@ func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var targetAmount, currentAmount pgtype.Numeric
 	if req.TargetAmount != nil {
-		targetAmount.Scan(*req.TargetAmount)
+		if err := targetAmount.Scan(*req.TargetAmount); err != nil {
+			utils.BadRequest(w, "invalid target amount")
+			return
+		}
 	}
 	if req.CurrentAmount != nil {
-		currentAmount.Scan(*req.CurrentAmount)
+		if err := currentAmount.Scan(*req.CurrentAmount); err != nil {
+			utils.BadRequest(w, "invalid current amount")
+			return
+		}
 	}
 
 	var linkedAccountID pgtype.UUID
@@ -207,20 +216,17 @@ func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var deadline pgtype.Date
 	if req.Deadline != nil && *req.Deadline != "" {
-		deadline.Scan(*req.Deadline)
+		if err := deadline.Scan(*req.Deadline); err != nil {
+			utils.BadRequest(w, "invalid deadline")
+			return
+		}
 		deadline.Valid = true
 	}
 
 	var goalStatus db.GoalStatus
-	switch req.Status {
-	case "active":
-		goalStatus = db.GoalStatusActive
-	case "achieved":
-		goalStatus = db.GoalStatusAchieved
-	case "abandoned":
-		goalStatus = db.GoalStatusAbandoned
-	default:
-		utils.BadRequest(w, "invalid status. Must be one of: active, achieved, abandoned")
+	goalStatus, err := ParseGoalStatus(req.Status)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 

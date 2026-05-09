@@ -179,15 +179,24 @@ func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var startDate, endDate, anchorDate pgtype.Date
 	if req.StartDate != "" {
-		_ = startDate.Scan(req.StartDate)
+		if err := startDate.Scan(req.StartDate); err != nil {
+			utils.BadRequest(w, "invalid start date")
+			return
+		}
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		_ = endDate.Scan(req.EndDate)
+		if err := endDate.Scan(req.EndDate); err != nil {
+			utils.BadRequest(w, "invalid end date")
+			return
+		}
 		endDate.Valid = true
 	}
 	if req.PeriodAnchorDate != "" {
-		_ = anchorDate.Scan(req.PeriodAnchorDate)
+		if err := anchorDate.Scan(req.PeriodAnchorDate); err != nil {
+			utils.BadRequest(w, "invalid period anchor date")
+			return
+		}
 		anchorDate.Valid = true
 	}
 
@@ -287,7 +296,10 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if *req.StartDate == "" {
 			startDate = pgtype.Date{Valid: false}
 		} else {
-			_ = startDate.Scan(*req.StartDate)
+			if err := startDate.Scan(*req.StartDate); err != nil {
+				utils.BadRequest(w, "invalid start date")
+				return
+			}
 			startDate.Valid = true
 		}
 	}
@@ -297,7 +309,10 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if *req.EndDate == "" {
 			endDate = pgtype.Date{Valid: false}
 		} else {
-			_ = endDate.Scan(*req.EndDate)
+			if err := endDate.Scan(*req.EndDate); err != nil {
+				utils.BadRequest(w, "invalid end date")
+				return
+			}
 			endDate.Valid = true
 		}
 	}
@@ -307,7 +322,10 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		if *req.PeriodAnchorDate == "" {
 			anchorDate = pgtype.Date{Valid: false}
 		} else {
-			_ = anchorDate.Scan(*req.PeriodAnchorDate)
+			if err := anchorDate.Scan(*req.PeriodAnchorDate); err != nil {
+				utils.BadRequest(w, "invalid period anchor date")
+				return
+			}
 			anchorDate.Valid = true
 		}
 	}

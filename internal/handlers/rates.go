@@ -64,7 +64,10 @@ func (h *ExchangeRateHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var rate pgtype.Numeric
-	rate.Scan(*req.Rate)
+	if err := rate.Scan(*req.Rate); err != nil {
+		utils.BadRequest(w, "invalid rate")
+		return
+	}
 
 	err := h.q.UpsertExchangeRate(r.Context(), db.UpsertExchangeRateParams{
 		Base:      req.Base,
