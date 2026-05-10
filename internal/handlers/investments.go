@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strconv"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -125,24 +127,24 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var qty, buyPrice, currentPrice pgtype.Numeric
 	if req.Quantity != nil {
-		qty.Scan(*req.Quantity)
+		qty.Scan(fmt.Sprint(*req.Quantity))
 	}
 	if req.BuyPrice != nil {
-		buyPrice.Scan(*req.BuyPrice)
+		buyPrice.Scan(fmt.Sprint(*req.BuyPrice))
 	}
 	if req.CurrentPrice != nil {
-		currentPrice.Scan(*req.CurrentPrice)
+		currentPrice.Scan(strconv.FormatFloat(*req.CurrentPrice, 'f', -1, 64))
 	}
 
 	var maturityDate pgtype.Date
 	if req.MaturityDate != nil && *req.MaturityDate != "" {
-		maturityDate.Scan(*req.MaturityDate)
+		maturityDate.Scan(fmt.Sprint(*req.MaturityDate))
 		maturityDate.Valid = true
 	}
 
 	var interestRate pgtype.Numeric
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
 	}
 
 	var metadata []byte
@@ -254,24 +256,24 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var qty, buyPrice, currentPrice pgtype.Numeric
 	if req.Quantity != nil {
-		qty.Scan(*req.Quantity)
+		qty.Scan(fmt.Sprint(*req.Quantity))
 	}
 	if req.BuyPrice != nil {
-		buyPrice.Scan(*req.BuyPrice)
+		buyPrice.Scan(fmt.Sprint(*req.BuyPrice))
 	}
 	if req.CurrentPrice != nil {
-		currentPrice.Scan(*req.CurrentPrice)
+		currentPrice.Scan(strconv.FormatFloat(*req.CurrentPrice, 'f', -1, 64))
 	}
 
 	var maturityDate pgtype.Date
 	if req.MaturityDate != nil && *req.MaturityDate != "" {
-		maturityDate.Scan(*req.MaturityDate)
+		maturityDate.Scan(fmt.Sprint(*req.MaturityDate))
 		maturityDate.Valid = true
 	}
 
 	var interestRate pgtype.Numeric
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
 	}
 
 	var metadata []byte
@@ -399,23 +401,23 @@ func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Req
 
 	var qty, price, amount pgtype.Numeric
 	if req.Quantity != nil {
-		if err := qty.Scan(*req.Quantity); err != nil {
+		if err := qty.Scan(strconv.FormatFloat(*req.Quantity, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid quantity")
 			return
 		}
 	}
 	if req.Price != nil {
-		if err := price.Scan(*req.Price); err != nil {
+		if err := price.Scan(strconv.FormatFloat(*req.Price, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid price")
 			return
 		}
 	}
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64))
 	}
 
 	var txDate pgtype.Date
-	txDate.Scan(req.Date)
+	txDate.Scan(fmt.Sprint(req.Date))
 	txDate.Valid = true
 
 	var note pgtype.Text

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strconv"
 	"encoding/json"
 	"net/http"
 
@@ -135,25 +137,25 @@ func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(*req.PremiumAmount)
+		premiumAmount.Scan(fmt.Sprint(*req.PremiumAmount))
 	}
 	if req.CoverageAmount != nil {
-		coverageAmount.Scan(*req.CoverageAmount)
+		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
 	}
 
 	var startDate, endDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		startDate.Scan(fmt.Sprint(req.StartDate))
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		endDate.Scan(req.EndDate)
+		endDate.Scan(fmt.Sprint(req.EndDate))
 		endDate.Valid = true
 	}
 
 	var renewalDate pgtype.Date
 	if req.RenewalDate != nil && *req.RenewalDate != "" {
-		renewalDate.Scan(*req.RenewalDate)
+		renewalDate.Scan(fmt.Sprint(*req.RenewalDate))
 		renewalDate.Valid = true
 	}
 
@@ -281,25 +283,25 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(*req.PremiumAmount)
+		premiumAmount.Scan(fmt.Sprint(*req.PremiumAmount))
 	}
 	if req.CoverageAmount != nil {
-		coverageAmount.Scan(*req.CoverageAmount)
+		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
 	}
 
 	var startDate, endDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		startDate.Scan(fmt.Sprint(req.StartDate))
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		endDate.Scan(req.EndDate)
+		endDate.Scan(fmt.Sprint(req.EndDate))
 		endDate.Valid = true
 	}
 
 	var renewalDate pgtype.Date
 	if req.RenewalDate != nil && *req.RenewalDate != "" {
-		renewalDate.Scan(*req.RenewalDate)
+		renewalDate.Scan(fmt.Sprint(*req.RenewalDate))
 		renewalDate.Valid = true
 	}
 
@@ -435,11 +437,11 @@ func (h *InsuranceHandler) CreatePayment(w http.ResponseWriter, r *http.Request)
 
 	var amount pgtype.Numeric
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64))
 	}
 
 	var paymentDate pgtype.Date
-	paymentDate.Scan(req.Date)
+	paymentDate.Scan(fmt.Sprint(req.Date))
 	paymentDate.Valid = true
 
 	payment, err := h.q.CreateInsurancePayment(r.Context(), db.CreateInsurancePaymentParams{
