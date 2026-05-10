@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"strconv"
 	"net/http"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
@@ -24,7 +25,7 @@ type createLoanRequest struct {
 	LoanType           string   `json:"loan_type"`
 	Principal          *float64 `json:"principal"`
 	InterestRate       *float64 `json:"interest_rate"`
-	TenureMonths       int32    `json:"tenure_months"`
+	TenureMonths       int32    `json:"term_months"`
 	StartDate          string   `json:"start_date"`
 	EmiAmount          *float64 `json:"emi_amount"`
 	Currency           string   `json:"currency"`
@@ -36,7 +37,7 @@ type updateLoanRequest struct {
 	LoanType           string   `json:"loan_type"`
 	Principal          *float64 `json:"principal"`
 	InterestRate       *float64 `json:"interest_rate"`
-	TenureMonths       int32    `json:"tenure_months"`
+	TenureMonths       int32    `json:"term_months"`
 	StartDate          string   `json:"start_date"`
 	EmiAmount          *float64 `json:"emi_amount"`
 	Currency           string   `json:"currency"`
@@ -101,25 +102,31 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		if err := principal.Scan(*req.Principal); err != nil {
+		if err := principal.Scan(strconv.FormatFloat(*req.Principal, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid principal")
 			return
 		}
+	} else {
+		principal.Scan("0")
 	}
 	if req.InterestRate != nil {
-		if err := interestRate.Scan(*req.InterestRate); err != nil {
+		if err := interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid interest rate")
 			return
 		}
+	} else {
+		interestRate.Scan("0")
 	}
 	if req.EmiAmount != nil {
-		if err := emiAmount.Scan(*req.EmiAmount); err != nil {
+		if err := emiAmount.Scan(strconv.FormatFloat(*req.EmiAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid EMI amount")
 			return
 		}
+	} else {
+		emiAmount.Scan("0")
 	}
 	if req.OutstandingBalance != nil {
-		if err := outstandingBalance.Scan(*req.OutstandingBalance); err != nil {
+		if err := outstandingBalance.Scan(strconv.FormatFloat(*req.OutstandingBalance, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid outstanding balance")
 			return
 		}
@@ -215,25 +222,31 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		if err := principal.Scan(*req.Principal); err != nil {
+		if err := principal.Scan(strconv.FormatFloat(*req.Principal, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid principal")
 			return
 		}
+	} else {
+		principal.Scan("0")
 	}
 	if req.InterestRate != nil {
-		if err := interestRate.Scan(*req.InterestRate); err != nil {
+		if err := interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid interest rate")
 			return
 		}
+	} else {
+		interestRate.Scan("0")
 	}
 	if req.EmiAmount != nil {
-		if err := emiAmount.Scan(*req.EmiAmount); err != nil {
+		if err := emiAmount.Scan(strconv.FormatFloat(*req.EmiAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid EMI amount")
 			return
 		}
+	} else {
+		emiAmount.Scan("0")
 	}
 	if req.OutstandingBalance != nil {
-		if err := outstandingBalance.Scan(*req.OutstandingBalance); err != nil {
+		if err := outstandingBalance.Scan(strconv.FormatFloat(*req.OutstandingBalance, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid outstanding balance")
 			return
 		}
@@ -367,19 +380,19 @@ func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 
 	var amount, principalComponent, interestComponent pgtype.Numeric
 	if req.Amount != nil {
-		if err := amount.Scan(*req.Amount); err != nil {
+		if err := amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid amount")
 			return
 		}
 	}
 	if req.PrincipalComponent != nil {
-		if err := principalComponent.Scan(*req.PrincipalComponent); err != nil {
+		if err := principalComponent.Scan(strconv.FormatFloat(*req.PrincipalComponent, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid principal component")
 			return
 		}
 	}
 	if req.InterestComponent != nil {
-		if err := interestComponent.Scan(*req.InterestComponent); err != nil {
+		if err := interestComponent.Scan(strconv.FormatFloat(*req.InterestComponent, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid interest component")
 			return
 		}

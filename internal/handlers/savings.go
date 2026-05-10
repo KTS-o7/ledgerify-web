@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"strconv"
 	"net/http"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
@@ -89,13 +90,13 @@ func (h *SavingsGoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var targetAmount, currentAmount pgtype.Numeric
 	if req.TargetAmount != nil {
-		if err := targetAmount.Scan(*req.TargetAmount); err != nil {
+		if err := targetAmount.Scan(strconv.FormatFloat(*req.TargetAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid target amount")
 			return
 		}
 	}
 	if req.CurrentAmount != nil {
-		if err := currentAmount.Scan(*req.CurrentAmount); err != nil {
+		if err := currentAmount.Scan(strconv.FormatFloat(*req.CurrentAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid current amount")
 			return
 		}
@@ -192,13 +193,13 @@ func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var targetAmount, currentAmount pgtype.Numeric
 	if req.TargetAmount != nil {
-		if err := targetAmount.Scan(*req.TargetAmount); err != nil {
+		if err := targetAmount.Scan(strconv.FormatFloat(*req.TargetAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid target amount")
 			return
 		}
 	}
 	if req.CurrentAmount != nil {
-		if err := currentAmount.Scan(*req.CurrentAmount); err != nil {
+		if err := currentAmount.Scan(strconv.FormatFloat(*req.CurrentAmount, 'f', -1, 64)); err != nil {
 			utils.BadRequest(w, "invalid current amount")
 			return
 		}

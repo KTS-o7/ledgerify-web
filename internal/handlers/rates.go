@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -64,7 +65,7 @@ func (h *ExchangeRateHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var rate pgtype.Numeric
-	if err := rate.Scan(*req.Rate); err != nil {
+	if err := rate.Scan(strconv.FormatFloat(*req.Rate, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid rate")
 		return
 	}
