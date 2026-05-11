@@ -7,6 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  GO_IMAGE_NAME: ${{ github.repository }}-go
 
 jobs:
   build-and-deploy:
@@ -43,7 +44,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
+      - name: Extract Docker metadata (Next.js)
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -52,13 +53,32 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
 
-      - name: Build and push Docker image
+      - name: Build and push Next.js image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Extract Docker metadata (Go API)
+        id: meta-go
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.GO_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push Go API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.goserver
+          push: true
+          tags: ${{ steps.meta-go.outputs.tags }}
+          labels: ${{ steps.meta-go.outputs.labels }}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
