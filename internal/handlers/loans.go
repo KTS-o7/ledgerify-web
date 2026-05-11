@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strconv"
 	"encoding/json"
 	"net/http"
 
@@ -24,7 +26,7 @@ type createLoanRequest struct {
 	LoanType           string   `json:"loan_type"`
 	Principal          *float64 `json:"principal"`
 	InterestRate       *float64 `json:"interest_rate"`
-	TenureMonths       int32    `json:"tenure_months"`
+	TenureMonths       int32    `json:"term_months"`
 	StartDate          string   `json:"start_date"`
 	EmiAmount          *float64 `json:"emi_amount"`
 	Currency           string   `json:"currency"`
@@ -36,7 +38,7 @@ type updateLoanRequest struct {
 	LoanType           string   `json:"loan_type"`
 	Principal          *float64 `json:"principal"`
 	InterestRate       *float64 `json:"interest_rate"`
-	TenureMonths       int32    `json:"tenure_months"`
+	TenureMonths       int32    `json:"term_months"`
 	StartDate          string   `json:"start_date"`
 	EmiAmount          *float64 `json:"emi_amount"`
 	Currency           string   `json:"currency"`
@@ -111,21 +113,27 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		principal.Scan(*req.Principal)
+		principal.Scan(strconv.FormatFloat(*req.Principal, 'f', -1, 64))
+	} else {
+		principal.Scan("0")
 	}
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
+	} else {
+		interestRate.Scan("0")
 	}
 	if req.EmiAmount != nil {
-		emiAmount.Scan(*req.EmiAmount)
+		emiAmount.Scan(strconv.FormatFloat(*req.EmiAmount, 'f', -1, 64))
+	} else {
+		emiAmount.Scan("0")
 	}
 	if req.OutstandingBalance != nil {
-		outstandingBalance.Scan(*req.OutstandingBalance)
+		outstandingBalance.Scan(strconv.FormatFloat(*req.OutstandingBalance, 'f', -1, 64))
 	}
 
 	var startDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		startDate.Scan(fmt.Sprint(req.StartDate))
 		startDate.Valid = true
 	}
 
@@ -220,21 +228,27 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		principal.Scan(*req.Principal)
+		principal.Scan(strconv.FormatFloat(*req.Principal, 'f', -1, 64))
+	} else {
+		principal.Scan("0")
 	}
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
+	} else {
+		interestRate.Scan("0")
 	}
 	if req.EmiAmount != nil {
-		emiAmount.Scan(*req.EmiAmount)
+		emiAmount.Scan(strconv.FormatFloat(*req.EmiAmount, 'f', -1, 64))
+	} else {
+		emiAmount.Scan("0")
 	}
 	if req.OutstandingBalance != nil {
-		outstandingBalance.Scan(*req.OutstandingBalance)
+		outstandingBalance.Scan(strconv.FormatFloat(*req.OutstandingBalance, 'f', -1, 64))
 	}
 
 	var startDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		startDate.Scan(fmt.Sprint(req.StartDate))
 		startDate.Valid = true
 	}
 
@@ -365,17 +379,17 @@ func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 
 	var amount, principalComponent, interestComponent pgtype.Numeric
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64))
 	}
 	if req.PrincipalComponent != nil {
-		principalComponent.Scan(*req.PrincipalComponent)
+		principalComponent.Scan(strconv.FormatFloat(*req.PrincipalComponent, 'f', -1, 64))
 	}
 	if req.InterestComponent != nil {
-		interestComponent.Scan(*req.InterestComponent)
+		interestComponent.Scan(strconv.FormatFloat(*req.InterestComponent, 'f', -1, 64))
 	}
 
 	var paymentDate pgtype.Date
-	paymentDate.Scan(req.Date)
+	paymentDate.Scan(fmt.Sprint(req.Date))
 	paymentDate.Valid = true
 
 	payment, err := h.q.CreateLoanPayment(r.Context(), db.CreateLoanPaymentParams{

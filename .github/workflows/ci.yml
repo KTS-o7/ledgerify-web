@@ -30,8 +30,26 @@ jobs:
         run: bun run build
         env:
           # Dummy env vars so build doesn't fail without a real DB
-          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          DATABASE_URL: postgresql://dummy:***@localhost:5432/dummy
           AUTH_SECRET: dummy-secret-for-ci-build-only-32chars
           AUTH_URL: http://localhost:3000
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           CRON_SECRET: dummy-cron-secret
+
+  go-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
