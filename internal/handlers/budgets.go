@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"strconv"
 	"net/http"
 	"time"
 
@@ -196,12 +197,14 @@ func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}
 
 	var startDate, endDate, anchorDate pgtype.Date
+	startDate.Valid = true
+	_ = startDate.Scan(time.Now().Format("2006-01-02"))
 	if req.StartDate != "" {
 		if err := startDate.Scan(req.StartDate); err != nil {
 			utils.BadRequest(w, "invalid start date")
@@ -276,7 +279,7 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}

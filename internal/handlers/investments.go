@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strconv"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -57,7 +59,7 @@ type createInvestmentTxRequest struct {
 func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -78,7 +80,7 @@ func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -125,13 +127,13 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var qty, buyPrice, currentPrice pgtype.Numeric
 	if req.Quantity != nil {
-		qty.Scan(*req.Quantity)
+		qty.Scan(strconv.FormatFloat(*req.Quantity, 'f', -1, 64))
 	}
 	if req.BuyPrice != nil {
-		buyPrice.Scan(*req.BuyPrice)
+		buyPrice.Scan(strconv.FormatFloat(*req.BuyPrice, 'f', -1, 64))
 	}
 	if req.CurrentPrice != nil {
-		currentPrice.Scan(*req.CurrentPrice)
+		currentPrice.Scan(strconv.FormatFloat(*req.CurrentPrice, 'f', -1, 64))
 	}
 
 	var maturityDate pgtype.Date
@@ -142,7 +144,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var interestRate pgtype.Numeric
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
 	}
 
 	var metadata []byte
@@ -175,7 +177,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -199,7 +201,7 @@ func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -254,13 +256,13 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var qty, buyPrice, currentPrice pgtype.Numeric
 	if req.Quantity != nil {
-		qty.Scan(*req.Quantity)
+		qty.Scan(strconv.FormatFloat(*req.Quantity, 'f', -1, 64))
 	}
 	if req.BuyPrice != nil {
-		buyPrice.Scan(*req.BuyPrice)
+		buyPrice.Scan(strconv.FormatFloat(*req.BuyPrice, 'f', -1, 64))
 	}
 	if req.CurrentPrice != nil {
-		currentPrice.Scan(*req.CurrentPrice)
+		currentPrice.Scan(strconv.FormatFloat(*req.CurrentPrice, 'f', -1, 64))
 	}
 
 	var maturityDate pgtype.Date
@@ -271,7 +273,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var interestRate pgtype.Numeric
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		interestRate.Scan(strconv.FormatFloat(*req.InterestRate, 'f', -1, 64))
 	}
 
 	var metadata []byte
@@ -305,7 +307,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -328,7 +330,7 @@ func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -362,7 +364,7 @@ func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Requ
 func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.Unauthorized(w)
+		utils.BadRequest(w, "unauthorized")
 		return
 	}
 
@@ -391,31 +393,35 @@ func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Req
 	}
 
 	var txType db.InvestmentTxType
-	txType, err = ParseInvestmentTxType(req.Type)
-	if err != nil {
-		utils.BadRequest(w, err.Error())
+	switch req.Type {
+	case "buy":
+		txType = db.InvestmentTxTypeBuy
+	case "sell":
+		txType = db.InvestmentTxTypeSell
+	case "dividend":
+		txType = db.InvestmentTxTypeDividend
+	case "interest":
+		txType = db.InvestmentTxTypeInterest
+	case "bonus":
+		txType = db.InvestmentTxTypeBonus
+	default:
+		utils.BadRequest(w, "invalid transaction type. Must be one of: buy, sell, dividend, interest, bonus")
 		return
 	}
 
 	var qty, price, amount pgtype.Numeric
 	if req.Quantity != nil {
-		if err := qty.Scan(*req.Quantity); err != nil {
-			utils.BadRequest(w, "invalid quantity")
-			return
-		}
+		qty.Scan(strconv.FormatFloat(*req.Quantity, 'f', -1, 64))
 	}
 	if req.Price != nil {
-		if err := price.Scan(*req.Price); err != nil {
-			utils.BadRequest(w, "invalid price")
-			return
-		}
+		price.Scan(strconv.FormatFloat(*req.Price, 'f', -1, 64))
 	}
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64))
 	}
 
 	var txDate pgtype.Date
-	txDate.Scan(req.Date)
+	txDate.Scan(fmt.Sprint(req.Date))
 	txDate.Valid = true
 
 	var note pgtype.Text
