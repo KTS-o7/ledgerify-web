@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,10 +17,11 @@ import (
 type AuthHandler struct {
 	pool   *pgxpool.Pool
 	jwtCfg *auth.JWTConfig
+	q      db.Querier
 }
 
 func NewAuthHandler(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) *AuthHandler {
-	return &AuthHandler{pool: pool, jwtCfg: jwtCfg}
+	return &AuthHandler{pool: pool, jwtCfg: jwtCfg, q: db.New(pool)}
 }
 
 type authRegisterRequest struct {
@@ -78,13 +81,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := db.New(h.pool)
 	defaultCurrency := req.DefaultCurrency
 	if defaultCurrency == "" {
 		defaultCurrency = "USD"
 	}
 
-	user, err := q.CreateUser(r.Context(), db.CreateUserParams{
+	user, err :=	h.q.CreateUser(r.Context(),db.CreateUserParams{
 		Email:           req.Email,
 		PasswordHash:    string(hash),
 		Name:            req.Name,
@@ -92,8 +94,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Timezone:        "UTC",
 	})
 	if err != nil {
-		// Likely duplicate email
-		utils.BadRequest(w, "email already registered")
+		// Distinguish unique violation from other errors to avoid email enumeration
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			utils.BadRequest(w, "registration failed")
+		} else {
+			utils.InternalError(w)
+		}
 		return
 	}
 
@@ -122,8 +129,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := db.New(h.pool)
-	user, err := q.GetUserByEmail(r.Context(), req.Email)
+	user, err := h.q.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
 		utils.BadRequest(w, "invalid email or password")
 		return
@@ -156,13 +162,52 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
+		return
+	}
+
+	userUUID := stringToUUID(claims.UserID)
+	user, err := h.q.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	utils.OK(w, userToResponse(user))
+}
+
+type updateProfileRequest struct {
+	Name            string `json:"name"`
+	DefaultCurrency string `json:"default_currency"`
+	Timezone        string `json:"timezone"`
+}
+
+// PUT /api/v1/auth/me
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	var req updateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.BadRequest(w, "invalid request body")
+		return
+	}
+	if req.Name == "" || req.DefaultCurrency == "" || req.Timezone == "" {
+		utils.BadRequest(w, "name, default_currency, and timezone are required")
 		return
 	}
 
 	q := db.New(h.pool)
 	userUUID := stringToUUID(claims.UserID)
-	user, err := q.GetUserByID(r.Context(), userUUID)
+	user, err := q.UpdateUser(r.Context(), db.UpdateUserParams{
+		ID:              userUUID,
+		Name:            req.Name,
+		DefaultCurrency: req.DefaultCurrency,
+		Timezone:        req.Timezone,
+	})
 	if err != nil {
 		utils.InternalError(w)
 		return

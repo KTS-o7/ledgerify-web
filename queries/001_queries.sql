@@ -121,6 +121,12 @@ SELECT * FROM tags WHERE user_id = $1 ORDER BY name;
 -- name: CreateTag :one
 INSERT INTO tags (user_id, name, color) VALUES ($1, $2, $3) RETURNING *;
 
+-- name: GetTagByID :one
+SELECT * FROM tags WHERE id = $1 AND user_id = $2;
+
+-- name: UpdateTag :one
+UPDATE tags SET name = $3, color = $4 WHERE id = $1 AND user_id = $2 RETURNING *;
+
 -- name: DeleteTag :exec
 DELETE FROM tags WHERE id = $1 AND user_id = $2;
 
@@ -243,6 +249,9 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
 UPDATE savings_goals SET name = $2, description = $3, target_amount = $4, currency = $5,
   current_amount = $6, linked_account_id = $7, deadline = $8, status = $9, updated_at = now()
 WHERE id = $1 AND user_id = $10 AND deleted_at IS NULL RETURNING *;
+
+-- name: GetSavingsGoalByID :one
+SELECT * FROM savings_goals WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL;
 
 -- name: DeleteSavingsGoal :exec
 UPDATE savings_goals SET deleted_at = now() WHERE id = $1 AND user_id = $2;

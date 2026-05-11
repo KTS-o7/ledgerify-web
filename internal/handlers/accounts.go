@@ -56,7 +56,7 @@ func floatToNumeric(v *float64) pgtype.Numeric {
 func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *AccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (h *AccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -230,7 +230,7 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

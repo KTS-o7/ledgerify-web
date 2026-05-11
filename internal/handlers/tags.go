@@ -28,7 +28,7 @@ type createTagRequest struct {
 func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -78,11 +78,74 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 	utils.Created(w, tag)
 }
 
+type updateTagRequest struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+// GET /api/v1/tags/{id}
+func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	tagID := stringToUUID(chi.URLParam(r, "id"))
+	userUUID := stringToUUID(claims.UserID)
+
+	tag, err := h.q.GetTagByID(r.Context(), db.GetTagByIDParams{
+		ID:     tagID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		utils.NotFound(w)
+		return
+	}
+
+	utils.OK(w, tag)
+}
+
+// PUT /api/v1/tags/{id}
+func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	tagID := stringToUUID(chi.URLParam(r, "id"))
+	userUUID := stringToUUID(claims.UserID)
+
+	var req updateTagRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.BadRequest(w, "invalid request body")
+		return
+	}
+	if req.Name == "" {
+		utils.BadRequest(w, "name is required")
+		return
+	}
+
+	tag, err := h.q.UpdateTag(r.Context(), db.UpdateTagParams{
+		ID:     tagID,
+		UserID: userUUID,
+		Name:   req.Name,
+		Color:  pgtype.Text{String: req.Color, Valid: req.Color != ""},
+	})
+	if err != nil {
+		utils.NotFound(w)
+		return
+	}
+
+	utils.OK(w, tag)
+}
+
 // DELETE /api/v1/tags/{id}
 func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
