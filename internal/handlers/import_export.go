@@ -33,7 +33,7 @@ type ImportStats struct {
 func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 	userID := stringToUUID(claims.UserID)
@@ -197,7 +197,7 @@ func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
 func (h *ImportExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 	userID := stringToUUID(claims.UserID)
@@ -274,7 +274,7 @@ type CategoriseResponse struct {
 func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 	userID := stringToUUID(claims.UserID)

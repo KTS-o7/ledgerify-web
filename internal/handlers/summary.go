@@ -47,7 +47,7 @@ type SummaryResponse struct {
 func (h *SummaryHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

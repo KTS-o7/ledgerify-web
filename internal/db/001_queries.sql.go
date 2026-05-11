@@ -1106,6 +1106,57 @@ func (q *Queries) GetLoanByID(ctx context.Context, id pgtype.UUID) (Loan, error)
 	return i, err
 }
 
+const getSavingsGoalByID = `-- name: GetSavingsGoalByID :one
+SELECT id, user_id, name, description, target_amount, currency, current_amount, linked_account_id, deadline, status, created_at, updated_at, deleted_at FROM savings_goals WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+`
+
+type GetSavingsGoalByIDParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetSavingsGoalByID(ctx context.Context, arg GetSavingsGoalByIDParams) (SavingsGoal, error) {
+	row := q.db.QueryRow(ctx, getSavingsGoalByID, arg.ID, arg.UserID)
+	var i SavingsGoal
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Description,
+		&i.TargetAmount,
+		&i.Currency,
+		&i.CurrentAmount,
+		&i.LinkedAccountID,
+		&i.Deadline,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getTagByID = `-- name: GetTagByID :one
+SELECT id, user_id, name, color FROM tags WHERE id = $1 AND user_id = $2
+`
+
+type GetTagByIDParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetTagByID(ctx context.Context, arg GetTagByIDParams) (Tag, error) {
+	row := q.db.QueryRow(ctx, getTagByID, arg.ID, arg.UserID)
+	var i Tag
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Color,
+	)
+	return i, err
+}
+
 const getTransactionByID = `-- name: GetTransactionByID :one
 SELECT t.id, t.user_id, t.account_id, t.type, t.amount, t.currency, t.converted_amount, t.base_currency, t.category_id, t.title, t.note, t.date, t.is_recurring, t.recurrence_rule, t.recurrence_interval, t.recurrence_unit, t.parent_recurring_id, t.transfer_to_id, t.created_at, t.updated_at, t.deleted_at, a.name as account_name, c.name as category_name
 FROM transactions t
@@ -2315,6 +2366,34 @@ func (q *Queries) UpdateSavingsGoal(ctx context.Context, arg UpdateSavingsGoalPa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateTag = `-- name: UpdateTag :one
+UPDATE tags SET name = $3, color = $4 WHERE id = $1 AND user_id = $2 RETURNING id, user_id, name, color
+`
+
+type UpdateTagParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+	Name   string      `json:"name"`
+	Color  pgtype.Text `json:"color"`
+}
+
+func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error) {
+	row := q.db.QueryRow(ctx, updateTag,
+		arg.ID,
+		arg.UserID,
+		arg.Name,
+		arg.Color,
+	)
+	var i Tag
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Color,
 	)
 	return i, err
 }

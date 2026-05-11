@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strconv"
 	"encoding/json"
 	"net/http"
 
@@ -59,7 +61,7 @@ type createInsurancePaymentRequest struct {
 func (h *InsuranceHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -80,7 +82,7 @@ func (h *InsuranceHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -135,10 +137,10 @@ func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(*req.PremiumAmount)
+		premiumAmount.Scan(strconv.FormatFloat(*req.PremiumAmount, 'f', -1, 64))
 	}
 	if req.CoverageAmount != nil {
-		coverageAmount.Scan(*req.CoverageAmount)
+		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
 	}
 
 	var startDate, endDate pgtype.Date
@@ -194,7 +196,7 @@ func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *InsuranceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -218,7 +220,7 @@ func (h *InsuranceHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -281,10 +283,10 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(*req.PremiumAmount)
+		premiumAmount.Scan(strconv.FormatFloat(*req.PremiumAmount, 'f', -1, 64))
 	}
 	if req.CoverageAmount != nil {
-		coverageAmount.Scan(*req.CoverageAmount)
+		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
 	}
 
 	var startDate, endDate pgtype.Date
@@ -341,7 +343,7 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *InsuranceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -364,7 +366,7 @@ func (h *InsuranceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *InsuranceHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -398,7 +400,7 @@ func (h *InsuranceHandler) ListPayments(w http.ResponseWriter, r *http.Request) 
 func (h *InsuranceHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -427,25 +429,19 @@ func (h *InsuranceHandler) CreatePayment(w http.ResponseWriter, r *http.Request)
 	}
 
 	var paymentStatus db.InsurancePaymentStatus
-	switch req.Status {
-	case "paid":
-		paymentStatus = db.InsurancePaymentStatusPaid
-	case "due":
-		paymentStatus = db.InsurancePaymentStatusDue
-	case "missed":
-		paymentStatus = db.InsurancePaymentStatusMissed
-	default:
-		utils.BadRequest(w, "invalid status. Must be one of: paid, due, missed")
+	paymentStatus, err = ParseInsurancePaymentStatus(req.Status)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
 	var amount pgtype.Numeric
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		amount.Scan(strconv.FormatFloat(*req.Amount, 'f', -1, 64))
 	}
 
 	var paymentDate pgtype.Date
-	paymentDate.Scan(req.Date)
+	paymentDate.Scan(fmt.Sprint(req.Date))
 	paymentDate.Valid = true
 
 	payment, err := h.q.CreateInsurancePayment(r.Context(), db.CreateInsurancePaymentParams{
