@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -102,9 +103,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 			limit = int32(parsed)
 		}
 	}
-	var limitRows pgtype.Int4
-	_ = limitRows.Scan(limit)
-	limitRows.Valid = true
+	limitRows := pgtype.Int4{Int32: limit, Valid: true}
 
 	transactions, err := h.q.ListTransactionsByUser(r.Context(), db.ListTransactionsByUserParams{
 		UserID:    userUUID,
@@ -168,7 +167,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Parse amount
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}
@@ -177,7 +176,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Parse optional converted amount
 	var convertedAmount pgtype.Numeric
 	if req.ConvertedAmount != nil {
-		if err := convertedAmount.Scan(*req.ConvertedAmount); err != nil {
+		if err := convertedAmount.Scan(fmt.Sprint(*req.ConvertedAmount)); err != nil {
 			utils.BadRequest(w, "invalid converted_amount")
 			return
 		}
@@ -325,7 +324,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}
@@ -333,7 +332,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var convertedAmount pgtype.Numeric
 	if req.ConvertedAmount != nil {
-		if err := convertedAmount.Scan(*req.ConvertedAmount); err != nil {
+		if err := convertedAmount.Scan(fmt.Sprint(*req.ConvertedAmount)); err != nil {
 			utils.BadRequest(w, "invalid converted_amount")
 			return
 		}
