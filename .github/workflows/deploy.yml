@@ -80,6 +80,15 @@ jobs:
           tags: ${{ steps.meta-go.outputs.tags }}
           labels: ${{ steps.meta-go.outputs.labels }}
 
+      - name: Copy config files to VPS
+        uses: appleboy/scp-action@v0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.prod.yml,nginx/money.shenthar.me.conf"
+          target: /opt/ledgerify-deploy
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -87,6 +96,16 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            # Sync compose file
+            cp /opt/ledgerify-deploy/docker-compose.prod.yml /opt/ledgerify/docker-compose.prod.yml
+
+            # Sync nginx config + ensure sites-enabled is a symlink
+            sudo cp /opt/ledgerify-deploy/nginx/money.shenthar.me.conf /etc/nginx/sites-available/money.shenthar.me
+            sudo rm -f /etc/nginx/sites-enabled/money.shenthar.me
+            sudo ln -s /etc/nginx/sites-available/money.shenthar.me /etc/nginx/sites-enabled/money.shenthar.me
+            sudo nginx -t && sudo systemctl reload nginx
+
+            # Pull and restart containers
             cd /opt/ledgerify
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
