@@ -137,7 +137,7 @@ func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(fmt.Sprint(*req.PremiumAmount))
+		premiumAmount.Scan(strconv.FormatFloat(*req.PremiumAmount, 'f', -1, 64))
 	}
 	if req.CoverageAmount != nil {
 		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
@@ -145,17 +145,17 @@ func (h *InsuranceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var startDate, endDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(fmt.Sprint(req.StartDate))
+		startDate.Scan(req.StartDate)
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		endDate.Scan(fmt.Sprint(req.EndDate))
+		endDate.Scan(req.EndDate)
 		endDate.Valid = true
 	}
 
 	var renewalDate pgtype.Date
 	if req.RenewalDate != nil && *req.RenewalDate != "" {
-		renewalDate.Scan(fmt.Sprint(*req.RenewalDate))
+		renewalDate.Scan(*req.RenewalDate)
 		renewalDate.Valid = true
 	}
 
@@ -283,7 +283,7 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var premiumAmount, coverageAmount pgtype.Numeric
 	if req.PremiumAmount != nil {
-		premiumAmount.Scan(fmt.Sprint(*req.PremiumAmount))
+		premiumAmount.Scan(strconv.FormatFloat(*req.PremiumAmount, 'f', -1, 64))
 	}
 	if req.CoverageAmount != nil {
 		coverageAmount.Scan(strconv.FormatFloat(*req.CoverageAmount, 'f', -1, 64))
@@ -291,17 +291,17 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var startDate, endDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(fmt.Sprint(req.StartDate))
+		startDate.Scan(req.StartDate)
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		endDate.Scan(fmt.Sprint(req.EndDate))
+		endDate.Scan(req.EndDate)
 		endDate.Valid = true
 	}
 
 	var renewalDate pgtype.Date
 	if req.RenewalDate != nil && *req.RenewalDate != "" {
-		renewalDate.Scan(fmt.Sprint(*req.RenewalDate))
+		renewalDate.Scan(*req.RenewalDate)
 		renewalDate.Valid = true
 	}
 
