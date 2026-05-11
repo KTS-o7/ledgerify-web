@@ -57,7 +57,7 @@ type createInvestmentTxRequest struct {
 func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -328,7 +328,7 @@ func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -362,7 +362,7 @@ func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Requ
 func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -391,28 +391,24 @@ func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Req
 	}
 
 	var txType db.InvestmentTxType
-	switch req.Type {
-	case "buy":
-		txType = db.InvestmentTxTypeBuy
-	case "sell":
-		txType = db.InvestmentTxTypeSell
-	case "dividend":
-		txType = db.InvestmentTxTypeDividend
-	case "interest":
-		txType = db.InvestmentTxTypeInterest
-	case "bonus":
-		txType = db.InvestmentTxTypeBonus
-	default:
-		utils.BadRequest(w, "invalid transaction type. Must be one of: buy, sell, dividend, interest, bonus")
+	txType, err = ParseInvestmentTxType(req.Type)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
 	var qty, price, amount pgtype.Numeric
 	if req.Quantity != nil {
-		qty.Scan(*req.Quantity)
+		if err := qty.Scan(*req.Quantity); err != nil {
+			utils.BadRequest(w, "invalid quantity")
+			return
+		}
 	}
 	if req.Price != nil {
-		price.Scan(*req.Price)
+		if err := price.Scan(*req.Price); err != nil {
+			utils.BadRequest(w, "invalid price")
+			return
+		}
 	}
 	if req.Amount != nil {
 		amount.Scan(*req.Amount)

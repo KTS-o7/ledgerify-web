@@ -55,7 +55,7 @@ type createLoanPaymentRequest struct {
 func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -91,19 +91,9 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var loanType db.LoanType
-	switch req.LoanType {
-	case "home":
-		loanType = db.LoanTypeHome
-	case "personal":
-		loanType = db.LoanTypePersonal
-	case "vehicle":
-		loanType = db.LoanTypeVehicle
-	case "education":
-		loanType = db.LoanTypeEducation
-	case "other":
-		loanType = db.LoanTypeOther
-	default:
-		utils.BadRequest(w, "invalid loan_type. Must be one of: home, personal, vehicle, education, other")
+	loanType, err := ParseLoanType(req.LoanType)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -111,21 +101,36 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		principal.Scan(*req.Principal)
+		if err := principal.Scan(*req.Principal); err != nil {
+			utils.BadRequest(w, "invalid principal")
+			return
+		}
 	}
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		if err := interestRate.Scan(*req.InterestRate); err != nil {
+			utils.BadRequest(w, "invalid interest rate")
+			return
+		}
 	}
 	if req.EmiAmount != nil {
-		emiAmount.Scan(*req.EmiAmount)
+		if err := emiAmount.Scan(*req.EmiAmount); err != nil {
+			utils.BadRequest(w, "invalid EMI amount")
+			return
+		}
 	}
 	if req.OutstandingBalance != nil {
-		outstandingBalance.Scan(*req.OutstandingBalance)
+		if err := outstandingBalance.Scan(*req.OutstandingBalance); err != nil {
+			utils.BadRequest(w, "invalid outstanding balance")
+			return
+		}
 	}
 
 	var startDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		if err := startDate.Scan(req.StartDate); err != nil {
+			utils.BadRequest(w, "invalid start date")
+			return
+		}
 		startDate.Valid = true
 	}
 
@@ -153,7 +158,7 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -177,7 +182,7 @@ func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -202,39 +207,44 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var loanType db.LoanType
-	switch req.LoanType {
-	case "home":
-		loanType = db.LoanTypeHome
-	case "personal":
-		loanType = db.LoanTypePersonal
-	case "vehicle":
-		loanType = db.LoanTypeVehicle
-	case "education":
-		loanType = db.LoanTypeEducation
-	case "other":
-		loanType = db.LoanTypeOther
-	default:
-		utils.BadRequest(w, "invalid loan_type. Must be one of: home, personal, vehicle, education, other")
+	loanType, err = ParseLoanType(req.LoanType)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
 	var principal, interestRate, emiAmount, outstandingBalance pgtype.Numeric
 	if req.Principal != nil {
-		principal.Scan(*req.Principal)
+		if err := principal.Scan(*req.Principal); err != nil {
+			utils.BadRequest(w, "invalid principal")
+			return
+		}
 	}
 	if req.InterestRate != nil {
-		interestRate.Scan(*req.InterestRate)
+		if err := interestRate.Scan(*req.InterestRate); err != nil {
+			utils.BadRequest(w, "invalid interest rate")
+			return
+		}
 	}
 	if req.EmiAmount != nil {
-		emiAmount.Scan(*req.EmiAmount)
+		if err := emiAmount.Scan(*req.EmiAmount); err != nil {
+			utils.BadRequest(w, "invalid EMI amount")
+			return
+		}
 	}
 	if req.OutstandingBalance != nil {
-		outstandingBalance.Scan(*req.OutstandingBalance)
+		if err := outstandingBalance.Scan(*req.OutstandingBalance); err != nil {
+			utils.BadRequest(w, "invalid outstanding balance")
+			return
+		}
 	}
 
 	var startDate pgtype.Date
 	if req.StartDate != "" {
-		startDate.Scan(req.StartDate)
+		if err := startDate.Scan(req.StartDate); err != nil {
+			utils.BadRequest(w, "invalid start date")
+			return
+		}
 		startDate.Valid = true
 	}
 
@@ -263,7 +273,7 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -286,7 +296,7 @@ func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -320,7 +330,7 @@ func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -349,33 +359,37 @@ func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var paymentStatus db.PaymentStatus
-	switch req.Status {
-	case "scheduled":
-		paymentStatus = db.PaymentStatusScheduled
-	case "paid":
-		paymentStatus = db.PaymentStatusPaid
-	case "missed":
-		paymentStatus = db.PaymentStatusMissed
-	case "partial":
-		paymentStatus = db.PaymentStatusPartial
-	default:
-		utils.BadRequest(w, "invalid status. Must be one of: scheduled, paid, missed, partial")
+	paymentStatus, err = ParsePaymentStatus(req.Status)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
 	var amount, principalComponent, interestComponent pgtype.Numeric
 	if req.Amount != nil {
-		amount.Scan(*req.Amount)
+		if err := amount.Scan(*req.Amount); err != nil {
+			utils.BadRequest(w, "invalid amount")
+			return
+		}
 	}
 	if req.PrincipalComponent != nil {
-		principalComponent.Scan(*req.PrincipalComponent)
+		if err := principalComponent.Scan(*req.PrincipalComponent); err != nil {
+			utils.BadRequest(w, "invalid principal component")
+			return
+		}
 	}
 	if req.InterestComponent != nil {
-		interestComponent.Scan(*req.InterestComponent)
+		if err := interestComponent.Scan(*req.InterestComponent); err != nil {
+			utils.BadRequest(w, "invalid interest component")
+			return
+		}
 	}
 
 	var paymentDate pgtype.Date
-	paymentDate.Scan(req.Date)
+	if err := paymentDate.Scan(req.Date); err != nil {
+		utils.BadRequest(w, "invalid payment date")
+		return
+	}
 	paymentDate.Valid = true
 
 	payment, err := h.q.CreateLoanPayment(r.Context(), db.CreateLoanPaymentParams{

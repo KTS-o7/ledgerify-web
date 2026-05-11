@@ -35,15 +35,15 @@ type createBudgetRequest struct {
 }
 
 type updateBudgetRequest struct {
-	Name             *string  `json:"name,omitempty"`
-	CategoryID       *string  `json:"category_id,omitempty"`
-	Amount           *float64 `json:"amount,omitempty"`
-	Currency         *string  `json:"currency,omitempty"`
-	PeriodType       *string  `json:"period_type,omitempty"`
-	StartDate        *string  `json:"start_date,omitempty"`
-	EndDate          *string  `json:"end_date,omitempty"`
-	PeriodAnchorDate *string  `json:"period_anchor_date,omitempty"`
-	Rollover         *bool    `json:"rollover,omitempty"`
+	Name             string  `json:"name"`
+	CategoryID       string  `json:"category_id"`
+	Amount           float64 `json:"amount"`
+	Currency         string  `json:"currency"`
+	PeriodType       string  `json:"period_type"`
+	StartDate        string  `json:"start_date"`
+	EndDate          string  `json:"end_date"`
+	PeriodAnchorDate string  `json:"period_anchor_date"`
+	Rollover         *bool   `json:"rollover"`
 }
 
 type budgetWithSpent struct {
@@ -72,7 +72,7 @@ type budgetWithSpent struct {
 func (h *BudgetHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -147,11 +147,35 @@ func (h *BudgetHandler) List(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, results)
 }
 
+// GET /api/v1/budgets/{id}
+func (h *BudgetHandler) Get(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	budgetID := stringToUUID(chi.URLParam(r, "id"))
+	userUUID := stringToUUID(claims.UserID)
+
+	budget, err := h.q.GetBudgetByID(r.Context(), budgetID)
+	if err != nil {
+		utils.NotFound(w)
+		return
+	}
+	if budget.UserID.Bytes != userUUID.Bytes {
+		utils.NotFound(w)
+		return
+	}
+
+	utils.OK(w, budget)
+}
+
 // POST /api/v1/budgets
 func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -179,15 +203,24 @@ func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var startDate, endDate, anchorDate pgtype.Date
 	if req.StartDate != "" {
-		_ = startDate.Scan(req.StartDate)
+		if err := startDate.Scan(req.StartDate); err != nil {
+			utils.BadRequest(w, "invalid start date")
+			return
+		}
 		startDate.Valid = true
 	}
 	if req.EndDate != "" {
-		_ = endDate.Scan(req.EndDate)
+		if err := endDate.Scan(req.EndDate); err != nil {
+			utils.BadRequest(w, "invalid end date")
+			return
+		}
 		endDate.Valid = true
 	}
 	if req.PeriodAnchorDate != "" {
-		_ = anchorDate.Scan(req.PeriodAnchorDate)
+		if err := anchorDate.Scan(req.PeriodAnchorDate); err != nil {
+			utils.BadRequest(w, "invalid period anchor date")
+			return
+		}
 		anchorDate.Valid = true
 	}
 
@@ -220,111 +253,71 @@ func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		utils.BadRequest(w, "missing id")
-		return
-	}
+	budgetID := stringToUUID(chi.URLParam(r, "id"))
+	userID := stringToUUID(claims.UserID)
 
 	var req updateBudgetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
-
-	userID := stringToUUID(claims.UserID)
-	budgetID := stringToUUID(id)
-
-	// Fetch existing budget
-	existing, err := h.q.GetBudgetByID(r.Context(), budgetID)
-	if err != nil {
-		utils.NotFound(w)
-		return
-	}
-	if existing.UserID.Bytes != userID.Bytes {
-		utils.NotFound(w)
+	if req.Name == "" || req.Amount <= 0 || req.Currency == "" || req.PeriodType == "" {
+		utils.BadRequest(w, "name, amount, currency, and period_type are required")
 		return
 	}
 
-	name := existing.Name
-	if req.Name != nil {
-		name = *req.Name
+	var catUUID pgtype.UUID
+	if req.CategoryID != "" {
+		catUUID = stringToUUID(req.CategoryID)
 	}
 
-	currency := existing.Currency
-	if req.Currency != nil {
-		currency = *req.Currency
+	var amount pgtype.Numeric
+	if err := amount.Scan(req.Amount); err != nil {
+		utils.BadRequest(w, "invalid amount")
+		return
 	}
 
-	periodType := existing.PeriodType
-	if req.PeriodType != nil {
-		periodType = db.PeriodType(*req.PeriodType)
-	}
-
-	catID := existing.CategoryID
-	if req.CategoryID != nil {
-		if *req.CategoryID == "" {
-			catID = pgtype.UUID{Valid: false}
-		} else {
-			catID = stringToUUID(*req.CategoryID)
+	var startDate pgtype.Date
+	if req.StartDate != "" {
+		if err := startDate.Scan(req.StartDate); err != nil {
+			utils.BadRequest(w, "invalid start date")
+			return
 		}
 	}
 
-	amount := existing.Amount
-	if req.Amount != nil {
-		var n pgtype.Numeric
-		if err := n.Scan(*req.Amount); err == nil {
-			amount = n
+	var endDate pgtype.Date
+	if req.EndDate != "" {
+		if err := endDate.Scan(req.EndDate); err != nil {
+			utils.BadRequest(w, "invalid end date")
+			return
 		}
 	}
 
-	startDate := existing.StartDate
-	if req.StartDate != nil {
-		if *req.StartDate == "" {
-			startDate = pgtype.Date{Valid: false}
-		} else {
-			_ = startDate.Scan(*req.StartDate)
-			startDate.Valid = true
+	var anchorDate pgtype.Date
+	if req.PeriodAnchorDate != "" {
+		if err := anchorDate.Scan(req.PeriodAnchorDate); err != nil {
+			utils.BadRequest(w, "invalid period anchor date")
+			return
 		}
 	}
 
-	endDate := existing.EndDate
-	if req.EndDate != nil {
-		if *req.EndDate == "" {
-			endDate = pgtype.Date{Valid: false}
-		} else {
-			_ = endDate.Scan(*req.EndDate)
-			endDate.Valid = true
-		}
-	}
-
-	anchorDate := existing.PeriodAnchorDate
-	if req.PeriodAnchorDate != nil {
-		if *req.PeriodAnchorDate == "" {
-			anchorDate = pgtype.Date{Valid: false}
-		} else {
-			_ = anchorDate.Scan(*req.PeriodAnchorDate)
-			anchorDate.Valid = true
-		}
-	}
-
-	rollover := existing.Rollover
+	rollover := false
 	if req.Rollover != nil {
 		rollover = *req.Rollover
 	}
 
-	_, err = h.q.UpdateBudget(r.Context(), db.UpdateBudgetParams{
+	budget, err := h.q.UpdateBudget(r.Context(), db.UpdateBudgetParams{
 		ID:               budgetID,
 		UserID:           userID,
-		Name:             name,
-		CategoryID:       catID,
+		Name:             req.Name,
+		CategoryID:       catUUID,
 		Amount:           amount,
-		Currency:         currency,
-		PeriodType:       periodType,
+		Currency:         req.Currency,
+		PeriodType:       db.PeriodType(req.PeriodType),
 		StartDate:        startDate,
 		EndDate:          endDate,
 		PeriodAnchorDate: anchorDate,
@@ -335,14 +328,14 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.OK(w, map[string]string{"message": "updated"})
+	utils.OK(w, budget)
 }
 
 // DELETE /api/v1/budgets/{id}
 func (h *BudgetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 

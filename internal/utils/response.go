@@ -33,6 +33,10 @@ func BadRequest(w http.ResponseWriter, msg string) {
 	Error(w, http.StatusBadRequest, msg)
 }
 
+func Unauthorized(w http.ResponseWriter) {
+	Error(w, http.StatusUnauthorized, "unauthorized")
+}
+
 func InternalError(w http.ResponseWriter) {
 	Error(w, http.StatusInternalServerError, "internal server error")
 }
