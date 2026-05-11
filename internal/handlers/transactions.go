@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -57,7 +58,7 @@ type updateTransactionRequest struct {
 func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -102,9 +103,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 			limit = int32(parsed)
 		}
 	}
-	var limitRows pgtype.Int4
-	_ = limitRows.Scan(limit)
-	limitRows.Valid = true
+	limitRows := pgtype.Int4{Int32: limit, Valid: true}
 
 	transactions, err := h.q.ListTransactionsByUser(r.Context(), db.ListTransactionsByUserParams{
 		UserID:    userUUID,
@@ -129,7 +128,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -138,8 +137,13 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	// POST Create
 	if req.AccountID == "" || req.Type == "" || req.Currency == "" || req.Date == "" {
 		utils.BadRequest(w, "account_id, type, currency, and date are required")
+		return
+	}
+	if req.Amount <= 0 {
+		utils.BadRequest(w, "amount must be greater than zero")
 		return
 	}
 
@@ -148,17 +152,9 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Parse transaction type
 	var txType db.TransactionType
-	switch req.Type {
-	case "income":
-		txType = db.TransactionTypeIncome
-	case "expense":
-		txType = db.TransactionTypeExpense
-	case "transfer":
-		txType = db.TransactionTypeTransfer
-	case "credit_payment":
-		txType = db.TransactionTypeCreditPayment
-	default:
-		utils.BadRequest(w, "invalid transaction type. Must be: income, expense, transfer, credit_payment")
+	txType, err := ParseTransactionType(req.Type)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -171,7 +167,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Parse amount
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}
@@ -180,7 +176,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Parse optional converted amount
 	var convertedAmount pgtype.Numeric
 	if req.ConvertedAmount != nil {
-		if err := convertedAmount.Scan(*req.ConvertedAmount); err != nil {
+		if err := convertedAmount.Scan(fmt.Sprint(*req.ConvertedAmount)); err != nil {
 			utils.BadRequest(w, "invalid converted_amount")
 			return
 		}
@@ -232,7 +228,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -283,7 +279,7 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -302,25 +298,22 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	// PUT Update
 	if req.AccountID == "" || req.Type == "" || req.Currency == "" || req.Date == "" {
 		utils.BadRequest(w, "account_id, type, currency, and date are required")
+		return
+	}
+	if req.Amount <= 0 {
+		utils.BadRequest(w, "amount must be greater than zero")
 		return
 	}
 
 	accountUUID := stringToUUID(req.AccountID)
 
 	var txType db.TransactionType
-	switch req.Type {
-	case "income":
-		txType = db.TransactionTypeIncome
-	case "expense":
-		txType = db.TransactionTypeExpense
-	case "transfer":
-		txType = db.TransactionTypeTransfer
-	case "credit_payment":
-		txType = db.TransactionTypeCreditPayment
-	default:
-		utils.BadRequest(w, "invalid transaction type")
+	txType, err = ParseTransactionType(req.Type)
+	if err != nil {
+		utils.BadRequest(w, err.Error())
 		return
 	}
 
@@ -331,7 +324,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var amount pgtype.Numeric
-	if err := amount.Scan(req.Amount); err != nil {
+	if err := amount.Scan(strconv.FormatFloat(req.Amount, 'f', -1, 64)); err != nil {
 		utils.BadRequest(w, "invalid amount")
 		return
 	}
@@ -339,7 +332,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	var convertedAmount pgtype.Numeric
 	if req.ConvertedAmount != nil {
-		if err := convertedAmount.Scan(*req.ConvertedAmount); err != nil {
+		if err := convertedAmount.Scan(fmt.Sprint(*req.ConvertedAmount)); err != nil {
 			utils.BadRequest(w, "invalid converted_amount")
 			return
 		}
@@ -396,7 +389,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -415,17 +408,25 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, map[string]string{"message": "transaction deleted"})
 }
 
-// setTransactionTags clears existing tags and inserts the given tag IDs.
+// setTransactionTags clears existing tags and inserts the given tag IDs within a transaction.
 func (h *TransactionHandler) setTransactionTags(ctx context.Context, transactionID pgtype.UUID, tagIDs []string) error {
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := h.q.WithTx(tx)
+
 	// Delete existing tags
-	if err := h.q.SetTransactionTags(ctx, transactionID); err != nil {
+	if err := qtx.SetTransactionTags(ctx, transactionID); err != nil {
 		return err
 	}
 
 	// Insert new tags
 	for _, tagID := range tagIDs {
 		tagUUID := stringToUUID(tagID)
-		_, err := h.pool.Exec(ctx,
+		_, err := tx.Exec(ctx,
 			"INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2)",
 			transactionID, tagUUID,
 		)
@@ -434,7 +435,7 @@ func (h *TransactionHandler) setTransactionTags(ctx context.Context, transaction
 		}
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 // uuidOrNil returns a string pointer for an optional pgtype.UUID.
