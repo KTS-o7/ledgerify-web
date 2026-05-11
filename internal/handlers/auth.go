@@ -17,10 +17,11 @@ import (
 type AuthHandler struct {
 	pool   *pgxpool.Pool
 	jwtCfg *auth.JWTConfig
+	q      db.Querier
 }
 
 func NewAuthHandler(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) *AuthHandler {
-	return &AuthHandler{pool: pool, jwtCfg: jwtCfg}
+	return &AuthHandler{pool: pool, jwtCfg: jwtCfg, q: db.New(pool)}
 }
 
 type authRegisterRequest struct {
@@ -80,13 +81,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := db.New(h.pool)
 	defaultCurrency := req.DefaultCurrency
 	if defaultCurrency == "" {
 		defaultCurrency = "USD"
 	}
 
-	user, err := q.CreateUser(r.Context(), db.CreateUserParams{
+	user, err :=	h.q.CreateUser(r.Context(),db.CreateUserParams{
 		Email:           req.Email,
 		PasswordHash:    string(hash),
 		Name:            req.Name,
@@ -129,8 +129,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := db.New(h.pool)
-	user, err := q.GetUserByEmail(r.Context(), req.Email)
+	user, err := h.q.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
 		utils.BadRequest(w, "invalid email or password")
 		return
@@ -167,9 +166,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := db.New(h.pool)
 	userUUID := stringToUUID(claims.UserID)
-	user, err := q.GetUserByID(r.Context(), userUUID)
+	user, err := h.q.GetUserByID(r.Context(), userUUID)
 	if err != nil {
 		utils.InternalError(w)
 		return
