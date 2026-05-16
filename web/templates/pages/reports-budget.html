@@ -1,0 +1,55 @@
+{{define "content"}}
+
+<h2>Budget vs Actual</h2>
+<p class="muted">Compare your budget targets with actual spending</p>
+
+<div class="chart-container" style="max-width: 800px; margin: 2rem auto;">
+    <canvas id="budgetChart"></canvas>
+</div>
+
+{{if .Data}}
+<script>
+const bvaData = JSON.parse({{.Data}});
+new Chart(document.getElementById('budgetChart'), {
+    type: 'bar',
+    data: {
+        labels: bvaData.labels,
+        datasets: [
+            {
+                label: 'Budget',
+                data: bvaData.budget,
+                backgroundColor: '#6366f1',
+                borderColor: '#4f46e5',
+                borderWidth: 1
+            },
+            {
+                label: 'Actual',
+                data: bvaData.actual,
+                backgroundColor: '#f59e0b',
+                borderColor: '#d97706',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { callback: v => v.toFixed(0) }
+            }
+        }
+    }
+});
+</script>
+{{else}}<p class="empty-state">No budgets found. Create budgets to compare against actual spending.</p>{{end}}
+
+{{end}}
