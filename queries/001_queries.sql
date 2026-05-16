@@ -78,11 +78,13 @@ LEFT JOIN tags tg ON tg.id = tt.tag_id
 WHERE t.user_id = $1 AND t.deleted_at IS NULL
   AND (sqlc.narg('type')::text IS NULL OR t.type::text = sqlc.narg('type'))
   AND (sqlc.narg('account_id')::uuid IS NULL OR t.account_id = sqlc.narg('account_id'))
+  AND (sqlc.narg('category_id')::uuid IS NULL OR t.category_id = sqlc.narg('category_id'))
   AND (sqlc.narg('from_date')::date IS NULL OR t.date >= sqlc.narg('from_date'))
   AND (sqlc.narg('to_date')::date IS NULL OR t.date <= sqlc.narg('to_date'))
 GROUP BY t.id, a.name, c.name
 ORDER BY t.date DESC
-LIMIT sqlc.narg('limit_rows')::int;
+LIMIT sqlc.narg('limit_rows')::int
+OFFSET sqlc.narg('offset_rows')::int;
 
 -- name: GetTransactionByID :one
 SELECT t.*, a.name as account_name, c.name as category_name
