@@ -1,32 +1,20 @@
-# Stage 1: Install dependencies
-FROM oven/bun:1-alpine AS deps
+# Stage 1: Build Go binary
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
-
-# Stage 2: Build
-FROM oven/bun:1-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+RUN apk add --no-cache git ca-certificates
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN bun run build
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /ledgerify ./cmd/server
 
-# Stage 3: Production runner (minimal)
-FROM node:22-alpine AS runner
+# Stage 2: Minimal production image
+FROM alpine:3.21
 WORKDIR /app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup -S ledgerify && adduser -S ledgerify -G ledgerify
-
-COPY --from=builder --chown=ledgerify:ledgerify /app/public ./public
-COPY --from=builder --chown=ledgerify:ledgerify /app/.next/standalone ./
-COPY --from=builder --chown=ledgerify:ledgerify /app/.next/static ./.next/static
-
-USER ledgerify
-EXPOSE 3000
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+RUN apk add --no-cache ca-certificates tzdata
+COPY --from=builder /ledgerify /app/ledgerify
+COPY --from=builder /app/web/templates /app/web/templates
+EXPOSE 8080
+ENV PORT=8080
+ENV GIN_MODE=release
+USER nobody
+CMD ["/app/ledgerify"]
