@@ -35,13 +35,36 @@ var funcMap = template.FuncMap{
 // formatCurrency formats a float as currency (e.g., $1,234.56).
 func formatCurrency(amount float64, currency string) string {
 	symbol := currencySymbol(currency)
-	absAmount := amount
 	sign := ""
+	absAmount := amount
 	if absAmount < 0 {
 		sign = "-"
 		absAmount = -absAmount
 	}
-	return fmt.Sprintf("%s%s%'.2f", sign, symbol, absAmount)
+	return fmt.Sprintf("%s%s%s", sign, symbol, withSeparators(fmt.Sprintf("%.2f", absAmount)))
+}
+
+// withSeparators inserts thousands commas into a formatted number string.
+func withSeparators(s string) string {
+	parts := strings.SplitN(s, ".", 2)
+	intPart := parts[0]
+	n := len(intPart)
+	if n <= 3 {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(n + n/3 + len(parts) - 1)
+	for i, ch := range intPart {
+		if i > 0 && (n-i)%3 == 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte(byte(ch))
+	}
+	if len(parts) > 1 {
+		b.WriteByte('.')
+		b.WriteString(parts[1])
+	}
+	return b.String()
 }
 
 // formatCurrencyShort formats a float as compact currency (e.g., $1.2K).
@@ -59,7 +82,7 @@ func formatCurrencyShort(amount float64, currency string) string {
 	if absAmount >= 1_000 {
 		return fmt.Sprintf("%s%s%.1fK", sign, symbol, absAmount/1_000)
 	}
-	return fmt.Sprintf("%s%s%'.0f", sign, symbol, absAmount)
+	return fmt.Sprintf("%s%s%s", sign, symbol, withSeparators(fmt.Sprintf("%.0f", absAmount)))
 }
 
 func currencySymbol(currency string) string {
