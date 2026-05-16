@@ -153,7 +153,7 @@ func (ph *PageHandlers) NetworthPage(w http.ResponseWriter, r *http.Request) {
 				nw.Balance = append(nw.Balance, row.TotalBalance)
 			}
 			jsonBytes, _ := json.Marshal(nw)
-			data.Data = jsonBytes
+			data.Data = string(jsonBytes)
 		} else {
 			log.Printf("Networth fetch error: %v", err)
 		}
