@@ -1,0 +1,57 @@
+{{define "content"}}
+
+<h2>Loans</h2>
+
+<details class="add-section">
+    <summary class="btn btn-primary">+ Add Loan</summary>
+    <form method="post" action="/loans" class="inline-form">
+        <div class="form-grid">
+            <label>Name *<input type="text" name="name" required></label>
+            <label>Loan Type *
+                <select name="loan_type" required>
+                    <option value="">Select...</option>
+                    <option value="personal">Personal Loan</option>
+                    <option value="home">Home Loan</option>
+                    <option value="auto">Auto Loan</option>
+                    <option value="education">Education</option>
+                    <option value="business">Business</option>
+                    <option value="credit_card_debt">Credit Card Debt</option>
+                    <option value="lent">Lent (given)</option>
+                    <option value="other">Other</option>
+                </select>
+            </label>
+            <label>Currency<input type="text" name="currency" value="USD" maxlength="3"></label>
+            <label>Principal<input type="number" name="principal" step="0.01" min="0"></label>
+            <label>Interest Rate %<input type="number" name="interest_rate" step="0.01" min="0"></label>
+            <label>Tenure (months)<input type="number" name="tenure_months" min="0"></label>
+            <label>EMI Amount<input type="number" name="emi_amount" step="0.01" min="0"></label>
+            <label>Outstanding Balance<input type="number" name="outstanding_balance" step="0.01" min="0"></label>
+            <label>Start Date<input type="date" name="start_date"></label>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Loan</button>
+    </form>
+</details>
+
+{{if .Flash}}<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>{{end}}
+
+{{if .Data}}
+<div class="table-wrapper"><table class="data-table">
+<thead><tr><th>Name</th><th>Type</th><th>Principal</th><th>Rate</th><th>Outstanding</th><th>EMI</th><th>Tenure</th><th>Start</th></tr></thead>
+<tbody>
+{{range .Data}}
+<tr>
+    <td><strong>{{.Name}}</strong></td>
+    <td><span class="badge type-badge">{{.LoanType}}</span></td>
+    <td>{{formatCurrency .Principal .Currency}}</td>
+    <td>{{printf "%.2f" .InterestRate}}%</td>
+    <td class="negative">{{formatCurrency .OutstandingBalance .Currency}}</td>
+    <td>{{if gt .EMI 0}}{{formatCurrency .EMI .Currency}}{{else}}—{{end}}</td>
+    <td>{{if gt .TenureMonths 0}}{{.TenureMonths}} mo{{else}}—{{end}}</td>
+    <td>{{.StartDate}}</td>
+</tr>
+{{end}}
+</tbody>
+</table></div>
+{{else}}<div class="empty-state"><p>No loans yet.</p></div>{{end}}
+
+{{end}}

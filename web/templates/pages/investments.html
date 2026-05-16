@@ -1,0 +1,56 @@
+{{define "content"}}
+
+<h2>Investments</h2>
+
+<details class="add-section">
+    <summary class="btn btn-primary">+ Add Investment</summary>
+    <form method="post" action="/investments" class="inline-form">
+        <div class="form-grid">
+            <label>Name *<input type="text" name="name" required></label>
+            <label>Asset Type *
+                <select name="asset_type" required>
+                    <option value="">Select...</option>
+                    <option value="stock">Stock</option>
+                    <option value="mutual_fund">Mutual Fund</option>
+                    <option value="etf">ETF</option>
+                    <option value="bond">Bond</option>
+                    <option value="crypto">Crypto</option>
+                    <option value="real_estate">Real Estate</option>
+                    <option value="fd">Fixed Deposit</option>
+                    <option value="other">Other</option>
+                </select>
+            </label>
+            <label>Currency<input type="text" name="currency" value="USD" maxlength="3"></label>
+            <label>Quantity<input type="number" name="quantity" step="any" min="0"></label>
+            <label>Buy Price<input type="number" name="buy_price" step="any" min="0"></label>
+            <label>Current Price<input type="number" name="current_price" step="any" min="0"></label>
+            <label>Interest Rate %<input type="number" name="interest_rate" step="0.01" min="0"></label>
+            <label>Maturity Date<input type="date" name="maturity_date"></label>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Investment</button>
+    </form>
+</details>
+
+{{if .Flash}}<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>{{end}}
+
+{{if .Data}}
+<div class="table-wrapper"><table class="data-table">
+<thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Buy</th><th>Current</th><th>Value</th><th>P/L %</th><th>Currency</th></tr></thead>
+<tbody>
+{{range .Data}}
+<tr>
+    <td><strong>{{.Name}}</strong>{{if .MaturityDate}} <small>(mat: {{.MaturityDate}})</small>{{end}}</td>
+    <td><span class="badge type-badge">{{.AssetType}}</span></td>
+    <td>{{printf "%.4g" .Quantity}}</td>
+    <td>{{printf "%.2f" .BuyPrice}}</td>
+    <td>{{printf "%.2f" .CurrentPrice}}</td>
+    <td>{{printf "%.2f" .CurrentValue}} {{.Currency}}</td>
+    <td class="{{if gt .GainLossPct 0}}positive{{else if lt .GainLossPct 0}}negative{{end}}">{{printf "%+.2f" .GainLossPct}}%</td>
+    <td>{{.Currency}}</td>
+</tr>
+{{end}}
+</tbody>
+</table></div>
+{{else}}<div class="empty-state"><p>No investments yet.</p></div>{{end}}
+
+{{end}}
