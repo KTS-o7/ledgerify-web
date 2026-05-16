@@ -43,7 +43,7 @@
     <td>{{printf "%.2f" .BuyPrice}}</td>
     <td>{{printf "%.2f" .CurrentPrice}}</td>
     <td>{{printf "%.2f" .CurrentValue}} {{.Currency}}</td>
-    <td class="{{if gt .GainLossPct 0}}positive{{else if lt .GainLossPct 0}}negative{{end}}">{{printf "%+.2f" .GainLossPct}}%</td>
+    <td class="{{if gt .GainLossPct 0.0}}positive{{else if lt .GainLossPct 0.0}}negative{{end}}">{{printf "%+.2f" .GainLossPct}}%</td>
     <td>{{.Currency}}</td>
 </tr>
 {{end}}

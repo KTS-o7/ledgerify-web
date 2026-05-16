@@ -55,7 +55,7 @@
             <tr>
                 <td><strong>{{.Name}}</strong></td>
                 <td><span class="badge type-badge">{{.Type}}</span></td>
-                <td class="{{if gt .Balance 0}}positive{{else if lt .Balance 0}}negative{{end}}">{{printf "%.2f" .Balance}}</td>
+                <td class="{{if gt .Balance 0.0}}positive{{else if lt .Balance 0.0}}negative{{end}}">{{printf "%.2f" .Balance}}</td>
                 <td>{{.Currency}}</td>
                 <td>{{.CreatedAt}}</td>
             </tr>

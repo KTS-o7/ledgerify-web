@@ -43,7 +43,7 @@
     <td>{{formatCurrency .Principal .Currency}}</td>
     <td>{{printf "%.2f" .InterestRate}}%</td>
     <td class="negative">{{formatCurrency .OutstandingBalance .Currency}}</td>
-    <td>{{if gt .EMI 0}}{{formatCurrency .EMI .Currency}}{{else}}—{{end}}</td>
+    <td>{{if gt .EMI 0.0}}{{formatCurrency .EMI .Currency}}{{else}}—{{end}}</td>
     <td>{{if gt .TenureMonths 0}}{{.TenureMonths}} mo{{else}}—{{end}}</td>
     <td>{{.StartDate}}</td>
 </tr>
