@@ -37,6 +37,8 @@
     </form>
 </details>
 
+{{if .Flash}}<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>{{end}}
+
 {{if .Data}}
 <div class="table-wrapper"><table class="data-table">
 <thead><tr><th>Name</th><th>Type</th><th>Provider</th><th>Premium</th><th>Frequency</th><th>Coverage</th><th>Start</th><th>End</th></tr></thead>
