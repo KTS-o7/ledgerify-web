@@ -1,0 +1,137 @@
+{{define "content"}}
+
+<!-- Summary Cards -->
+<div class="card-grid">
+    <div class="dashboard-card">
+        <div class="card-label">Income (this month)</div>
+        <div class="card-value positive">{{formatCurrency .Data.TotalIncome .Data.Currency}}</div>
+    </div>
+    <div class="dashboard-card">
+        <div class="card-label">Expenses (this month)</div>
+        <div class="card-value negative">{{formatCurrency .Data.TotalExpenses .Data.Currency}}</div>
+    </div>
+    <div class="dashboard-card">
+        <div class="card-label">Net (this month)</div>
+        <div class="card-value {{amountClass .Data.NetAmount}}">{{formatAmount .Data.NetAmount .Data.Currency}}</div>
+    </div>
+    <div class="dashboard-card">
+        <div class="card-label">Total Balance</div>
+        <div class="card-value">{{formatCurrency .Data.TotalBalance .Data.Currency}}</div>
+        <div class="card-sub">{{.Data.AccountCount}} accounts</div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<h2 class="section-title">Recent Transactions</h2>
+{{if .Data.RecentTransactions}}
+<div style="overflow-x:auto;">
+    <table class="txn-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Account</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{range .Data.RecentTransactions}}
+            <tr class="txn-row">
+                <td>{{.DateFormatted}}</td>
+                <td>{{.Title}}</td>
+                <td>{{.CategoryName}}</td>
+                <td>{{.AccountName}}</td>
+                <td class="{{amountClass .Amount}}">{{formatCurrency .Amount $.Data.Currency}}</td>
+            </tr>
+        {{end}}
+        </tbody>
+    </table>
+</div>
+<p style="margin-top:.5rem;text-align:right;">
+    <a href="/transactions" class="small">View all transactions →</a>
+</p>
+{{else}}
+<div class="empty-state">
+    <div class="empty-icon">💳</div>
+    <p>No transactions yet</p>
+    <a href="/transactions" role="button" class="outline">Add your first transaction</a>
+</div>
+{{end}}
+
+<!-- Budget Status -->
+{{if .Data.BudgetStatus}}
+<h2 class="section-title">Budget Status</h2>
+<div class="card-grid">
+{{range .Data.BudgetStatus}}
+    <div class="dashboard-card">
+        <div class="card-label">{{.Name}}</div>
+        <div class="card-value">{{formatCurrency .Spent $.Data.Currency}} <small>of {{formatCurrency .Amount $.Data.Currency}}</small></div>
+        <div class="budget-bar">
+            <div class="budget-bar-fill {{ternary (lt .SpentPct 70) "safe" (ternary (lt .SpentPct 90) "warning" "danger")}}" 
+                 style="width:{{.SpentPct}}%"></div>
+        </div>
+        <div class="card-sub">{{formatPercent .SpentPct}} spent · {{formatCurrency .Remaining $.Data.Currency}} remaining</div>
+    </div>
+{{end}}
+</div>
+{{end}}
+
+<!-- Net Worth Chart Placeholder -->
+<h2 class="section-title">Net Worth Trend</h2>
+<div class="chart-container">
+    <canvas id="networth-chart" height="200"></canvas>
+</div>
+
+<script>
+    // Net worth chart (simple canvas)
+    (function() {
+        const canvas = document.getElementById('networth-chart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.parentElement.clientWidth;
+        
+        const data = [
+            {{range .Data.MonthlyNetworth}}
+            {month: "{{.MonthLabel}}", value: {{.Networth}} },
+            {{end}}
+        ];
+        if (data.length < 2) {
+            ctx.fillStyle = 'var(--pico-muted-color)';
+            ctx.fillText('Not enough data yet', 10, 30);
+            return;
+        }
+
+        // Draw chart (simple hardcoded chart until Chart.js in Phase 6)
+        const w = canvas.width - 40;
+        const h = canvas.height - 40;
+        const max = Math.max(...data.map(d => d.value));
+        const min = Math.min(...data.map(d => d.value), 0);
+        const range = max - min || 1;
+        
+        ctx.strokeStyle = '#6c63ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        data.forEach((d, i) => {
+            const x = 20 + (i / (data.length - 1)) * w;
+            const y = h - ((d.value - min) / range) * h + 20;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        
+        // Labels
+        ctx.fillStyle = 'var(--pico-muted-color)';
+        ctx.font = '11px sans-serif';
+        data.forEach((d, i) => {
+            const x = 20 + (i / (data.length - 1)) * w;
+            ctx.fillText(d.month, x - 15, h + 35);
+        });
+    })();
+</script>
+
+<style>
+.small { font-size: .85rem; }
+</style>
+{{end}}
