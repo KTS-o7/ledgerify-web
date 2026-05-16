@@ -103,7 +103,6 @@ func NewPageData(r *http.Request, title string) PageData {
 		User:        user,
 		CurrentPath: r.URL.Path,
 		Theme:       theme,
-		Flashes:     GetFlashes(r),
 	}
 }
 
