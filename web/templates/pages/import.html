@@ -1,0 +1,27 @@
+{{define "content"}}
+
+<h2>Import Data</h2>
+
+<form method="post" action="/import" enctype="multipart/form-data" class="import-form">
+    <div class="import-box">
+        <label for="csv_file" class="file-label">
+            <span class="file-icon">📁</span>
+            <span>Drop CSV file here or click to browse</span>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv" required 
+                   onchange="this.parentElement.querySelector('span').textContent = this.files[0]?.name || 'Drop CSV file here or click to browse'">
+        </label>
+    </div>
+
+    <div class="import-help">
+        <h3>CSV Format</h3>
+        <p>Your CSV should have these columns:</p>
+        <code>Amount, Description, Date (YYYY-MM-DD), Type (income/expense/transfer), CategoryID (optional), AccountID (optional)</code>
+        <p class="muted">The first row is treated as a header and skipped.</p>
+    </div>
+
+    <button type="submit" class="btn-primary">Import Transactions</button>
+</form>
+
+<a href="/settings" class="back-link">← Back to Settings</a>
+
+{{end}}
