@@ -48,6 +48,11 @@
     </form>
 </details>
 
+<!-- Flash Messages -->
+{{if .Flash}}
+<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>
+{{end}}
+
 <!-- Budgets List -->
 {{if .Data}}
 <div class="table-wrapper">
