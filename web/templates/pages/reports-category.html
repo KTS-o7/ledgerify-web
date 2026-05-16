@@ -1,0 +1,43 @@
+{{define "content"}}
+
+<h2>Category Breakdown</h2>
+{{if .Data}}
+<p class="muted">Spending by category — {{.Data.Period}}</p>
+
+<div class="chart-container" style="max-width: 500px; margin: 2rem auto;">
+    <canvas id="categoryChart"></canvas>
+</div>
+
+<script>
+const catData = JSON.parse({{.Data.chartData}});
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: catData.labels,
+        datasets: [{
+            data: catData.amounts,
+            backgroundColor: catData.colors,
+            borderColor: 'var(--bg)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'right' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+                        const pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+                        return ` ${ctx.label}: ${ctx.raw.toFixed(2)} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{{else}}<p class="empty-state">No spending data for this period.</p>{{end}}
+
+{{end}}
