@@ -1,0 +1,55 @@
+{{define "content"}}
+
+<h2>Cash Flow</h2>
+<p class="muted">Monthly income vs expenses over the last 12 months</p>
+
+<div class="chart-container" style="max-width: 800px; margin: 2rem auto;">
+    <canvas id="cashFlowChart"></canvas>
+</div>
+
+{{if .Data}}
+<script>
+const cfData = JSON.parse({{.Data}});
+new Chart(document.getElementById('cashFlowChart'), {
+    type: 'bar',
+    data: {
+        labels: cfData.labels,
+        datasets: [
+            {
+                label: 'Income',
+                data: cfData.income,
+                backgroundColor: '#10b981',
+                borderColor: '#059669',
+                borderWidth: 1
+            },
+            {
+                label: 'Expenses',
+                data: cfData.expense,
+                backgroundColor: '#ef4444',
+                borderColor: '#dc2626',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { callback: v => v.toFixed(0) }
+            }
+        }
+    }
+});
+</script>
+{{else}}<p class="empty-state">No data available. Add transactions to see your cash flow.</p>{{end}}
+
+{{end}}
