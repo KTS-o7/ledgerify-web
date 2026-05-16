@@ -143,6 +143,9 @@ func (ph *PageHandlers) fetchDashboardData(ctx context.Context, userID string) D
 				amount = amt.Float64
 			}
 
+			// Compute the current spending window for this budget's period.
+			bStart, bEnd := budgetSpendingWindow(b, now)
+
 			var spent float64
 			if b.CategoryID.Valid {
 				_ = ph.pool.QueryRow(ctx,
@@ -152,7 +155,7 @@ func (ph *PageHandlers) fetchDashboardData(ctx context.Context, userID string) D
 					  AND t.category_id = $2
 					  AND t.date >= $3 AND t.date <= $4
 					  AND t.deleted_at IS NULL`,
-					userUUID, b.CategoryID, monthStart, monthEnd,
+					userUUID, b.CategoryID, bStart, bEnd,
 				).Scan(&spent)
 			}
 
@@ -206,4 +209,44 @@ func computeMonthlyTotals(ctx context.Context, pool *pgxpool.Pool, userUUID pgty
 		userUUID, monthStart, monthEnd,
 	).Scan(&income, &expenses)
 	return
+}
+
+// budgetSpendingWindow returns the start/end dates for a budget's current spending period.
+func budgetSpendingWindow(b db.ListBudgetsByUserRow, now time.Time) (time.Time, time.Time) {
+	loc := now.Location()
+
+	switch b.PeriodType {
+	case "weekly":
+		weekday := now.Weekday()
+		if weekday == time.Sunday {
+			weekday = 7
+		}
+		start := now.AddDate(0, 0, -int(weekday-time.Monday))
+		start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, loc)
+		end := start.AddDate(0, 0, 6)
+		end = time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 999999999, loc)
+		return start, end
+
+	case "yearly":
+		start := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, loc)
+		end := time.Date(now.Year(), 12, 31, 23, 59, 59, 999999999, loc)
+		return start, end
+
+	case "custom", "one_time":
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+		end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
+		if b.StartDate.Valid {
+			start = b.StartDate.Time
+		}
+		if b.EndDate.Valid {
+			end = b.EndDate.Time
+			end = time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 999999999, loc)
+		}
+		return start, end
+
+	default: // "monthly" or unknown
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+		end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
+		return start, end
+	}
 }
