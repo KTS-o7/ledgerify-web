@@ -154,6 +154,12 @@ func (ph *PageHandlers) RegisterAction(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
+// DashboardPage renders the dashboard.
+func (ph *PageHandlers) DashboardPage(w http.ResponseWriter, r *http.Request) {
+	data := NewPageData(r, "Dashboard")
+	RenderPage(w, "placeholder", data)
+}
+
 // Placeholder returns a handler that renders the placeholder page.
 func (ph *PageHandlers) Placeholder(title string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
