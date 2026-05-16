@@ -7,7 +7,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GO_IMAGE_NAME: ${{ github.repository }}-go
 
 jobs:
   build-and-deploy:
@@ -20,19 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          bun-version: latest
+          go-version-file: go.mod
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Build
+        run: go build ./...
 
-      - name: Type check
-        run: bunx tsc --noEmit
+      - name: Vet
+        run: go vet ./...
 
-      - name: Lint
-        run: bun run lint
+      - name: Test
+        run: go test ./...
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,7 +43,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (Next.js)
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -53,7 +52,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
 
-      - name: Build and push Next.js image
+      - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -62,31 +61,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Extract Docker metadata (Go API)
-        id: meta-go
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.GO_IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=sha-
-
-      - name: Build and push Go API image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.goserver
-          push: true
-          tags: ${{ steps.meta-go.outputs.tags }}
-          labels: ${{ steps.meta-go.outputs.labels }}
-
       - name: Copy config files to VPS
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.prod.yml,nginx/money.shenthar.me.conf"
+          source: "docker-compose.yml,nginx/money.shenthar.me.conf"
           target: /opt/ledgerify-deploy
 
       - name: Deploy to VPS
@@ -96,17 +77,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Sync compose file
-            cp /opt/ledgerify-deploy/docker-compose.prod.yml /opt/ledgerify/docker-compose.prod.yml
-
-            # Sync nginx config + ensure sites-enabled is a symlink
+            cp /opt/ledgerify-deploy/docker-compose.yml /opt/ledgerify/docker-compose.yml
             sudo cp /opt/ledgerify-deploy/nginx/money.shenthar.me.conf /etc/nginx/sites-available/money.shenthar.me
             sudo rm -f /etc/nginx/sites-enabled/money.shenthar.me
             sudo ln -s /etc/nginx/sites-available/money.shenthar.me /etc/nginx/sites-enabled/money.shenthar.me
             sudo nginx -t && sudo systemctl reload nginx
-
-            # Pull and restart containers
             cd /opt/ledgerify
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose pull
+            docker compose up -d --remove-orphans
             docker image prune -f
