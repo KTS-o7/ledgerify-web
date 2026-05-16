@@ -135,11 +135,6 @@ func (ph *PageHandlers) fetchTransactionsData(ctx context.Context, userID string
 		accountFilter = parseUUID(td.Filters.AccountID)
 	}
 
-	var categoryFilter pgtype.UUID
-	if td.Filters.CategoryID != "" {
-		categoryFilter = parseUUID(td.Filters.CategoryID)
-	}
-
 	var fromDate pgtype.Date
 	if td.Filters.FromDate != "" {
 		if t, err := time.Parse("2006-01-02", td.Filters.FromDate); err == nil {
@@ -156,17 +151,14 @@ func (ph *PageHandlers) fetchTransactionsData(ctx context.Context, userID string
 
 	// Fetch one extra to detect HasMore
 	limitRows := pgtype.Int4{Int32: int32(perPage + 1), Valid: true}
-	offsetRows := pgtype.Int4{Int32: int32((td.Filters.Page - 1) * perPage), Valid: true}
 
 	txns, err := ph.q.ListTransactionsByUser(ctx, db.ListTransactionsByUserParams{
-		UserID:     userUUID,
-		Type:       typeFilter,
-		AccountID:  accountFilter,
-		CategoryID: categoryFilter,
-		FromDate:   fromDate,
-		ToDate:     toDate,
-		LimitRows:  limitRows,
-		OffsetRows: offsetRows,
+		UserID:    userUUID,
+		Type:      typeFilter,
+		AccountID: accountFilter,
+		FromDate:  fromDate,
+		ToDate:    toDate,
+		LimitRows: limitRows,
 	})
 	if err != nil {
 		return td

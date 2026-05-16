@@ -75,7 +75,7 @@
                 </label>
                 <label>
                     Date *
-                    <input type="date" name="date" required value="{{formatDate "2006-01-02" (now)}}">
+                    <input type="date" name="date" required value="{{(now).Format "2006-01-02"}}">
                 </label>
                 <label class="form-full">
                     Title
@@ -110,7 +110,7 @@
                 <td class="txn-title">{{.Title}}</td>
                 <td>
                     {{if .CategoryName}}
-                    <span class="badge category-badge" style="--cat-color: {{.CategoryColor | defaultStr "#6b7280"}}">{{.CategoryName}}</span>
+                    <span class="badge category-badge" style="--cat-color: {{defaultStr .CategoryColor "#6b7280"}}">{{.CategoryName}}</span>
                     {{else}}
                     <span class="no-data">—</span>
                     {{end}}

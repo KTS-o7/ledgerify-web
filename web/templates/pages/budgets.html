@@ -1,0 +1,91 @@
+{{define "content"}}
+
+<h2>Budgets</h2>
+
+<!-- Add Budget Form -->
+<details class="add-section">
+    <summary class="btn btn-primary">+ Add Budget</summary>
+    <form method="post" action="/budgets" class="inline-form">
+        <div class="form-grid">
+            <label>
+                Name *
+                <input type="text" name="name" required placeholder="Monthly Groceries...">
+            </label>
+            <label>
+                Amount *
+                <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0.00">
+            </label>
+            <label>
+                Currency
+                <input type="text" name="currency" value="USD" maxlength="3">
+            </label>
+            <label>
+                Period *
+                <select name="period_type" required>
+                    <option value="">Select period...</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="one_time">One Time</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </label>
+            <label>
+                Category
+                <input type="text" name="category_id" placeholder="Category ID (UUID)">
+            </label>
+            <label>
+                Start Date
+                <input type="date" name="start_date" value="{{(now).Format "2006-01-02"}}">
+            </label>
+            <label class="form-checkbox">
+                <input type="checkbox" name="rollover">
+                Rollover unused amount
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Budget</button>
+    </form>
+</details>
+
+<!-- Budgets List -->
+{{if .Data}}
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Period</th>
+                <th>Dates</th>
+                <th>Rollover</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data}}
+            <tr>
+                <td><strong>{{.Name}}</strong></td>
+                <td>
+                    {{if .CategoryName}}
+                    <span class="badge category-badge" style="--cat-color: {{defaultStr .CategoryColor "#6b7280"}}">{{.CategoryName}}</span>
+                    {{else}}
+                    —
+                    {{end}}
+                </td>
+                <td>{{formatCurrency .Amount .Currency}}</td>
+                <td><span class="badge period-badge">{{.PeriodType}}</span></td>
+                <td>{{.StartDate}} → {{.EndDate}}</td>
+                <td>{{if .Rollover}}✓{{else}}—{{end}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="empty-state">
+    <p>No budgets yet. Add your first budget above.</p>
+</div>
+{{end}}
+
+{{end}}
