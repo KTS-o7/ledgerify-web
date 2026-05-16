@@ -41,6 +41,12 @@ func GetUserClaims(r *http.Request) *auth.Claims {
 	return claims
 }
 
+// WithUserClaims injects claims into a context. Used by page auth middleware
+// to share claims between cookie-based and header-based auth.
+func WithUserClaims(ctx context.Context, claims *auth.Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, claims)
+}
+
 func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if GetUserClaims(r) == nil {

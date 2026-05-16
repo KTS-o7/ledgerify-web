@@ -1,0 +1,370 @@
+/* ============================================
+   Ledgerify — Custom Styles (on top of Pico.css)
+   Dark-first. Both themes supported.
+   ============================================ */
+
+/* === CSS Variables === */
+:root {
+    --sidebar-width: 240px;
+    --header-height: 60px;
+    --brand-bg: #1a1a2e;
+    --brand-accent: #6c63ff;
+    --positive: #22c55e;
+    --negative: #ef4444;
+    --card-radius: 12px;
+}
+
+[data-theme="light"] {
+    --brand-bg: #f0f0ff;
+}
+
+/* === Layout === */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* === Sidebar === */
+.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--brand-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    overflow-y: auto;
+    border-right: 1px solid var(--pico-muted-border-color, rgba(255,255,255,.08));
+}
+
+.sidebar-brand {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--pico-muted-border-color, rgba(255,255,255,.08));
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none !important;
+    color: var(--pico-color, #fff) !important;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.brand-icon { font-size: 1.4rem; }
+
+.sidebar-links {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 0;
+    flex: 1;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.25rem;
+    color: var(--pico-muted-color, #999) !important;
+    text-decoration: none !important;
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+}
+
+.nav-link:hover {
+    color: var(--pico-color, #fff) !important;
+    background: rgba(255,255,255,.05);
+}
+
+.nav-link.active {
+    color: var(--pico-color, #fff) !important;
+    background: rgba(108, 99, 255, .12);
+    border-left-color: var(--brand-accent);
+    font-weight: 600;
+}
+
+.nav-icon { font-size: 1.1rem; width: 1.3rem; text-align: center; }
+
+.nav-divider {
+    margin: 0.5rem 1rem;
+    border-color: var(--pico-muted-border-color, rgba(255,255,255,.08));
+}
+
+.nav-logout { margin-top: auto; color: var(--pico-del-color, #e55) !important; }
+
+.mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--pico-color);
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+/* === Main Content === */
+.main-content {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 1.5rem 2rem;
+    min-height: 100vh;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.theme-toggle:hover { background: var(--pico-muted-border-color); }
+
+/* === Dashboard Cards === */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-card {
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-card-border-color);
+    border-radius: var(--card-radius);
+    padding: 1.25rem;
+}
+
+.dashboard-card .card-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pico-muted-color);
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-card .card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.dashboard-card .card-sub {
+    font-size: 0.85rem;
+    color: var(--pico-muted-color);
+    margin-top: 0.25rem;
+}
+
+/* === Amount Colors === */
+.amount-positive, .positive { color: var(--positive) !important; }
+.amount-negative, .negative { color: var(--negative) !important; }
+.amount-zero { color: var(--pico-muted-color) !important; }
+
+/* === Budget Progress Bar === */
+.budget-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--pico-muted-border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 0.3rem;
+}
+
+.budget-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.budget-bar-fill.safe { background: var(--positive); }
+.budget-bar-fill.warning { background: #f59e0b; }
+.budget-bar-fill.danger { background: var(--negative); }
+
+/* === Transactions Table === */
+.txn-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.txn-table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pico-muted-color);
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.txn-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    font-size: 0.9rem;
+}
+
+.txn-row:hover { background: var(--pico-muted-border-color, rgba(255,255,255,.02)); }
+
+/* === Flash Messages === */
+.flashes {
+    margin-bottom: 1rem;
+}
+
+.flash {
+    padding: 0.75rem 1rem;
+    border-radius: var(--card-radius);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.flash-success { background: rgba(34,197,94,.12); color: var(--positive); border: 1px solid rgba(34,197,94,.3); }
+.flash-error { background: rgba(239,68,68,.12); color: var(--negative); border: 1px solid rgba(239,68,68,.3); }
+.flash-info { background: rgba(59,130,246,.12); color: #3b82f6; border: 1px solid rgba(59,130,246,.3); }
+
+/* === Forms === */
+.form-inline {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-inline .field { flex: 1; min-width: 150px; }
+
+.form-inline .field label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--pico-muted-color);
+    margin-bottom: 0.2rem;
+}
+
+/* === Modal === */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.modal-content {
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-card-border-color);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    min-width: 400px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-header h2 { margin: 0; font-size: 1.2rem; }
+
+/* === Charts Container === */
+.chart-container {
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-card-border-color);
+    border-radius: var(--card-radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-container canvas {
+    max-height: 400px;
+}
+
+/* === Utilities === */
+[x-cloak] { display: none !important; }
+
+.htmx-indicator { opacity: 0; transition: opacity .2s; }
+.htmx-request .htmx-indicator { opacity: 1; }
+.htmx-request.htmx-indicator { opacity: 1; }
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--pico-muted-border-color);
+    border-top-color: var(--brand-accent);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--pico-muted-color);
+}
+
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+.empty-state p { font-size: 1rem; }
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem;
+}
+
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--pico-muted-border-color);
+    }
+
+    .mobile-toggle { display: block; position: absolute; right: 1rem; top: 1rem; }
+
+    .sidebar-links { display: none; }
+    .sidebar-links.open { display: flex; }
+
+    .main-content { margin-left: 0; padding: 1rem; }
+    .card-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .modal-content { min-width: 0; }
+}
