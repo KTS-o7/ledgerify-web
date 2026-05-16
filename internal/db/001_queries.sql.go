@@ -1899,20 +1899,24 @@ LEFT JOIN tags tg ON tg.id = tt.tag_id
 WHERE t.user_id = $1 AND t.deleted_at IS NULL
   AND ($2::text IS NULL OR t.type::text = $2)
   AND ($3::uuid IS NULL OR t.account_id = $3)
-  AND ($4::date IS NULL OR t.date >= $4)
-  AND ($5::date IS NULL OR t.date <= $5)
+  AND ($4::uuid IS NULL OR t.category_id = $4)
+  AND ($5::date IS NULL OR t.date >= $5)
+  AND ($6::date IS NULL OR t.date <= $6)
 GROUP BY t.id, a.name, c.name
 ORDER BY t.date DESC
-LIMIT $6::int
+LIMIT $8::int
+OFFSET $7::int
 `
 
 type ListTransactionsByUserParams struct {
-	UserID    pgtype.UUID `json:"user_id"`
-	Type      pgtype.Text `json:"type"`
-	AccountID pgtype.UUID `json:"account_id"`
-	FromDate  pgtype.Date `json:"from_date"`
-	ToDate    pgtype.Date `json:"to_date"`
-	LimitRows pgtype.Int4 `json:"limit_rows"`
+	UserID     pgtype.UUID `json:"user_id"`
+	Type       pgtype.Text `json:"type"`
+	AccountID  pgtype.UUID `json:"account_id"`
+	CategoryID pgtype.UUID `json:"category_id"`
+	FromDate   pgtype.Date `json:"from_date"`
+	ToDate     pgtype.Date `json:"to_date"`
+	OffsetRows pgtype.Int4 `json:"offset_rows"`
+	LimitRows  pgtype.Int4 `json:"limit_rows"`
 }
 
 type ListTransactionsByUserRow struct {
@@ -1948,8 +1952,10 @@ func (q *Queries) ListTransactionsByUser(ctx context.Context, arg ListTransactio
 		arg.UserID,
 		arg.Type,
 		arg.AccountID,
+		arg.CategoryID,
 		arg.FromDate,
 		arg.ToDate,
+		arg.OffsetRows,
 		arg.LimitRows,
 	)
 	if err != nil {
