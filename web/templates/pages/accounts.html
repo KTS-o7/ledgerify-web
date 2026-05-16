@@ -1,0 +1,77 @@
+{{define "content"}}
+
+<h2>Accounts</h2>
+
+<!-- Add Account Form -->
+<details class="add-section">
+    <summary class="btn btn-primary">+ Add Account</summary>
+    <form method="post" action="/accounts" class="inline-form">
+        <div class="form-grid">
+            <label>
+                Name *
+                <input type="text" name="name" required placeholder="Checking, Credit Card...">
+            </label>
+            <label>
+                Type *
+                <select name="type" required>
+                    <option value="">Select type...</option>
+                    <option value="checking">Checking</option>
+                    <option value="savings">Savings</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="investment">Investment</option>
+                    <option value="loan">Loan</option>
+                    <option value="cash">Cash</option>
+                    <option value="other">Other</option>
+                </select>
+            </label>
+            <label>
+                Currency
+                <input type="text" name="currency" value="USD" maxlength="3">
+            </label>
+            <label>
+                Opening Balance
+                <input type="number" name="opening_balance" step="0.01" placeholder="0.00">
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+    </form>
+</details>
+
+<!-- Flash Messages -->
+{{if .Flash}}
+<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>
+{{end}}
+
+<!-- Accounts List -->
+{{if .Data}}
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Balance</th>
+                <th>Currency</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data}}
+            <tr>
+                <td><strong>{{.Name}}</strong></td>
+                <td><span class="badge type-badge">{{.Type}}</span></td>
+                <td class="{{if gt .Balance 0}}positive{{else if lt .Balance 0}}negative{{end}}">{{printf "%.2f" .Balance}}</td>
+                <td>{{.Currency}}</td>
+                <td>{{.CreatedAt}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="empty-state">
+    <p>No accounts yet. Add your first account above.</p>
+</div>
+{{end}}
+
+{{end}}
