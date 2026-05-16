@@ -1,0 +1,56 @@
+{{define "content"}}
+<div class="auth-page" x-data="{ email: '', password: '' }">
+    <div class="auth-card">
+        <h2>Welcome back</h2>
+        <p class="auth-subtitle">Sign in to your Ledgerify account</p>
+
+        {{if .Flashes}}
+        <div class="flashes">
+            {{range .Flashes}}
+            <article class="flash flash-{{.Type}}">{{.Message}}</article>
+            {{end}}
+        </div>
+        {{end}}
+
+        <form hx-post="/login" hx-target="body" hx-push-url="false" method="POST">
+            <label>
+                Email
+                <input type="email" name="email" x-model="email" required autofocus 
+                       placeholder="you@example.com" autocomplete="email">
+            </label>
+            <label>
+                Password
+                <input type="password" name="password" x-model="password" required 
+                       placeholder="••••••••" autocomplete="current-password">
+            </label>
+            <button type="submit" class="w-full">Sign in</button>
+        </form>
+
+        <p class="auth-footer">
+            Don't have an account? <a href="/register">Create one</a>
+        </p>
+    </div>
+</div>
+
+<style>
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 4rem);
+    margin: 0;
+}
+.auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-card-border-color);
+    border-radius: 12px;
+    padding: 2rem;
+}
+.auth-card h2 { margin: 0 0 0.25rem; }
+.auth-subtitle { color: var(--pico-muted-color); margin-bottom: 1.5rem; font-size: 0.95rem; }
+.auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--pico-muted-color); }
+.w-full { width: 100%; }
+</style>
+{{end}}

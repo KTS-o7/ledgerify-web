@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{.Theme}}" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} — Ledgerify</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <!-- Pico.css -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="h-full" hx-boost="true">
+    <div class="app-layout">
+        {{template "nav.html" .}}
+        <main class="main-content">
+            <header class="page-header">
+                <h1>{{.Title}}</h1>
+                <div class="header-actions">
+                    <button class="theme-toggle" 
+                            aria-label="Toggle theme"
+                            @click="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; $dispatch('theme-changed')">
+                        <span class="icon-sun" x-show="document.documentElement.dataset.theme === 'dark'">☀️</span>
+                        <span class="icon-moon" x-show="document.documentElement.dataset.theme === 'light'" x-cloak>🌙</span>
+                    </button>
+                </div>
+            </header>
+
+            {{if .Flashes}}
+            <div class="flashes">
+                {{range .Flashes}}
+                <article class="flash flash-{{.Type}}">{{.Message}}</article>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{template "content" .}}
+        </main>
+    </div>
+
+    <!-- Alpine theme init -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            // Theme toggle persistence via cookie
+            document.addEventListener('theme-changed', () => {
+                const theme = document.documentElement.dataset.theme;
+                document.cookie = 'theme=' + theme + ';path=/;max-age=31536000;SameSite=Lax';
+            });
+        });
+    </script>
+</body>
+</html>

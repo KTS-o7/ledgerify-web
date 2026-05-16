@@ -14,10 +14,12 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	embedassets "github.com/KTS-o7/ledgerify-web"
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/handlers"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
+	"github.com/KTS-o7/ledgerify-web/internal/templates"
 )
 
 func main() {
@@ -65,6 +67,12 @@ func main() {
 	importExportHandler := handlers.NewImportExportHandler(pool, q)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
+	// Initialize templates with embedded assets
+	templates.Init(embedassets.TemplateFS(), embedassets.StaticFS(), false)
+
+	// Page handlers
+	ph := templates.NewPageHandlers(pool, q, cq, jwtCfg)
+
 	r := chi.NewRouter()
 	r.Use(corsHandler)
 	r.Use(chimw.Logger)
@@ -72,13 +80,58 @@ func main() {
 	r.Use(chimw.RealIP)
 	r.Use(chimw.RequestID)
 	r.Use(chimw.Timeout(30 * time.Second))
-	r.Use(middleware.BodyLimit(1 << 20)) // 1MB body size limit
+	r.Use(middleware.BodyLimit(1 << 20)) // 1MB
 
+	// Static files (embedded)
+	r.Get("/static/*", templates.ServeStatic)
+
+	// Health
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
+	// === PAGE ROUTES ===
+	// Auth pages (no auth required)
+	r.Group(func(r chi.Router) {
+		r.Get("/login", ph.LoginPage)
+		r.Post("/login", ph.LoginAction)
+		r.Get("/register", ph.RegisterPage)
+		r.Post("/register", ph.RegisterAction)
+	})
+
+	// Protected page routes
+	r.Group(func(r chi.Router) {
+		r.Use(templates.PageAuthMiddleware(jwtCfg))
+
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		})
+		r.Get("/dashboard", ph.DashboardPage)
+		r.Get("/transactions", ph.Placeholder("Transactions"))
+		r.Get("/accounts", ph.Placeholder("Accounts"))
+		r.Get("/accounts/{id}", ph.Placeholder("Account Detail"))
+		r.Get("/budgets", ph.Placeholder("Budgets"))
+		r.Get("/budgets/{id}", ph.Placeholder("Budget Detail"))
+		r.Get("/budgets/goals", ph.Placeholder("Savings Goals"))
+		r.Get("/investments", ph.Placeholder("Investments"))
+		r.Get("/loans", ph.Placeholder("Loans"))
+		r.Get("/insurance", ph.Placeholder("Insurance"))
+		r.Get("/networth", ph.Placeholder("Net Worth"))
+		r.Get("/reports", ph.Placeholder("Reports"))
+		r.Get("/reports/cash-flow", ph.Placeholder("Cash Flow"))
+		r.Get("/reports/category-breakdown", ph.Placeholder("Category Breakdown"))
+		r.Get("/reports/budget-vs-actual", ph.Placeholder("Budget vs Actual"))
+		r.Get("/reports/investment-returns", ph.Placeholder("Investment Returns"))
+		r.Get("/reports/debt-payoff", ph.Placeholder("Debt Payoff"))
+		r.Get("/import", ph.Placeholder("Import"))
+		r.Get("/settings", ph.Placeholder("Settings"))
+		r.Get("/settings/categories", ph.Placeholder("Categories"))
+		r.Get("/settings/data", ph.Placeholder("Data"))
+		r.Get("/logout", ph.LogoutAction)
+	})
+
+	// === API ROUTES ===
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
