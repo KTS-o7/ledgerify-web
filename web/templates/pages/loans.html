@@ -32,8 +32,6 @@
     </form>
 </details>
 
-{{if .Flash}}<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>{{end}}
-
 {{if .Data}}
 <div class="table-wrapper"><table class="data-table">
 <thead><tr><th>Name</th><th>Type</th><th>Principal</th><th>Rate</th><th>Outstanding</th><th>EMI</th><th>Tenure</th><th>Start</th></tr></thead>
@@ -45,7 +43,7 @@
     <td>{{formatCurrency .Principal .Currency}}</td>
     <td>{{printf "%.2f" .InterestRate}}%</td>
     <td class="negative">{{formatCurrency .OutstandingBalance .Currency}}</td>
-    <td>{{if gt .EMI 0}}{{formatCurrency .EMI .Currency}}{{else}}—{{end}}</td>
+    <td>{{if gt .EMI 0.0}}{{formatCurrency .EMI .Currency}}{{else}}—{{end}}</td>
     <td>{{if gt .TenureMonths 0}}{{.TenureMonths}} mo{{else}}—{{end}}</td>
     <td>{{.StartDate}}</td>
 </tr>
