@@ -147,6 +147,7 @@ func (ph *PageHandlers) ImportCSV(w http.ResponseWriter, r *http.Request) {
 
 		var pgAmt pgtype.Numeric
 		_ = pgAmt.Scan(fmt.Sprint(amount))
+		pgAmt.Valid = true
 
 		var pgDate pgtype.Date
 		if dateStr != "" {
