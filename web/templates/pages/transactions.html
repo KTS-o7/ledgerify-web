@@ -87,6 +87,11 @@
     </details>
 </div>
 
+<!-- Flash Messages -->
+{{if .Flash}}
+<div class="flash {{.Flash.Type}}">{{.Flash.Message}}</div>
+{{end}}
+
 <!-- Transactions Table -->
 {{if .Data.Transactions}}
 <div class="table-wrapper">
