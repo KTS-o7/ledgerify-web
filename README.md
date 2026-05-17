@@ -23,6 +23,12 @@ go run ./cmd/server
 # → http://localhost:8080
 ```
 
+### Database
+
+The canonical schema is `schema/001_schema.sql`. Use sqlc to generate Go query code from `queries/001_queries.sql`.
+
+> **Note:** Drizzle ORM was removed in the Go-only migration. The Go stack uses raw SQL via `pgx` + `sqlc`. Do not add Drizzle back.
+
 ### Docker
 
 ```bash

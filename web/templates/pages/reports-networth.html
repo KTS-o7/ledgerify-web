@@ -1,13 +1,12 @@
 {{define "content"}}
 
-<h2>Net Worth</h2>
 <p class="muted">Track your net worth over time</p>
 
-<div class="chart-container" style="max-width: 800px; margin: 2rem auto;">
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<div class="chart-container">
     <canvas id="networthChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const nwData = JSON.parse({{.Data}});
 new Chart(document.getElementById('networthChart'), {
@@ -17,8 +16,8 @@ new Chart(document.getElementById('networthChart'), {
         datasets: [{
             label: 'Net Worth',
             data: nwData.balance,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: '#d7ff67',
+            backgroundColor: 'rgba(215, 255, 103, 0.1)',
             fill: true,
             tension: 0.3,
             pointRadius: 3,

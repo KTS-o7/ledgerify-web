@@ -1,13 +1,12 @@
 {{define "content"}}
 
-<h2>Budget vs Actual</h2>
 <p class="muted">Compare your budget targets with actual spending</p>
 
-<div class="chart-container" style="max-width: 800px; margin: 2rem auto;">
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<div class="chart-container">
     <canvas id="budgetChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const bvaData = JSON.parse({{.Data}});
 new Chart(document.getElementById('budgetChart'), {
@@ -18,15 +17,15 @@ new Chart(document.getElementById('budgetChart'), {
             {
                 label: 'Budget',
                 data: bvaData.budget,
-                backgroundColor: '#6366f1',
-                borderColor: '#4f46e5',
+                backgroundColor: '#30443a',
+                borderColor: '#30443a',
                 borderWidth: 1
             },
             {
                 label: 'Actual',
                 data: bvaData.actual,
-                backgroundColor: '#f59e0b',
-                borderColor: '#d97706',
+                backgroundColor: '#b7791f',
+                borderColor: '#b7791f',
                 borderWidth: 1
             }
         ]

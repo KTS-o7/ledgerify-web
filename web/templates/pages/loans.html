@@ -1,15 +1,13 @@
 {{define "content"}}
 
-<h2>Loans</h2>
-
 <details class="add-section">
-    <summary class="btn btn-primary">+ Add Loan</summary>
+    <summary class="btn btn-primary">Add Loan</summary>
     <form method="post" action="/loans" class="inline-form">
         <div class="form-grid">
             <label>Name *<input type="text" name="name" required></label>
             <label>Loan Type *
                 <select name="loan_type" required>
-                    <option value="">Select...</option>
+                    <option value="">Choose loan type…</option>
                     <option value="personal">Personal Loan</option>
                     <option value="home">Home Loan</option>
                     <option value="auto">Auto Loan</option>

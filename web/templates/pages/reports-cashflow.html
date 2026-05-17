@@ -1,13 +1,12 @@
 {{define "content"}}
 
-<h2>Cash Flow</h2>
 <p class="muted">Monthly income vs expenses over the last 12 months</p>
 
-<div class="chart-container" style="max-width: 800px; margin: 2rem auto;">
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<div class="chart-container">
     <canvas id="cashFlowChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const cfData = JSON.parse({{.Data}});
 new Chart(document.getElementById('cashFlowChart'), {
@@ -18,15 +17,15 @@ new Chart(document.getElementById('cashFlowChart'), {
             {
                 label: 'Income',
                 data: cfData.income,
-                backgroundColor: '#10b981',
-                borderColor: '#059669',
+                backgroundColor: '#16835a',
+                borderColor: '#16835a',
                 borderWidth: 1
             },
             {
                 label: 'Expenses',
                 data: cfData.expense,
-                backgroundColor: '#ef4444',
-                borderColor: '#dc2626',
+                backgroundColor: '#bd3e3e',
+                borderColor: '#bd3e3e',
                 borderWidth: 1
             }
         ]

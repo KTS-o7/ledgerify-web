@@ -1,15 +1,13 @@
 {{define "content"}}
 
-<h2>Investments</h2>
-
 <details class="add-section">
-    <summary class="btn btn-primary">+ Add Investment</summary>
+    <summary class="btn btn-primary">Add Investment</summary>
     <form method="post" action="/investments" class="inline-form">
         <div class="form-grid">
             <label>Name *<input type="text" name="name" required></label>
             <label>Asset Type *
                 <select name="asset_type" required>
-                    <option value="">Select...</option>
+                    <option value="">Choose asset type…</option>
                     <option value="stock">Stock</option>
                     <option value="mutual_fund">Mutual Fund</option>
                     <option value="etf">ETF</option>

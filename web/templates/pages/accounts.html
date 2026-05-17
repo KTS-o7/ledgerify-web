@@ -1,20 +1,18 @@
 {{define "content"}}
 
-<h2>Accounts</h2>
-
 <!-- Add Account Form -->
 <details class="add-section">
-    <summary class="btn btn-primary">+ Add Account</summary>
+    <summary class="btn btn-primary">Add Account</summary>
     <form method="post" action="/accounts" class="inline-form">
         <div class="form-grid">
             <label>
                 Name *
-                <input type="text" name="name" required placeholder="Checking, Credit Card...">
+                <input type="text" name="name" required placeholder="e.g. Chase Checking">
             </label>
             <label>
                 Type *
                 <select name="type" required>
-                    <option value="">Select type...</option>
+                    <option value="">Choose type…</option>
                     <option value="checking">Checking</option>
                     <option value="savings">Savings</option>
                     <option value="credit_card">Credit Card</option>
