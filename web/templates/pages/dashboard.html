@@ -1,59 +1,62 @@
 {{define "content"}}
 
 <!-- Summary Cards -->
-<div class="card-grid">
-    <div class="dashboard-card">
-        <div class="card-label">Income (this month)</div>
-        <div class="card-value positive">{{formatCurrency .Data.TotalIncome .Data.Currency}}</div>
+<div class="metric-grid dashboard-metrics">
+    <div class="metric-card">
+        <div class="metric-label">Income</div>
+        <div class="metric-value positive">{{formatCurrency .Data.TotalIncome .Data.Currency}}</div>
+        <div class="metric-sub">This month</div>
     </div>
-    <div class="dashboard-card">
-        <div class="card-label">Expenses (this month)</div>
-        <div class="card-value negative">{{formatCurrency .Data.TotalExpenses .Data.Currency}}</div>
+    <div class="metric-card">
+        <div class="metric-label">Spend</div>
+        <div class="metric-value negative">{{formatCurrency .Data.TotalExpenses .Data.Currency}}</div>
+        <div class="metric-sub">This month</div>
     </div>
-    <div class="dashboard-card">
-        <div class="card-label">Net (this month)</div>
-        <div class="card-value {{amountClass .Data.NetAmount}}">{{formatAmount .Data.NetAmount .Data.Currency}}</div>
+    <div class="metric-card dark">
+        <div class="metric-label">Net</div>
+        <div class="metric-value {{amountClass .Data.NetAmount}}">{{formatAmount .Data.NetAmount .Data.Currency}}</div>
+        <div class="metric-sub">Income minus spend</div>
     </div>
-    <div class="dashboard-card">
-        <div class="card-label">Total Balance</div>
-        <div class="card-value">{{formatCurrency .Data.TotalBalance .Data.Currency}}</div>
-        <div class="card-sub">{{.Data.AccountCount}} accounts</div>
+    <div class="metric-card">
+        <div class="metric-label">Balance</div>
+        <div class="metric-value">{{formatCurrency .Data.TotalBalance .Data.Currency}}</div>
+        <div class="metric-sub">{{.Data.AccountCount}} accounts</div>
     </div>
 </div>
 
 <!-- Recent Transactions -->
-<h2 class="section-title">Recent Transactions</h2>
+<div class="section-row">
+    <h2 class="section-title">Recent Transactions</h2>
+    <a href="/transactions" class="subtle-link">View all</a>
+</div>
 {{if .Data.RecentTransactions}}
-<div style="overflow-x:auto;">
+<div class="table-wrapper">
     <table class="txn-table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Title</th>
+                <th>When</th>
+                <th>Transaction</th>
                 <th>Category</th>
                 <th>Account</th>
-                <th>Amount</th>
+                <th class="amount-col">Amount</th>
             </tr>
         </thead>
         <tbody>
         {{range .Data.RecentTransactions}}
             <tr class="txn-row">
-                <td>{{.DateFormatted}}</td>
-                <td>{{.Title}}</td>
-                <td>{{.CategoryName}}</td>
+                <td class="txn-date">{{.DateFormatted}}</td>
+                <td><strong>{{.Title}}</strong></td>
+                <td>{{if .CategoryName}}<span class="badge category-badge">{{.CategoryName}}</span>{{else}}<span class="no-data">Uncategorized</span>{{end}}</td>
                 <td>{{.AccountName}}</td>
-                <td class="{{amountClass .Amount}}">{{formatCurrency .Amount $.Data.Currency}}</td>
+                <td class="txn-amount {{amountClass .Amount}}">{{formatCurrency .Amount $.Data.Currency}}</td>
             </tr>
         {{end}}
         </tbody>
     </table>
 </div>
-<p style="margin-top:.5rem;text-align:right;">
-    <a href="/transactions" class="small">View all transactions →</a>
-</p>
 {{else}}
 <div class="empty-state">
-    <div class="empty-icon">💳</div>
+    <div class="empty-icon">+</div>
     <p>No transactions yet</p>
     <a href="/transactions" role="button" class="outline">Add your first transaction</a>
 </div>
@@ -62,13 +65,13 @@
 <!-- Budget Status -->
 {{if .Data.BudgetStatus}}
 <h2 class="section-title">Budget Status</h2>
-<div class="card-grid">
+<div class="card-grid budget-grid">
 {{range .Data.BudgetStatus}}
     <div class="dashboard-card">
         <div class="card-label">{{.Name}}</div>
         <div class="card-value">{{formatCurrency .Spent $.Data.Currency}} <small>of {{formatCurrency .Amount $.Data.Currency}}</small></div>
         <div class="budget-bar">
-            <div class="budget-bar-fill {{ternary (lt .SpentPct 70) "safe" (ternary (lt .SpentPct 90) "warning" "danger")}}" 
+            <div class="budget-bar-fill {{ternary (lt .SpentPct 70) "safe" (ternary (lt .SpentPct 90) "warning" "danger")}}"
                  style="width:{{.SpentPct}}%"></div>
         </div>
         <div class="card-sub">{{formatPercent .SpentPct}} spent · {{formatCurrency .Remaining $.Data.Currency}} remaining</div>
@@ -84,35 +87,33 @@
 </div>
 
 <script>
-    // Net worth chart (simple canvas)
     (function() {
         const canvas = document.getElementById('networth-chart');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         canvas.width = canvas.parentElement.clientWidth;
-        
+
         const data = [
             {{range .Data.MonthlyNetworth}}
             {month: "{{.MonthLabel}}", value: {{.Networth}} },
             {{end}}
         ];
         if (data.length < 2) {
-            ctx.fillStyle = 'var(--pico-muted-color)';
+            ctx.fillStyle = '#66736a';
             ctx.fillText('Not enough data yet', 10, 30);
             return;
         }
 
-        // Draw chart (simple hardcoded chart until Chart.js in Phase 6)
         const w = canvas.width - 40;
         const h = canvas.height - 40;
         const max = Math.max(...data.map(d => d.value));
         const min = Math.min(...data.map(d => d.value), 0);
         const range = max - min || 1;
-        
-        ctx.strokeStyle = '#6c63ff';
+
+        ctx.strokeStyle = '#d7ff67';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        
+
         data.forEach((d, i) => {
             const x = 20 + (i / (data.length - 1)) * w;
             const y = h - ((d.value - min) / range) * h + 20;
@@ -120,9 +121,8 @@
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
-        
-        // Labels
-        ctx.fillStyle = 'var(--pico-muted-color)';
+
+        ctx.fillStyle = '#66736a';
         ctx.font = '11px sans-serif';
         data.forEach((d, i) => {
             const x = 20 + (i / (data.length - 1)) * w;
@@ -131,7 +131,4 @@
     })();
 </script>
 
-<style>
-.small { font-size: .85rem; }
-</style>
 {{end}}

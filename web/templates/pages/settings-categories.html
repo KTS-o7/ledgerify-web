@@ -1,11 +1,9 @@
 {{define "content"}}
 
-<h2>Categories</h2>
-
 <details class="add-section">
-    <summary class="btn btn-primary">+ Add Category</summary>
+    <summary class="btn btn-primary">Add Category</summary>
     <form method="post" action="/settings/categories" class="inline-form">
-        <div class="input-row">
+        <div class="form-grid">
             <label>
                 Name
                 <input type="text" name="name" required placeholder="Groceries, Rent, etc.">
@@ -14,8 +12,6 @@
                 Color
                 <input type="color" name="color" value="#6366f1">
             </label>
-        </div>
-        <div class="input-row">
             <label>
                 Type
                 <select name="type">
@@ -25,11 +21,12 @@
                 </select>
             </label>
         </div>
-        <button type="submit">Create Category</button>
+        <button type="submit" class="btn btn-primary">Create Category</button>
     </form>
 </details>
 
 {{if .Data}}
+<div class="table-wrapper">
 <table class="table-striped">
     <thead>
         <tr>
@@ -44,20 +41,23 @@
         <tr>
             <td><span class="color-swatch" style="background: {{.Color.String}}"></span></td>
             <td>{{.Name}}</td>
-            <td><span class="badge type-{{.Type}}">{{.Type}}</span></td>
+            <td><span class="badge type-badge">{{.Type}}</span></td>
             <td>
-                <form method="post" action="/settings/categories/{{.ID.UUID}}/delete" 
-                      style="display:inline" 
+                <form method="post" action="/settings/categories/{{.ID.UUID}}/delete"
+                      style="display:inline"
                       onsubmit="return confirm('Delete {{.Name}}?')">
-                    <button type="submit" class="btn-danger btn-sm">Delete</button>
+                    <button type="submit" class="btn-icon danger">x</button>
                 </form>
             </td>
         </tr>
     {{end}}
     </tbody>
 </table>
+</div>
 {{else}}
-<p class="empty-state">No categories yet. Create one to start categorizing transactions.</p>
+<div class="empty-state">
+    <p>No categories yet. Create one to start categorizing transactions.</p>
+</div>
 {{end}}
 
 <a href="/settings" class="back-link">← Back to Settings</a>

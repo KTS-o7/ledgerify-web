@@ -4,40 +4,42 @@
 <div class="filters-bar">
     <form method="get" action="/transactions" class="filters-form">
         <div class="filter-row">
-            <select name="type" class="filter-select" onchange="this.form.submit()">
+            <select name="type" class="" onchange="this.form.submit()">
                 <option value="" {{if eq .Data.Filters.Type ""}}selected{{end}}>All Types</option>
                 <option value="income" {{if eq .Data.Filters.Type "income"}}selected{{end}}>Income</option>
                 <option value="expense" {{if eq .Data.Filters.Type "expense"}}selected{{end}}>Expense</option>
             </select>
 
-            <select name="account_id" class="filter-select" onchange="this.form.submit()">
+            <select name="account_id" class="" onchange="this.form.submit()">
                 <option value="">All Accounts</option>
                 {{range .Data.Accounts}}
                 <option value="{{.ID}}" {{if eq $.Data.Filters.AccountID .ID}}selected{{end}}>{{.Name}}</option>
                 {{end}}
             </select>
 
-            <select name="category_id" class="filter-select" onchange="this.form.submit()">
+            <select name="category_id" class="" onchange="this.form.submit()">
                 <option value="">All Categories</option>
                 {{range .Data.Categories}}
                 <option value="{{.ID}}" {{if eq $.Data.Filters.CategoryID .ID}}selected{{end}}>{{.Name}}</option>
                 {{end}}
             </select>
 
-            <input type="date" name="from_date" value="{{.Data.Filters.FromDate}}" class="filter-date" onchange="this.form.submit()">
-            <input type="date" name="to_date" value="{{.Data.Filters.ToDate}}" class="filter-date" onchange="this.form.submit()">
+            <input type="date" name="from_date" value="{{.Data.Filters.FromDate}}" class="" onchange="this.form.submit()">
+            <input type="date" name="to_date" value="{{.Data.Filters.ToDate}}" class="" onchange="this.form.submit()">
 
-            <input type="search" name="search" value="{{.Data.Filters.Search}}" placeholder="Search..." class="filter-search">
+            <input type="search" name="search" value="{{.Data.Filters.Search}}" placeholder="Search..." class="">
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-        <a href="/transactions" class="btn btn-outline btn-sm">Clear</a>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+            <a href="/transactions" class="btn btn-outline btn-sm">Clear</a>
+        </div>
     </form>
 </div>
 
 <!-- Add Transaction Form -->
 <div class="add-txn-section">
-    <details>
-        <summary class="btn btn-primary">+ Add Transaction</summary>
+    <details class="add-section">
+        <summary class="btn btn-primary">Add Transaction</summary>
         <form method="post" action="/transactions" class="txn-form">
             <div class="form-grid">
                 <label>
@@ -94,7 +96,7 @@
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Title</th>
+                <th>Transaction</th>
                 <th>Category</th>
                 <th>Account</th>
                 <th class="amount-col">Amount</th>
@@ -107,22 +109,22 @@
                 <td class="txn-date">
                     <span class="date-display">{{.DateFormatted}}</span>
                 </td>
-                <td class="txn-title">{{.Title}}</td>
+                <td class="txn-title"><strong>{{.Title}}</strong><span class="txn-kind">{{.Type}}</span></td>
                 <td>
                     {{if .CategoryName}}
                     <span class="badge category-badge" style="--cat-color: {{defaultStr .CategoryColor "#6b7280"}}">{{.CategoryName}}</span>
                     {{else}}
-                    <span class="no-data">—</span>
+                    <span class="no-data">Uncategorized</span>
                     {{end}}
                 </td>
                 <td>{{.AccountName}}</td>
                 <td class="txn-amount {{if eq .Type "income"}}positive{{else}}negative{{end}}">
-                    {{if eq .Type "income"}}+{{else}}−{{end}}{{.Currency}} {{printf "%.2f" .Amount}}
+                    {{if eq .Type "income"}}+{{else}}-{{end}}{{.Currency}} {{printf "%.2f" .Amount}}
                 </td>
                 <td class="action-col">
                     <form method="post" action="/transactions/delete" onsubmit="return confirm('Delete this transaction?')" style="display:inline">
                         <input type="hidden" name="id" value="{{.ID}}">
-                        <button type="submit" class="btn-icon danger" title="Delete">✕</button>
+                        <button type="submit" class="btn-icon danger" title="Delete">x</button>
                     </form>
                 </td>
             </tr>

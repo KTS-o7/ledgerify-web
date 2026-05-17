@@ -1,10 +1,9 @@
 {{define "content"}}
 
-<h2>Category Breakdown</h2>
 {{if .Data}}
 <p class="muted">Spending by category — {{.Data.Period}}</p>
 
-<div class="chart-container" style="max-width: 500px; margin: 2rem auto;">
+<div class="chart-container">
     <canvas id="categoryChart"></canvas>
 </div>
 
@@ -17,7 +16,7 @@ new Chart(document.getElementById('categoryChart'), {
         datasets: [{
             data: catData.amounts,
             backgroundColor: catData.colors,
-            borderColor: 'var(--bg)',
+            borderColor: 'var(--surface)',
             borderWidth: 2
         }]
     },
