@@ -44,9 +44,8 @@
             <td><span class="badge type-badge">{{.Type}}</span></td>
             <td>
                 <form method="post" action="/settings/categories/{{.ID.UUID}}/delete"
-                      style="display:inline"
                       onsubmit="return confirm('Delete {{.Name}}?')">
-                    <button type="submit" class="btn-icon danger" aria-label="Delete {{.Name}}">x</button>
+                    <button type="submit" class="btn-icon danger" aria-label="Delete {{.Name}}"><span aria-hidden="true">×</span></button>
                 </form>
             </td>
         </tr>

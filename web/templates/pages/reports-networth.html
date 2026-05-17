@@ -2,11 +2,11 @@
 
 <p class="muted">Track your net worth over time</p>
 
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <div class="chart-container">
     <canvas id="networthChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const nwData = JSON.parse({{.Data}});
 new Chart(document.getElementById('networthChart'), {

@@ -2,11 +2,11 @@
 
 <p class="muted">Compare your budget targets with actual spending</p>
 
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <div class="chart-container">
     <canvas id="budgetChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const bvaData = JSON.parse({{.Data}});
 new Chart(document.getElementById('budgetChart'), {

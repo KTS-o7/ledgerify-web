@@ -2,11 +2,11 @@
 
 <p class="muted">Monthly income vs expenses over the last 12 months</p>
 
+{{if .Data}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <div class="chart-container">
     <canvas id="cashFlowChart"></canvas>
 </div>
-
-{{if .Data}}
 <script>
 const cfData = JSON.parse({{.Data}});
 new Chart(document.getElementById('cashFlowChart'), {
