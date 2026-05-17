@@ -4,30 +4,30 @@
 <div class="filters-bar">
     <form method="get" action="/transactions" class="filters-form">
         <div class="filter-row">
-            <select name="type" class="" onchange="this.form.submit()">
+            <select name="type" onchange="this.form.submit()">
                 <option value="" {{if eq .Data.Filters.Type ""}}selected{{end}}>All Types</option>
                 <option value="income" {{if eq .Data.Filters.Type "income"}}selected{{end}}>Income</option>
                 <option value="expense" {{if eq .Data.Filters.Type "expense"}}selected{{end}}>Expense</option>
             </select>
 
-            <select name="account_id" class="" onchange="this.form.submit()">
+            <select name="account_id" onchange="this.form.submit()">
                 <option value="">All Accounts</option>
                 {{range .Data.Accounts}}
                 <option value="{{.ID}}" {{if eq $.Data.Filters.AccountID .ID}}selected{{end}}>{{.Name}}</option>
                 {{end}}
             </select>
 
-            <select name="category_id" class="" onchange="this.form.submit()">
+            <select name="category_id" onchange="this.form.submit()">
                 <option value="">All Categories</option>
                 {{range .Data.Categories}}
                 <option value="{{.ID}}" {{if eq $.Data.Filters.CategoryID .ID}}selected{{end}}>{{.Name}}</option>
                 {{end}}
             </select>
 
-            <input type="date" name="from_date" value="{{.Data.Filters.FromDate}}" class="" onchange="this.form.submit()">
-            <input type="date" name="to_date" value="{{.Data.Filters.ToDate}}" class="" onchange="this.form.submit()">
+            <input type="date" name="from_date" value="{{.Data.Filters.FromDate}}" onchange="this.form.submit()">
+            <input type="date" name="to_date" value="{{.Data.Filters.ToDate}}" onchange="this.form.submit()">
 
-            <input type="search" name="search" value="{{.Data.Filters.Search}}" placeholder="Search..." class="">
+            <input type="search" name="search" value="{{.Data.Filters.Search}}" placeholder="Search…">
         </div>
         <div class="filter-actions">
             <button type="submit" class="btn btn-primary btn-sm">Filter</button>
@@ -124,7 +124,7 @@
                 <td class="action-col">
                     <form method="post" action="/transactions/delete" onsubmit="return confirm('Delete this transaction?')" style="display:inline">
                         <input type="hidden" name="id" value="{{.ID}}">
-                        <button type="submit" class="btn-icon danger" title="Delete">x</button>
+                        <button type="submit" class="btn-icon danger" aria-label="Delete transaction">x</button>
                     </form>
                 </td>
             </tr>

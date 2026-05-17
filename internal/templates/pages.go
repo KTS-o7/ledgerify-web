@@ -72,13 +72,13 @@ func PageAuthMiddleware(jwtCfg *auth.JWTConfig) func(http.Handler) http.Handler 
 	}
 }
 
-// GetTheme returns the current theme from cookie or defaults to "dark".
+// GetTheme returns the current theme from cookie or defaults to "light".
 func GetTheme(r *http.Request) string {
 	cookie, err := r.Cookie("theme")
-	if err == nil && cookie.Value == "light" {
-		return "light"
+	if err == nil && cookie.Value == "dark" {
+		return "dark"
 	}
-	return "dark"
+	return "light"
 }
 
 // GetUserInfo extracts user info from the request context.

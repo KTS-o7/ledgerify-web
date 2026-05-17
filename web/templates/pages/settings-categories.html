@@ -46,7 +46,7 @@
                 <form method="post" action="/settings/categories/{{.ID.UUID}}/delete"
                       style="display:inline"
                       onsubmit="return confirm('Delete {{.Name}}?')">
-                    <button type="submit" class="btn-icon danger">x</button>
+                    <button type="submit" class="btn-icon danger" aria-label="Delete {{.Name}}">x</button>
                 </form>
             </td>
         </tr>
