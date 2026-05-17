@@ -1,60 +1,35 @@
 {{define "nav.html"}}
-<nav class="sidebar" x-data="{ mobileOpen: false }">
-    <div class="sidebar-brand">
-        <a href="/dashboard" class="brand-link">
-            <span class="brand-icon">📒</span>
+<nav class="sidebar" x-data="{ mobileOpen: false }" aria-label="Primary">
+    <div class="sidebar-top">
+        <a href="/dashboard" class="brand-link" aria-label="Ledgerify dashboard">
+            <span class="brand-mark">L</span>
             <span class="brand-name">Ledgerify</span>
         </a>
+        <button class="mobile-toggle" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
+            <span x-show="!mobileOpen">Menu</span>
+            <span x-show="mobileOpen">Close</span>
+        </button>
     </div>
 
-    <button class="mobile-toggle" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
-        <span x-show="!mobileOpen">☰</span>
-        <span x-show="mobileOpen">✕</span>
-    </button>
-
     <div class="sidebar-links" x-bind:class="mobileOpen ? 'open' : ''">
-        <a href="/dashboard" class="nav-link{{if eqStr .CurrentPath "/dashboard"}} active{{end}}">
-            <span class="nav-icon">🏠</span> Dashboard
-        </a>
-        <a href="/transactions" class="nav-link{{if hasPrefix .CurrentPath "/transactions"}} active{{end}}">
-            <span class="nav-icon">💳</span> Transactions
-        </a>
-        <a href="/accounts" class="nav-link{{if hasPrefix .CurrentPath "/accounts"}} active{{end}}">
-            <span class="nav-icon">🏦</span> Accounts
-        </a>
-        <a href="/budgets" class="nav-link{{if hasPrefix .CurrentPath "/budgets"}} active{{end}}">
-            <span class="nav-icon">📊</span> Budgets
-        </a>
-        <a href="/investments" class="nav-link{{if hasPrefix .CurrentPath "/investments"}} active{{end}}">
-            <span class="nav-icon">📈</span> Investments
-        </a>
-        <a href="/loans" class="nav-link{{if hasPrefix .CurrentPath "/loans"}} active{{end}}">
-            <span class="nav-icon">💰</span> Loans
-        </a>
-        <a href="/insurance" class="nav-link{{if hasPrefix .CurrentPath "/insurance"}} active{{end}}">
-            <span class="nav-icon">🛡️</span> Insurance
-        </a>
-        <a href="/networth" class="nav-link{{if hasPrefix .CurrentPath "/networth"}} active{{end}}">
-            <span class="nav-icon">💎</span> Net Worth
-        </a>
+        <a href="/dashboard" class="nav-link{{if eqStr .CurrentPath "/dashboard"}} active{{end}}"><span class="nav-key">D</span><span>Dashboard</span></a>
+        <a href="/transactions" class="nav-link{{if hasPrefix .CurrentPath "/transactions"}} active{{end}}"><span class="nav-key">T</span><span>Transactions</span></a>
+        <a href="/accounts" class="nav-link{{if hasPrefix .CurrentPath "/accounts"}} active{{end}}"><span class="nav-key">A</span><span>Accounts</span></a>
+        <a href="/budgets" class="nav-link{{if hasPrefix .CurrentPath "/budgets"}} active{{end}}"><span class="nav-key">B</span><span>Budgets</span></a>
+        <a href="/investments" class="nav-link{{if hasPrefix .CurrentPath "/investments"}} active{{end}}"><span class="nav-key">I</span><span>Investments</span></a>
+        <a href="/loans" class="nav-link{{if hasPrefix .CurrentPath "/loans"}} active{{end}}"><span class="nav-key">L</span><span>Loans</span></a>
+        <a href="/insurance" class="nav-link{{if hasPrefix .CurrentPath "/insurance"}} active{{end}}"><span class="nav-key">P</span><span>Insurance</span></a>
+        <a href="/networth" class="nav-link{{if hasPrefix .CurrentPath "/networth"}} active{{end}}"><span class="nav-key">N</span><span>Net Worth</span></a>
 
         <hr class="nav-divider">
 
-        <a href="/reports" class="nav-link{{if hasPrefix .CurrentPath "/reports"}} active{{end}}">
-            <span class="nav-icon">📋</span> Reports
-        </a>
-        <a href="/import" class="nav-link{{if hasPrefix .CurrentPath "/import"}} active{{end}}">
-            <span class="nav-icon">📥</span> Import
-        </a>
+        <a href="/reports" class="nav-link{{if hasPrefix .CurrentPath "/reports"}} active{{end}}"><span class="nav-key">R</span><span>Reports</span></a>
+        <a href="/import" class="nav-link{{if hasPrefix .CurrentPath "/import"}} active{{end}}"><span class="nav-key">M</span><span>Import</span></a>
 
         <hr class="nav-divider">
 
-        <a href="/settings" class="nav-link{{if hasPrefix .CurrentPath "/settings"}} active{{end}}">
-            <span class="nav-icon">⚙️</span> Settings
-        </a>
-        <a href="/logout" class="nav-link nav-logout">
-            <span class="nav-icon">🚪</span> Logout
-        </a>
+        <a href="/settings" class="nav-link{{if hasPrefix .CurrentPath "/settings"}} active{{end}}"><span class="nav-key">S</span><span>Settings</span></a>
+        <a href="/logout" class="nav-link nav-logout"><span class="nav-key">Q</span><span>Logout</span></a>
     </div>
 </nav>
 {{end}}

@@ -16,18 +16,21 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
-<body class="h-full" hx-boost="true">
+<body hx-boost="true">
     <div class="app-layout">
         {{template "nav.html" .}}
         <main class="main-content">
             <header class="page-header">
-                <h1>{{.Title}}</h1>
+                <div>
+                    <p class="page-kicker">Ledgerify</p>
+                    <h1>{{.Title}}</h1>
+                </div>
                 <div class="header-actions">
-                    <button class="theme-toggle" 
+                    <button class="theme-toggle"
                             aria-label="Toggle theme"
                             @click="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; $dispatch('theme-changed')">
-                        <span class="icon-sun" x-show="document.documentElement.dataset.theme === 'dark'">☀️</span>
-                        <span class="icon-moon" x-show="document.documentElement.dataset.theme === 'light'" x-cloak>🌙</span>
+                        <span x-show="document.documentElement.dataset.theme === 'dark'">Light</span>
+                        <span x-show="document.documentElement.dataset.theme === 'light'" x-cloak>Dark</span>
                     </button>
                 </div>
             </header>
@@ -40,14 +43,15 @@
             </div>
             {{end}}
 
-            {{template "content" .}}
+            <section class="page-content">
+                {{template "content" .}}
+            </section>
         </main>
     </div>
 
     <!-- Alpine theme init -->
     <script>
         document.addEventListener('alpine:init', () => {
-            // Theme toggle persistence via cookie
             document.addEventListener('theme-changed', () => {
                 const theme = document.documentElement.dataset.theme;
                 document.cookie = 'theme=' + theme + ';path=/;max-age=31536000;SameSite=Lax';
