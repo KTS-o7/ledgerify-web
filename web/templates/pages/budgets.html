@@ -1,88 +1,97 @@
 {{define "content"}}
 
-<!-- Add Budget Form -->
-<details class="add-section">
-    <summary class="btn btn-primary">Add Budget</summary>
-    <form method="post" action="/budgets" class="inline-form">
-        <div class="form-grid">
-            <label>
-                Name *
-                <input type="text" name="name" required placeholder="e.g. Monthly Groceries">
-            </label>
-            <label>
-                Amount *
-                <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0.00">
-            </label>
-            <label>
-                Currency
-                <input type="text" name="currency" value="USD" maxlength="3">
-            </label>
-            <label>
-                Period *
-                <select name="period_type" required>
-                    <option value="">Choose period…</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="one_time">One Time</option>
-                    <option value="custom">Custom</option>
-                </select>
-            </label>
-            <label>
-                Category
-                <input type="text" name="category_id" placeholder="Category ID (UUID)">
-            </label>
-            <label>
-                Start Date
-                <input type="date" name="start_date" value="{{(now).Format "2006-01-02"}}">
-            </label>
-            <label class="form-checkbox">
-                <input type="checkbox" name="rollover">
-                Rollover unused amount
-            </label>
-        </div>
-        <button type="submit" class="btn btn-primary">Create Budget</button>
-    </form>
-</details>
+<div style="display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+    <div></div>
+    <details class="add-section" style="flex-shrink:0">
+        <summary class="btn btn-primary">+ Set Budget</summary>
+        <form method="post" action="/budgets" class="txn-form" style="position:absolute;right:0;top:100%;width:450px;max-width:90vw;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:8px">
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label">Name</label>
+                    <div class="input-wrap">
+                        <input type="text" name="name" required placeholder="e.g. Monthly Groceries">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Amount</label>
+                    <div class="input-wrap">
+                        <span class="input-deco">$</span>
+                        <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0.00">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Currency</label>
+                    <div class="input-wrap">
+                        <input type="text" name="currency" value="USD" maxlength="3">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Period</label>
+                    <div class="input-wrap">
+                        <select name="period_type" required>
+                            <option value="">Choose period…</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="one_time">One Time</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Category ID</label>
+                    <div class="input-wrap">
+                        <input type="text" name="category_id" placeholder="Category ID (UUID)">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Start Date</label>
+                    <div class="input-wrap">
+                        <input type="date" name="start_date" value="{{(now).Format "2006-01-02"}}">
+                    </div>
+                </div>
+                <div class="field" style="flex-direction:row;align-items:center;gap:8px">
+                    <input type="checkbox" name="rollover" id="budget-rollover" style="width:auto">
+                    <label for="budget-rollover" style="font-size:12px;color:var(--text-muted);text-transform:none;letter-spacing:0;font-weight:400">Rollover unused amount</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Budget</button>
+        </form>
+    </details>
+</div>
 
-<!-- Budgets List -->
+<!-- Budget Cards -->
 {{if .Data}}
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Period</th>
-                <th>Dates</th>
-                <th>Rollover</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{range .Data}}
-            <tr>
-                <td><strong>{{.Name}}</strong></td>
-                <td>
+<div class="budget-grid">
+    {{range .Data}}
+    <div class="budget-card">
+        <div class="budget-card-header">
+            <div>
+                <div class="budget-card-category">
                     {{if .CategoryName}}
-                    <span class="badge category-badge" style="--cat-color: {{defaultStr .CategoryColor "#6b7280"}}">{{.CategoryName}}</span>
-                    {{else}}
-                    <span class="no-data">—</span>
+                    <span class="badge category-badge" style="--cat-color: {{defaultStr .CategoryColor "#6b7280"}}">
+                        <span class="badge-dot" style="background:{{defaultStr .CategoryColor "#6b7280"}}"></span>
+                        {{.CategoryName}}
+                    </span>
                     {{end}}
-                </td>
-                <td>{{formatCurrency .Amount .Currency}}</td>
-                <td><span class="badge period-badge">{{.PeriodType}}</span></td>
-                <td>{{.StartDate}} → {{.EndDate}}</td>
-                <td>{{if .Rollover}}✓{{else}}—{{end}}</td>
-            </tr>
-            {{end}}
-        </tbody>
-    </table>
+                    {{.Name}}
+                </div>
+            </div>
+            <div class="budget-card-amount">{{formatCurrency .Amount .Currency}}</div>
+        </div>
+        <div class="budget-card-subtitle">{{.PeriodType}} budget</div>
+        <div class="budget-card-meta">
+            <span>{{.StartDate}} → {{.EndDate}}</span>
+            <span>{{if .Rollover}}Rollover✓{{else}}{{end}}</span>
+        </div>
+    </div>
+    {{end}}
 </div>
 {{else}}
 <div class="empty-state">
-    <p>No budgets yet. Add your first budget above.</p>
+    <p>No budgets yet.</p>
+    <p>Set your first budget to start tracking spending.</p>
 </div>
 {{end}}
 

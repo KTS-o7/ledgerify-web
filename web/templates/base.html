@@ -23,16 +23,13 @@
         {{template "nav.html" .}}
         <main id="main-content" class="main-content">
             <header class="page-header">
-                <div>
-                    <p class="page-kicker">Ledgerify</p>
-                    <h1>{{.Title}}</h1>
-                </div>
+                <h1>{{.Title}}</h1>
                 <div class="header-actions">
                     <button class="theme-toggle"
                             aria-label="Toggle theme"
                             @click="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; $dispatch('theme-changed')">
-                        <span x-show="document.documentElement.dataset.theme === 'dark'">Light</span>
-                        <span x-show="document.documentElement.dataset.theme === 'light'" x-cloak>Dark</span>
+                        <span x-show="document.documentElement.dataset.theme === 'dark'">☀️ Light</span>
+                        <span x-show="document.documentElement.dataset.theme === 'light'" x-cloak>🌙 Dark</span>
                     </button>
                 </div>
             </header>
@@ -40,7 +37,7 @@
             {{if .Flashes}}
             <div class="flashes">
                 {{range .Flashes}}
-                <article class="flash flash-{{.Type}}">{{.Message}}</article>
+                <div class="flash flash-{{.Type}}">{{.Message}}</div>
                 {{end}}
             </div>
             {{end}}

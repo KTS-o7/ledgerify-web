@@ -1,49 +1,65 @@
 {{define "content"}}
 
-<!-- Add Account Form -->
-<details class="add-section">
-    <summary class="btn btn-primary">Add Account</summary>
-    <form method="post" action="/accounts" class="inline-form">
-        <div class="form-grid">
-            <label>
-                Name *
-                <input type="text" name="name" required placeholder="e.g. Chase Checking">
-            </label>
-            <label>
-                Type *
-                <select name="type" required>
-                    <option value="">Choose type…</option>
-                    <option value="checking">Checking</option>
-                    <option value="savings">Savings</option>
-                    <option value="credit_card">Credit Card</option>
-                    <option value="investment">Investment</option>
-                    <option value="loan">Loan</option>
-                    <option value="cash">Cash</option>
-                    <option value="other">Other</option>
-                </select>
-            </label>
-            <label>
-                Currency
-                <input type="text" name="currency" value="USD" maxlength="3">
-            </label>
-            <label>
-                Opening Balance
-                <input type="number" name="opening_balance" step="0.01" placeholder="0.00">
-            </label>
+<div style="display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="field" style="flex:1;min-width:200px">
+        <label class="field-label">Search</label>
+        <div class="input-wrap">
+            <input type="text" placeholder="Search accounts…" x-data x-on:input.debounce="window.location = '/accounts?search=' + encodeURIComponent($el.value)" value="">
         </div>
-        <button type="submit" class="btn btn-primary">Create Account</button>
-    </form>
-</details>
+    </div>
+    <details class="add-section" style="flex-shrink:0">
+        <summary class="btn btn-primary">+ Add Account</summary>
+        <form method="post" action="/accounts" class="txn-form" style="position:absolute;right:0;top:100%;width:450px;max-width:90vw;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:8px">
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label">Name</label>
+                    <div class="input-wrap">
+                        <input type="text" name="name" required placeholder="e.g. Chase Checking">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Type</label>
+                    <div class="input-wrap">
+                        <select name="type" required>
+                            <option value="">Choose type…</option>
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="investment">Investment</option>
+                            <option value="loan">Loan</option>
+                            <option value="cash">Cash</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Currency</label>
+                    <div class="input-wrap">
+                        <input type="text" name="currency" value="USD" maxlength="3">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Opening Balance</label>
+                    <div class="input-wrap">
+                        <span class="input-deco">$</span>
+                        <input type="number" name="opening_balance" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+    </details>
+</div>
 
-<!-- Accounts List -->
+<!-- Accounts Table -->
 {{if .Data}}
-<div class="table-wrapper">
-    <table class="data-table">
+<div class="table-container">
+    <table>
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Balance</th>
+                <th class="amount-col">Balance</th>
                 <th>Currency</th>
                 <th>Created</th>
             </tr>
@@ -52,8 +68,8 @@
             {{range .Data}}
             <tr>
                 <td><strong>{{.Name}}</strong></td>
-                <td><span class="badge type-badge">{{.Type}}</span></td>
-                <td class="{{if gt .Balance 0.0}}positive{{else if lt .Balance 0.0}}negative{{end}}">{{printf "%.2f" .Balance}}</td>
+                <td><span class="badge">{{.Type}}</span></td>
+                <td class="txn-amount {{if gt .Balance 0.0}}positive{{else if lt .Balance 0.0}}negative{{end}}">{{printf "%.2f" .Balance}}</td>
                 <td>{{.Currency}}</td>
                 <td>{{.CreatedAt}}</td>
             </tr>
@@ -63,7 +79,8 @@
 </div>
 {{else}}
 <div class="empty-state">
-    <p>No accounts yet. Add your first account above.</p>
+    <p>No accounts yet.</p>
+    <p>Add your first account to start tracking.</p>
 </div>
 {{end}}
 

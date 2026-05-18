@@ -1,52 +1,96 @@
 {{define "content"}}
 
-<details class="add-section">
-    <summary class="btn btn-primary">Add Investment</summary>
-    <form method="post" action="/investments" class="inline-form">
-        <div class="form-grid">
-            <label>Name *<input type="text" name="name" required></label>
-            <label>Asset Type *
-                <select name="asset_type" required>
-                    <option value="">Choose asset type…</option>
-                    <option value="stock">Stock</option>
-                    <option value="mutual_fund">Mutual Fund</option>
-                    <option value="etf">ETF</option>
-                    <option value="bond">Bond</option>
-                    <option value="crypto">Crypto</option>
-                    <option value="real_estate">Real Estate</option>
-                    <option value="fd">Fixed Deposit</option>
-                    <option value="other">Other</option>
-                </select>
-            </label>
-            <label>Currency<input type="text" name="currency" value="USD" maxlength="3"></label>
-            <label>Quantity<input type="number" name="quantity" step="any" min="0"></label>
-            <label>Buy Price<input type="number" name="buy_price" step="any" min="0"></label>
-            <label>Current Price<input type="number" name="current_price" step="any" min="0"></label>
-            <label>Interest Rate %<input type="number" name="interest_rate" step="0.01" min="0"></label>
-            <label>Maturity Date<input type="date" name="maturity_date"></label>
-        </div>
-        <button type="submit" class="btn btn-primary">Create Investment</button>
-    </form>
-</details>
+<div style="display:flex;align-items:start;justify-content:flex-end;gap:16px;margin-bottom:16px">
+    <details class="add-section">
+        <summary class="btn btn-primary">+ Add Investment</summary>
+        <form method="post" action="/investments" class="txn-form" style="position:absolute;right:0;top:100%;width:550px;max-width:90vw;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:8px">
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label">Name</label>
+                    <div class="input-wrap"><input type="text" name="name" required></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Asset Type</label>
+                    <div class="input-wrap">
+                        <select name="asset_type" required>
+                            <option value="">Choose…</option>
+                            <option value="stock">Stock</option>
+                            <option value="mutual_fund">Mutual Fund</option>
+                            <option value="etf">ETF</option>
+                            <option value="bond">Bond</option>
+                            <option value="crypto">Crypto</option>
+                            <option value="real_estate">Real Estate</option>
+                            <option value="fd">Fixed Deposit</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Currency</label>
+                    <div class="input-wrap"><input type="text" name="currency" value="USD" maxlength="3"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Quantity</label>
+                    <div class="input-wrap"><input type="number" name="quantity" step="any" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Buy Price</label>
+                    <div class="input-wrap"><span class="input-deco">$</span><input type="number" name="buy_price" step="any" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Current Price</label>
+                    <div class="input-wrap"><span class="input-deco">$</span><input type="number" name="current_price" step="any" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Interest Rate %</label>
+                    <div class="input-wrap"><input type="number" name="interest_rate" step="0.01" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Maturity Date</label>
+                    <div class="input-wrap"><input type="date" name="maturity_date"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Investment</button>
+        </form>
+    </details>
+</div>
 
 {{if .Data}}
-<div class="table-wrapper"><table class="data-table">
-<thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Buy</th><th>Current</th><th>Value</th><th>P/L %</th><th>Currency</th></tr></thead>
-<tbody>
-{{range .Data}}
-<tr>
-    <td><strong>{{.Name}}</strong>{{if .MaturityDate}} <small>(mat: {{.MaturityDate}})</small>{{end}}</td>
-    <td><span class="badge type-badge">{{.AssetType}}</span></td>
-    <td>{{printf "%.4g" .Quantity}}</td>
-    <td>{{printf "%.2f" .BuyPrice}}</td>
-    <td>{{printf "%.2f" .CurrentPrice}}</td>
-    <td>{{printf "%.2f" .CurrentValue}} {{.Currency}}</td>
-    <td class="{{if gt .GainLossPct 0.0}}positive{{else if lt .GainLossPct 0.0}}negative{{end}}">{{printf "%+.2f" .GainLossPct}}%</td>
-    <td>{{.Currency}}</td>
-</tr>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th class="amount-col">Qty</th>
+                <th class="amount-col">Buy</th>
+                <th class="amount-col">Current</th>
+                <th class="amount-col">Value</th>
+                <th class="amount-col">P/L %</th>
+                <th>Currency</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data}}
+            <tr>
+                <td><strong>{{.Name}}</strong>{{if .MaturityDate}} <span class="no-data" style="font-size:11px">(mat: {{.MaturityDate}})</span>{{end}}</td>
+                <td><span class="badge">{{.AssetType}}</span></td>
+                <td class="txn-amount">{{printf "%.4g" .Quantity}}</td>
+                <td class="txn-amount">{{printf "%.2f" .BuyPrice}}</td>
+                <td class="txn-amount">{{printf "%.2f" .CurrentPrice}}</td>
+                <td class="txn-amount">{{printf "%.2f" .CurrentValue}} {{.Currency}}</td>
+                <td class="txn-amount {{if gt .GainLossPct 0.0}}positive{{else if lt .GainLossPct 0.0}}negative{{end}}">{{printf "%+.2f" .GainLossPct}}%</td>
+                <td>{{.Currency}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="empty-state">
+    <p>No investments yet.</p>
+    <p>Add your first investment to track performance.</p>
+</div>
 {{end}}
-</tbody>
-</table></div>
-{{else}}<div class="empty-state"><p>No investments yet.</p></div>{{end}}
 
 {{end}}

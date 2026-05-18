@@ -1,134 +1,210 @@
 {{define "content"}}
 
-<!-- Summary Cards -->
-<div class="metric-grid dashboard-metrics">
-    <div class="metric-card">
-        <div class="metric-label">Income</div>
-        <div class="metric-value positive">{{formatCurrency .Data.TotalIncome .Data.Currency}}</div>
-        <div class="metric-sub">This month</div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-label">Spend</div>
-        <div class="metric-value negative">{{formatCurrency .Data.TotalExpenses .Data.Currency}}</div>
-        <div class="metric-sub">This month</div>
-    </div>
-    <div class="metric-card dark">
-        <div class="metric-label">Net</div>
-        <div class="metric-value {{amountClass .Data.NetAmount}}">{{formatAmount .Data.NetAmount .Data.Currency}}</div>
-        <div class="metric-sub">Income minus spend</div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-label">Balance</div>
-        <div class="metric-value">{{formatCurrency .Data.TotalBalance .Data.Currency}}</div>
-        <div class="metric-sub">{{.Data.AccountCount}} accounts</div>
-    </div>
+{{$pts := .Data.MonthlyNetworth}}
+{{$n := len $pts}}
+
+<!-- Net Worth Hero -->
+<div class="hero-section">
+  <p class="hero-label">NET WORTH</p>
+  <p class="hero-number">{{formatCurrency .Data.TotalBalance .Data.Currency}}</p>
+  <p class="hero-trend {{amountClass .Data.NetAmount}}">{{formatAmount .Data.NetAmount .Data.Currency}} this month</p>
 </div>
 
-<!-- Recent Transactions -->
-<div class="section-row">
-    <h2 class="section-title">Recent Transactions</h2>
-    <a href="/transactions" class="subtle-link">View all</a>
+<!-- KPI Strip -->
+<div class="kpi-strip">
+  <div class="kpi-item">
+    <p class="kpi-value">{{formatCurrency .Data.TotalIncome .Data.Currency}}</p>
+    <p class="kpi-label">Income</p>
+  </div>
+  <div class="kpi-divider"></div>
+  <div class="kpi-item">
+    <p class="kpi-value">{{formatCurrency .Data.TotalExpenses .Data.Currency}}</p>
+    <p class="kpi-label">Expenses</p>
+  </div>
+  <div class="kpi-divider"></div>
+  <div class="kpi-item">
+    <p class="kpi-value">{{formatCurrency .Data.NetAmount .Data.Currency}}</p>
+    <p class="kpi-label">Cash Flow</p>
+  </div>
+  <div class="kpi-divider"></div>
+  <div class="kpi-item">
+    <p class="kpi-value">{{if gt .Data.TotalIncome 0.0}}{{formatPercent (mul (div .Data.NetAmount .Data.TotalIncome) 100)}}{{else}}N/A{{end}}</p>
+    <p class="kpi-label">Savings Rate</p>
+  </div>
 </div>
-{{if .Data.RecentTransactions}}
-<div class="table-wrapper">
-    <table class="txn-table">
-        <thead>
-            <tr>
-                <th>When</th>
-                <th>Transaction</th>
-                <th>Category</th>
-                <th>Account</th>
-                <th class="amount-col">Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-        {{range .Data.RecentTransactions}}
-            <tr class="txn-row">
-                <td class="txn-date">{{.DateFormatted}}</td>
-                <td><strong>{{.Title}}</strong></td>
-                <td>{{if .CategoryName}}<span class="badge category-badge">{{.CategoryName}}</span>{{else}}<span class="no-data">Uncategorized</span>{{end}}</td>
-                <td>{{.AccountName}}</td>
-                <td class="txn-amount {{amountClass .Amount}}">{{formatCurrency .Amount $.Data.Currency}}</td>
-            </tr>
+
+<!-- Two Column Grid -->
+<div class="content-grid">
+  <!-- Left: Recent Transactions -->
+  <div>
+    <div class="section-header">
+      <h2>Recent Transactions</h2>
+      <a href="/transactions" class="section-link">View all transactions →</a>
+    </div>
+    {{if .Data.RecentTransactions}}
+    {{range .Data.RecentTransactions}}
+    <div class="txn-row">
+      <span class="txn-dot {{amountClass .Amount}}"></span>
+      <span class="txn-desc">{{.Title}}</span>
+      {{if .CategoryName}}<span class="txn-badge badge">{{.CategoryName}}</span>{{end}}
+      <span class="txn-amount {{amountClass .Amount}}">{{formatCurrency .Amount $.Data.Currency}}</span>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="empty-state">
+      <div class="empty-icon">+</div>
+      <p>No transactions yet</p>
+      <a href="/transactions" role="button" class="outline">Add your first transaction</a>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Right: Budgets + Chart -->
+  <div>
+    <div class="section-header">
+      <h2>Budgets</h2>
+    </div>
+    {{if .Data.BudgetStatus}}
+    {{range .Data.BudgetStatus}}
+    <div class="budget-item">
+      <div class="budget-label-row">
+        <span class="budget-cat">{{.Name}}</span>
+        <span class="budget-amounts">{{formatCurrency .Spent $.Data.Currency}} / {{formatCurrency .Amount $.Data.Currency}}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill {{ternary (lt .SpentPct 70) "safe" (ternary (lt .SpentPct 90) "warning" "danger")}}" style="width:{{.SpentPct}}%"></div>
+      </div>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="empty-state">
+      <p>No budgets set</p>
+      <a href="/budgets" role="button" class="outline">Set a budget</a>
+    </div>
+    {{end}}
+
+    <!-- Net Worth Chart -->
+    <div class="section-header" style="margin-top:1.5rem">
+      <h2>Net Worth</h2>
+    </div>
+    <div class="chart-container">
+      {{if gt $n 1}}
+      {{$paddingLeft := 40}}
+      {{$paddingRight := 20}}
+      {{$paddingTop := 20}}
+      {{$paddingBottom := 30}}
+      {{$chartW := 400}}
+      {{$chartH := 120}}
+      {{$areaW := sub (sub $chartW $paddingLeft) $paddingRight}}
+      {{$areaH := sub (sub $chartH $paddingTop) $paddingBottom}}
+      {{$step := div $areaW (sub $n 1)}}
+      {{$firstVal := (index $pts 0).Networth}}
+      {{$midY := add $paddingTop (div $areaH 2)}}
+      {{$last := index $pts (sub $n 1)}}
+      {{$lastX := add $paddingLeft (mul (sub $n 1) $step)}}
+      {{$lastY := sub $midY (div (sub $last.Networth $firstVal) 200)}}
+      {{$baseY := add $paddingTop $areaH}}
+      <svg viewBox="0 0 {{$chartW}} {{$chartH}}" class="chart-svg">
+        <line x1="{{$paddingLeft}}" y1="{{$paddingTop}}" x2="{{sub $chartW $paddingRight}}" y2="{{$paddingTop}}" stroke="var(--line)" stroke-width="0.5"/>
+        <line x1="{{$paddingLeft}}" y1="{{add $paddingTop (div $areaH 3)}}" x2="{{sub $chartW $paddingRight}}" y2="{{add $paddingTop (div $areaH 3)}}" stroke="var(--line)" stroke-width="0.5"/>
+        <line x1="{{$paddingLeft}}" y1="{{add $paddingTop (div (mul $areaH 2) 3)}}" x2="{{sub $chartW $paddingRight}}" y2="{{add $paddingTop (div (mul $areaH 2) 3)}}" stroke="var(--line)" stroke-width="0.5"/>
+        <line x1="{{$paddingLeft}}" y1="{{$baseY}}" x2="{{sub $chartW $paddingRight}}" y2="{{$baseY}}" stroke="var(--line)" stroke-width="0.5"/>
+        <path d="M{{$paddingLeft}} {{$baseY}} {{range $i, $p := $pts}}L{{add $paddingLeft (mul $i $step)}} {{sub $midY (div (sub $p.Networth $firstVal) 200)}} {{end}}L{{$lastX}} {{$baseY}}Z" fill="var(--accent-muted)"/>
+        <polyline fill="none" stroke="var(--accent)" stroke-width="1.5"
+          points="{{range $i, $p := $pts}}{{add $paddingLeft (mul $i $step)}},{{sub $midY (div (sub $p.Networth $firstVal) 200)}} {{end}}"/>
+        <circle cx="{{$lastX}}" cy="{{$lastY}}" r="3" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+        <circle cx="{{$lastX}}" cy="{{$lastY}}" r="6" fill="none" stroke="var(--accent)" stroke-opacity="0.3" stroke-width="2"/>
+        {{range $i, $p := $pts}}
+        <text x="{{add $paddingLeft (mul $i $step)}}" y="{{sub $chartH 5}}" text-anchor="middle" fill="var(--text-muted)" font-size="9">{{$p.MonthLabel}}</text>
         {{end}}
-        </tbody>
-    </table>
-</div>
-{{else}}
-<div class="empty-state">
-    <div class="empty-icon">+</div>
-    <p>No transactions yet</p>
-    <a href="/transactions" role="button" class="outline">Add your first transaction</a>
-</div>
-{{end}}
-
-<!-- Budget Status -->
-{{if .Data.BudgetStatus}}
-<h2 class="section-title">Budget Status</h2>
-<div class="card-grid budget-grid">
-{{range .Data.BudgetStatus}}
-    <div class="dashboard-card">
-        <div class="card-label">{{.Name}}</div>
-        <div class="card-value">{{formatCurrency .Spent $.Data.Currency}} <small>of {{formatCurrency .Amount $.Data.Currency}}</small></div>
-        <div class="budget-bar">
-            <div class="budget-bar-fill {{ternary (lt .SpentPct 70) "safe" (ternary (lt .SpentPct 90) "warning" "danger")}}"
-                 style="width:{{.SpentPct}}%"></div>
-        </div>
-        <div class="card-sub">{{formatPercent .SpentPct}} spent · {{formatCurrency .Remaining $.Data.Currency}} remaining</div>
+      </svg>
+      {{else}}
+      <div class="empty-state">
+        <p>Not enough data yet</p>
+      </div>
+      {{end}}
     </div>
-{{end}}
-</div>
-{{end}}
-
-<!-- Net Worth Chart Placeholder -->
-<h2 class="section-title">Net Worth Trend</h2>
-<div class="chart-container">
-    <canvas id="networth-chart" height="200"></canvas>
+  </div>
 </div>
 
-<script>
-    (function() {
-        const canvas = document.getElementById('networth-chart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        canvas.width = canvas.parentElement.clientWidth;
-
-        const data = [
-            {{range .Data.MonthlyNetworth}}
-            {month: "{{.MonthLabel}}", value: {{.Networth}} },
-            {{end}}
-        ];
-        if (data.length < 2) {
-            ctx.fillStyle = '#66736a';
-            ctx.fillText('Not enough data yet', 10, 30);
-            return;
-        }
-
-        const w = canvas.width - 40;
-        const h = canvas.height - 40;
-        const max = Math.max(...data.map(d => d.value));
-        const min = Math.min(...data.map(d => d.value), 0);
-        const range = max - min || 1;
-
-        ctx.strokeStyle = '#d7ff67';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-
-        data.forEach((d, i) => {
-            const x = 20 + (i / (data.length - 1)) * w;
-            const y = h - ((d.value - min) / range) * h + 20;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-
-        ctx.fillStyle = '#66736a';
-        ctx.font = '11px sans-serif';
-        data.forEach((d, i) => {
-            const x = 20 + (i / (data.length - 1)) * w;
-            ctx.fillText(d.month, x - 15, h + 35);
-        });
-    })();
-</script>
+<!-- Monthly Spending Heatmap -->
+<div class="section-header">
+  <h2>Spending Activity</h2>
+</div>
+<div class="heatmap">
+  <div class="heatmap-col">
+    <span class="cell-label">Mon</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Tue</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Wed</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Thu</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Fri</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Sat</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+  <div class="heatmap-col">
+    <span class="cell-label">Sun</span>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+    <div class="heatmap-cell heatmap-level-0"></div>
+  </div>
+</div>
+<div class="heatmap-legend">
+  <span>Less</span>
+  <div class="heatmap-cell heatmap-level-0"></div>
+  <div class="heatmap-cell heatmap-level-1"></div>
+  <div class="heatmap-cell heatmap-level-2"></div>
+  <div class="heatmap-cell heatmap-level-3"></div>
+  <div class="heatmap-cell heatmap-level-4"></div>
+  <div class="heatmap-cell heatmap-level-5"></div>
+  <span>More</span>
+</div>
 
 {{end}}
