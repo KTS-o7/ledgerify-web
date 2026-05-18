@@ -1,6 +1,6 @@
 {{define "content"}}
 
-<p class="muted">Compare your budget targets with actual spending</p>
+<p class="muted" style="margin-bottom:16px">Compare your budget targets with actual spending</p>
 
 {{if .Data}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -9,46 +9,60 @@
 </div>
 <script>
 const bvaData = JSON.parse({{.Data}});
-new Chart(document.getElementById('budgetChart'), {
-    type: 'bar',
-    data: {
-        labels: bvaData.labels,
-        datasets: [
-            {
-                label: 'Budget',
-                data: bvaData.budget,
-                backgroundColor: '#30443a',
-                borderColor: '#30443a',
-                borderWidth: 1
+const ctxBV = document.getElementById('budgetChart');
+if (ctxBV) {
+    new Chart(ctxBV, {
+        type: 'bar',
+        data: {
+            labels: bvaData.labels,
+            datasets: [
+                {
+                    label: 'Budget',
+                    data: bvaData.budget,
+                    backgroundColor: 'rgba(194,90,62,0.7)',
+                    borderColor: '#c25a3e',
+                    borderWidth: 1,
+                    borderRadius: 3
+                },
+                {
+                    label: 'Actual',
+                    data: bvaData.actual,
+                    backgroundColor: 'rgba(183,121,31,0.7)',
+                    borderColor: '#b7791f',
+                    borderWidth: 1,
+                    borderRadius: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 12, padding: 12 } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+                    }
+                }
             },
-            {
-                label: 'Actual',
-                data: bvaData.actual,
-                backgroundColor: '#b7791f',
-                borderColor: '#b7791f',
-                borderWidth: 1
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-                callbacks: {
-                    label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: v => v.toFixed(0) },
+                    grid: { color: 'rgba(0,0,0,0.06)' }
+                },
+                x: {
+                    grid: { display: false }
                 }
             }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: { callback: v => v.toFixed(0) }
-            }
         }
-    }
-});
+    });
+}
 </script>
-{{else}}<p class="empty-state">No budgets found. Create budgets to compare against actual spending.</p>{{end}}
+{{else}}
+<div class="empty-state">
+    <p>No budgets found.</p>
+    <p>Create budgets to compare against actual spending.</p>
+</div>
+{{end}}
 
 {{end}}

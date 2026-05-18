@@ -1,37 +1,26 @@
 {{define "content"}}
 
-<div class="settings-grid">
-    <a href="/settings/categories" class="settings-card">
+<div class="tile-grid">
+    <a href="/settings/categories" class="tile">
         <h3>Categories</h3>
         <p>Manage your transaction categories</p>
-        <span class="settings-arrow">→</span>
     </a>
-    <a href="/settings/currencies" class="settings-card">
+    <a href="/settings/currencies" class="tile">
         <h3>Currencies</h3>
         <p>Manage supported currencies</p>
-        <span class="settings-arrow">→</span>
     </a>
-    <a href="/settings/profile" class="settings-card">
+    <a href="/settings/profile" class="tile">
         <h3>Profile</h3>
         <p>Update email, name, password</p>
-        <span class="settings-arrow">→</span>
     </a>
-</div>
-
-<div class="settings-section settings-section--top">
-    <h3 class="section-title">Data Management</h3>
-    <div class="settings-grid">
-        <a href="/import" class="settings-card">
-            <h3>Import</h3>
-            <p>Import transactions from CSV</p>
-            <span class="settings-arrow">→</span>
-        </a>
-        <a href="/export" class="settings-card">
-            <h3>Export</h3>
-            <p>Download your data as CSV</p>
-            <span class="settings-arrow">→</span>
-        </a>
-    </div>
+    <a href="/import" class="tile">
+        <h3>Import</h3>
+        <p>Import transactions from CSV</p>
+    </a>
+    <a href="/export" class="tile">
+        <h3>Export</h3>
+        <p>Download your data as CSV</p>
+    </a>
 </div>
 
 {{end}}

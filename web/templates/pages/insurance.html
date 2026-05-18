@@ -1,58 +1,102 @@
 {{define "content"}}
 
-<details class="add-section">
-    <summary class="btn btn-primary">Add Policy</summary>
-    <form method="post" action="/insurance" class="inline-form">
-        <div class="form-grid">
-            <label>Name *<input type="text" name="name" required></label>
-            <label>Policy Type *
-                <select name="policy_type" required>
-                    <option value="">Choose policy type…</option>
-                    <option value="life">Life Insurance</option>
-                    <option value="health">Health Insurance</option>
-                    <option value="auto">Auto Insurance</option>
-                    <option value="home">Home Insurance</option>
-                    <option value="travel">Travel Insurance</option>
-                    <option value="term">Term Insurance</option>
-                    <option value="other">Other</option>
-                </select>
-            </label>
-            <label>Provider<input type="text" name="provider"></label>
-            <label>Currency<input type="text" name="currency" value="USD" maxlength="3"></label>
-            <label>Premium Amount<input type="number" name="premium_amount" step="0.01" min="0"></label>
-            <label>Premium Frequency
-                <select name="premium_frequency">
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="one_time">One Time</option>
-                </select>
-            </label>
-            <label>Coverage Amount<input type="number" name="coverage_amount" step="0.01" min="0"></label>
-            <label>Start Date<input type="date" name="start_date"></label>
-        </div>
-        <button type="submit" class="btn btn-primary">Create Policy</button>
-    </form>
-</details>
+<div style="display:flex;align-items:start;justify-content:flex-end;gap:16px;margin-bottom:16px">
+    <details class="add-section">
+        <summary class="btn btn-primary">+ Add Policy</summary>
+        <form method="post" action="/insurance" class="txn-form" style="position:absolute;right:0;top:100%;width:550px;max-width:90vw;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:8px">
+            <div class="form-grid">
+                <div class="field">
+                    <label class="field-label">Name</label>
+                    <div class="input-wrap"><input type="text" name="name" required></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Policy Type</label>
+                    <div class="input-wrap">
+                        <select name="policy_type" required>
+                            <option value="">Choose…</option>
+                            <option value="life">Life Insurance</option>
+                            <option value="health">Health Insurance</option>
+                            <option value="auto">Auto Insurance</option>
+                            <option value="home">Home Insurance</option>
+                            <option value="travel">Travel Insurance</option>
+                            <option value="term">Term Insurance</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Provider</label>
+                    <div class="input-wrap"><input type="text" name="provider"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Currency</label>
+                    <div class="input-wrap"><input type="text" name="currency" value="USD" maxlength="3"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Premium Amount</label>
+                    <div class="input-wrap"><span class="input-deco">$</span><input type="number" name="premium_amount" step="0.01" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Premium Frequency</label>
+                    <div class="input-wrap">
+                        <select name="premium_frequency">
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="one_time">One Time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Coverage Amount</label>
+                    <div class="input-wrap"><span class="input-deco">$</span><input type="number" name="coverage_amount" step="0.01" min="0"></div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Start Date</label>
+                    <div class="input-wrap"><input type="date" name="start_date"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Policy</button>
+        </form>
+    </details>
+</div>
 
 {{if .Data}}
-<div class="table-wrapper"><table class="data-table">
-<thead><tr><th>Name</th><th>Type</th><th>Provider</th><th>Premium</th><th>Frequency</th><th>Coverage</th><th>Start</th><th>End</th></tr></thead>
-<tbody>
-{{range .Data}}
-<tr>
-    <td><strong>{{.Name}}</strong></td>
-    <td><span class="badge type-badge">{{.PolicyType}}</span></td>
-    <td>{{if .Provider}}{{.Provider}}{{else}}—{{end}}</td>
-    <td>{{formatCurrency .PremiumAmount .Currency}}</td>
-    <td>{{.PremiumFrequency}}</td>
-    <td>{{formatCurrency .CoverageAmount .Currency}}</td>
-    <td>{{.StartDate}}</td>
-    <td>{{if .EndDate}}{{.EndDate}}{{else}}—{{end}}</td>
-</tr>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Provider</th>
+                <th class="amount-col">Premium</th>
+                <th>Frequency</th>
+                <th class="amount-col">Coverage</th>
+                <th>Start</th>
+                <th>End</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Data}}
+            <tr>
+                <td><strong>{{.Name}}</strong></td>
+                <td><span class="badge">{{.PolicyType}}</span></td>
+                <td>{{if .Provider}}{{.Provider}}{{else}}<span class="no-data">—</span>{{end}}</td>
+                <td class="txn-amount">{{formatCurrency .PremiumAmount .Currency}}</td>
+                <td>{{.PremiumFrequency}}</td>
+                <td class="txn-amount">{{formatCurrency .CoverageAmount .Currency}}</td>
+                <td>{{.StartDate}}</td>
+                <td>{{if .EndDate}}{{.EndDate}}{{else}}<span class="no-data">—</span>{{end}}</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{else}}
+<div class="empty-state">
+    <p>No insurance policies yet.</p>
+    <p>Add your first policy to track coverage.</p>
+</div>
 {{end}}
-</tbody>
-</table></div>
-{{else}}<div class="empty-state"><p>No insurance policies yet.</p></div>{{end}}
 
 {{end}}

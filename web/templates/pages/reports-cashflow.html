@@ -1,6 +1,6 @@
 {{define "content"}}
 
-<p class="muted">Monthly income vs expenses over the last 12 months</p>
+<p class="muted" style="margin-bottom:16px">Monthly income vs expenses over the last 12 months</p>
 
 {{if .Data}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -9,46 +9,60 @@
 </div>
 <script>
 const cfData = JSON.parse({{.Data}});
-new Chart(document.getElementById('cashFlowChart'), {
-    type: 'bar',
-    data: {
-        labels: cfData.labels,
-        datasets: [
-            {
-                label: 'Income',
-                data: cfData.income,
-                backgroundColor: '#16835a',
-                borderColor: '#16835a',
-                borderWidth: 1
+const ctxCF = document.getElementById('cashFlowChart');
+if (ctxCF) {
+    new Chart(ctxCF, {
+        type: 'bar',
+        data: {
+            labels: cfData.labels,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: cfData.income,
+                    backgroundColor: 'rgba(22,131,90,0.8)',
+                    borderColor: '#16835a',
+                    borderWidth: 1,
+                    borderRadius: 3
+                },
+                {
+                    label: 'Expenses',
+                    data: cfData.expense,
+                    backgroundColor: 'rgba(189,62,62,0.8)',
+                    borderColor: '#bd3e3e',
+                    borderWidth: 1,
+                    borderRadius: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 12, padding: 12 } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+                    }
+                }
             },
-            {
-                label: 'Expenses',
-                data: cfData.expense,
-                backgroundColor: '#bd3e3e',
-                borderColor: '#bd3e3e',
-                borderWidth: 1
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'top' },
-            tooltip: {
-                callbacks: {
-                    label: ctx => `${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(2)}`
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: v => v.toFixed(0) },
+                    grid: { color: 'rgba(0,0,0,0.06)' }
+                },
+                x: {
+                    grid: { display: false }
                 }
             }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: { callback: v => v.toFixed(0) }
-            }
         }
-    }
-});
+    });
+}
 </script>
-{{else}}<p class="empty-state">No data available. Add transactions to see your cash flow.</p>{{end}}
+{{else}}
+<div class="empty-state">
+    <p>No data available.</p>
+    <p>Add transactions to see your cash flow.</p>
+</div>
+{{end}}
 
 {{end}}

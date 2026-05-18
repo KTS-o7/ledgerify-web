@@ -51,3 +51,4 @@ vendor/
 
 # Server config (sensitive - manage outside repo)
 /nginx/
+.superpowers/
