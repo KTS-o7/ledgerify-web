@@ -38,7 +38,7 @@
   <!-- Left: Recent Transactions -->
   <div>
     <div class="section-header">
-      <h2>Recent Transactions</h2>
+      <p class="section-title">Recent Transactions</p>
       <a href="/transactions" class="section-link">View all transactions →</a>
     </div>
     {{if .Data.RecentTransactions}}
@@ -62,7 +62,7 @@
   <!-- Right: Budgets + Chart -->
   <div>
     <div class="section-header">
-      <h2>Budgets</h2>
+      <p class="section-title">Budgets</p>
     </div>
     {{if .Data.BudgetStatus}}
     {{range .Data.BudgetStatus}}
@@ -85,7 +85,7 @@
 
     <!-- Net Worth Chart -->
     <div class="section-header" style="margin-top:1.5rem">
-      <h2>Net Worth</h2>
+      <p class="section-title">Net Worth</p>
     </div>
     <div class="chart-container">
       {{if gt $n 1}}
@@ -100,10 +100,10 @@
       {{$step := div $areaW (sub $n 1)}}
       {{$firstVal := (index $pts 0).Networth}}
       {{$midY := add $paddingTop (div $areaH 2)}}
-      {{$last := index $pts (sub $n 1)}}
-      {{$lastX := add $paddingLeft (mul (sub $n 1) $step)}}
-      {{$lastY := sub $midY (div (sub $last.Networth $firstVal) 200)}}
       {{$baseY := add $paddingTop $areaH}}
+      {{/* capture last point via range to avoid index-with-float64 */}}
+      {{$lastX := 0.0}}{{$lastY := 0.0}}
+      {{range $i, $p := $pts}}{{$lastX = add $paddingLeft (mul $i $step)}}{{$lastY = sub $midY (div (sub $p.Networth $firstVal) 200)}}{{end}}
       <svg viewBox="0 0 {{$chartW}} {{$chartH}}" class="chart-svg">
         <line x1="{{$paddingLeft}}" y1="{{$paddingTop}}" x2="{{sub $chartW $paddingRight}}" y2="{{$paddingTop}}" stroke="var(--line)" stroke-width="0.5"/>
         <line x1="{{$paddingLeft}}" y1="{{add $paddingTop (div $areaH 3)}}" x2="{{sub $chartW $paddingRight}}" y2="{{add $paddingTop (div $areaH 3)}}" stroke="var(--line)" stroke-width="0.5"/>
@@ -129,7 +129,7 @@
 
 <!-- Monthly Spending Heatmap -->
 <div class="section-header">
-  <h2>Spending Activity</h2>
+  <p class="section-title">Spending Activity</p>
 </div>
 <div class="heatmap">
   <div class="heatmap-col">

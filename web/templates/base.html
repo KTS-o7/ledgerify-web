@@ -25,12 +25,14 @@
             <header class="page-header">
                 <h1>{{.Title}}</h1>
                 <div class="header-actions">
-                    <button class="theme-toggle"
-                            aria-label="Toggle theme"
-                            @click="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; $dispatch('theme-changed')">
-                        <span x-show="document.documentElement.dataset.theme === 'dark'">☀️ Light</span>
-                        <span x-show="document.documentElement.dataset.theme === 'light'" x-cloak>🌙 Dark</span>
-                    </button>
+                    <div class="theme-toggle" x-data>
+                        <span class="theme-option"
+                              :class="document.documentElement.dataset.theme !== 'dark' && 'theme-option-active'"
+                              @click="document.documentElement.dataset.theme='light'; document.cookie='theme=light;path=/;max-age=31536000;SameSite=Lax'">Light</span>
+                        <span class="theme-option"
+                              :class="document.documentElement.dataset.theme === 'dark' && 'theme-option-active'"
+                              @click="document.documentElement.dataset.theme='dark'; document.cookie='theme=dark;path=/;max-age=31536000;SameSite=Lax'">Dark</span>
+                    </div>
                 </div>
             </header>
 
