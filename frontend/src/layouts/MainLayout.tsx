@@ -1,6 +1,6 @@
-import { useNavigate, useLocation, A } from "@solidjs/router";
+import { useNavigate, useLocation, A, type RouteSectionProps } from "@solidjs/router";
 import { useAuth } from "../lib/store";
-import { type JSX, For } from "solid-js";
+import { For } from "solid-js";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: "◈" },
@@ -17,7 +17,7 @@ const navItems = [
   { path: "/settings", label: "Settings", icon: "⚙" },
 ];
 
-export function MainLayout(props: { children: JSX.Element }) {
+export function MainLayout(props: RouteSectionProps) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
