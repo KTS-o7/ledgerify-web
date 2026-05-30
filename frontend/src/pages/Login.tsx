@@ -1,7 +1,9 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { useNavigate, A } from "@solidjs/router";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 
 export default function Login() {
   const [email, setEmail] = createSignal("");
@@ -30,42 +32,53 @@ export default function Login() {
   };
 
   return (
-    <div class="auth-page">
-      <form onSubmit={handleSubmit}>
-        <hgroup>
-          <h1>Ledgerify</h1>
-          <p>Sign in to your account</p>
-        </hgroup>
-        {error() && <div class="error">{error()}</div>}
-        <label>
-          Email
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={email()}
-            onInput={(e) => setEmail(e.currentTarget.value)}
-            required
-            autocomplete="email"
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            placeholder="Password"
-            value={password()}
-            onInput={(e) => setPassword(e.currentTarget.value)}
-            required
-            autocomplete="current-password"
-          />
-        </label>
-        <button type="submit" disabled={loading()} aria-busy={loading()}>
-          {loading() ? "Signing in…" : "Sign in"}
-        </button>
-        <p style="text-align:center;margin-top:1rem">
-          No account? <A href="/register">Register</A>
-        </p>
-      </form>
+    <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div class="w-full max-w-sm">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div class="mb-6 text-center">
+            <h1 class="text-xl font-semibold text-gray-900">Ledgerify</h1>
+            <p class="text-sm text-gray-500 mt-1">Sign in to your account</p>
+          </div>
+
+          <Show when={error()}>
+            <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              {error()}
+            </div>
+          </Show>
+
+          <form onSubmit={handleSubmit} class="flex flex-col gap-4">
+            <div>
+              <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Email</label>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={email()}
+                onInput={(e) => setEmail(e.currentTarget.value)}
+                required
+                autocomplete="email"
+              />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Password</label>
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password()}
+                onInput={(e) => setPassword(e.currentTarget.value)}
+                required
+                autocomplete="current-password"
+              />
+            </div>
+            <Button type="submit" disabled={loading()} class="w-full mt-1">
+              {loading() ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+
+          <p class="text-center text-sm text-gray-500 mt-4">
+            No account? <A href="/register" class="text-[#c25a3e] hover:underline font-medium">Register</A>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
