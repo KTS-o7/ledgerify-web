@@ -6,9 +6,9 @@ Current categorization uses `strings.Contains` keyword matching (`import_export.
 
 ## Solution
 
-Hybrid system: keyword match first (fast, zero-cost), then LLM fallback for uncategorized transactions.
+Hybrid system: keyword match first (fast, zero-cost), then LLM fallback for uncategorized transactions. Additionally, a background queue auto-categorizes new transactions created without a category, feeding richer data into reports from day one.
 
-## Architecture
+## Architecture — Batch Categorise
 
 ```
 Categorise Request
@@ -48,14 +48,43 @@ Categorise Request
 
 Keys become transaction IDs, values are category names. Covers both keyword and LLM matches uniformly.
 
+## Architecture — Auto-Categorize on Creation
+
+When a transaction is created (form or API) without a category, enqueue it for async LLM categorization:
+
+```
+Transaction created (no category)
+       │
+       ▼
+┌──────────────┐
+│  Enqueue(tx)  │──▶ buffered channel (cap 100)
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│  Worker pool  │──▶ N goroutines, each:
+│  (default 3)  │    1. Fetch user's categories from DB
+│               │    2. Call LLM Categorize()
+│               │    3. UPDATE transactions SET category_id = $1
+└──────────────┘
+```
+
+- **Non-blocking:** enqueue returns immediately, creation response is fast
+- **Graceful shutdown:** drain channel on server stop
+- **Configurable:** `LLM_WORKERS` env var (default 3), `LLM_QUEUE_SIZE` (default 100)
+- **Drops silently:** if queue is full, transaction stays uncategorized (no error to caller)
+- **`LLM_API_URL=""` disables LLM entirely** — queue is a no-op
+
 ## Files to Modify
 
 | File | Change |
 |------|--------|
 | `internal/llm/client.go` | **New file.** `Client` struct with `NewClient(cfg)`, single `Categorize(ctx, title, categories []Category) (string, error)` method. `net/http` only, no SDK. 5s timeout per call. |
-| `internal/auth/config.go` | Add `LLMAPIURL`, `LLMAPIKey`, `LLMModel`, `LLMUserAgent` fields. Load from `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_USER_AGENT` env vars. Defaults: `https://ai.shenthar.me`, `taalas-llama3.1-8b`, `curl/8.4.0`. |
+| `internal/llm/queue.go` | **New file.** `Queue` struct with buffered channel + worker pool. `Enqueue(txID, userID)` non-blocking. Workers fetch categories, call LLM, update DB. `Shutdown()` drains gracefully. |
+| `internal/auth/config.go` | Add `LLMAPIURL`, `LLMAPIKey`, `LLMModel`, `LLMUserAgent`, `LLMWorkers`, `LLMQueueSize` fields. Load from env vars with defaults. |
 | `internal/handlers/import_export.go` | Add `llm *llm.Client` to `ImportExportHandler`. Update constructor. In `Categorise()`: fetch categories list for LLM prompt, keep keyword loop first, batch LLM calls for unmatched (semaphore, max 5 concurrent). Support `?mode=keyword` query param. |
-| `cmd/server/main.go` | Create `llm.Client`, pass to `NewImportExportHandler`. |
+| `internal/handlers/transactions.go` | Add `llmQueue *llm.Queue` to `TransactionHandler`. In create handlers (form + API): if `category_id` is blank, enqueue to LLM queue. |
+| `cmd/server/main.go` | Create `llm.Client`, `llm.Queue`, pass to both handlers. Call `queue.Shutdown()` on server stop. |
 
 ## LLM Client (`internal/llm/client.go`)
 
@@ -103,6 +132,22 @@ Explicit JSON in prompt because `response_format: {"type": "json_object"}` is si
 7. For remaining unmatched: batch LLM calls (semaphore, max 5 concurrent, 5s each)
 8. Save LLM results to DB
 9. Return `CategoriseResponse{Categorised, Categories map[txID]categoryName}`
+
+## Transaction Creation Flow (Auto-Categorize)
+
+Both form (`/transactions` POST) and API (`/api/v1/transactions` POST) handlers:
+
+1. Create transaction as normal (existing logic)
+2. If `category_id` was provided by user → done, return
+3. If `category_id` is blank → `queue.Enqueue(txID, userID)`
+4. Return immediately (transaction exists, category will appear async)
+
+Queue worker flow:
+1. Dequeue `(txID, userID)`
+2. Fetch user's categories via `ListCategoriesByUser`
+3. Fetch transaction title via `GetTransactionByID`
+4. Call `llm.Categorize(ctx, title, categories)`
+5. If result is non-empty: look up matching category_id, `UPDATE transactions SET category_id = $1 WHERE id = $2`
 
 ## API Details
 
