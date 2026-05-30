@@ -1,106 +1,48 @@
-import { createSignal } from 'solid-js'
-import solidLogo from './assets/solid.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Router, Route } from "@solidjs/router";
+import { lazy } from "solid-js";
+import { AuthProvider } from "./lib/store";
+import { AuthGuard } from "./components/AuthGuard";
+import { MainLayout } from "./layouts/MainLayout";
 
-function App() {
-  const [count, setCount] = createSignal(0)
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const Budgets = lazy(() => import("./pages/Budgets"));
+const Investments = lazy(() => import("./pages/Investments"));
+const Loans = lazy(() => import("./pages/Loans"));
+const Insurance = lazy(() => import("./pages/Insurance"));
+const NetWorth = lazy(() => import("./pages/NetWorth"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Import = lazy(() => import("./pages/Import"));
+const Export = lazy(() => import("./pages/Export"));
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div class="hero">
-          <img src={heroImg} class="base" width="170" height="179" alt="" />
-          <img src={solidLogo} class="framework" alt="Solid logo" />
-          <img src={viteLogo} class="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          class="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count()}
-        </button>
-      </section>
-
-      <div class="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg class="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img class="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://solidjs.com/" target="_blank">
-                <img class="button-icon" src={solidLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg class="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg class="button-icon" role="presentation" aria-hidden="true">
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div class="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <AuthProvider>
+      <Router>
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/" component={AuthGuard}>
+          <Route path="/" component={MainLayout}>
+            <Route path="/" component={Dashboard} />
+            <Route path="/dashboard" component={Dashboard} />
+            <Route path="/transactions" component={Transactions} />
+            <Route path="/accounts" component={Accounts} />
+            <Route path="/budgets" component={Budgets} />
+            <Route path="/investments" component={Investments} />
+            <Route path="/loans" component={Loans} />
+            <Route path="/insurance" component={Insurance} />
+            <Route path="/networth" component={NetWorth} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/import" component={Import} />
+            <Route path="/export" component={Export} />
+            <Route path="/settings" component={Settings} />
+          </Route>
+        </Route>
+      </Router>
+    </AuthProvider>
+  );
 }
-
-export default App
