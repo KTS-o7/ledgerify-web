@@ -19,6 +19,7 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/handlers"
 	"github.com/KTS-o7/ledgerify-web/internal/llm"
+	"github.com/KTS-o7/ledgerify-web/internal/mcp"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/templates"
 )
@@ -69,6 +70,7 @@ func main() {
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
 	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
+	_, sseServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
 	// Initialize templates with embedded assets
@@ -250,6 +252,9 @@ func main() {
 		r.Post("/api/v1/transactions/categorise", importExportHandler.Categorise)
 		r.Post("/api/import", importExportHandler.Import)
 		r.Get("/api/export", importExportHandler.Export)
+
+		r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
+		r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
 	})
 
 	srv := &http.Server{
