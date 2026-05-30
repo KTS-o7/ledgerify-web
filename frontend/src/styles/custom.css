@@ -1,1 +1,13 @@
-/* Styles will be added in Task 8 */
+@import "tailwindcss";
+
+/* Ledgerify design tokens */
+@theme {
+  --color-brand: #c25a3e;
+  --color-brand-hover: #a34730;
+  --color-brand-muted: rgb(194 90 62 / 0.08);
+  --color-positive: #16835a;
+  --color-negative: #bd3e3e;
+  --color-warning: #b7791f;
+  --color-sidebar: #1a1816;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
