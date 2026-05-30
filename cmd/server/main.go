@@ -47,6 +47,7 @@ func main() {
 	jwtCfg := auth.NewJWTConfig(cfg)
 
 	llmClient := llm.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMUserAgent)
+	llmQueue := llm.NewQueue(llmClient, pool, cfg.LLMQueueSize, cfg.LLMWorkers)
 
 	corsHandler := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendURL, "http://localhost:3000", "http://localhost:5173"},
@@ -60,7 +61,7 @@ func main() {
 	accountHandler := handlers.NewAccountHandler(pool, q, cq)
 	categoryHandler := handlers.NewCategoryHandler(q)
 	tagHandler := handlers.NewTagHandler(q)
-	transactionHandler := handlers.NewTransactionHandler(q, pool)
+	transactionHandler := handlers.NewTransactionHandler(q, pool, llmQueue)
 	budgetHandler := handlers.NewBudgetHandler(pool, q)
 	summaryHandler := handlers.NewSummaryHandler(pool, q, cq)
 	investmentHandler := handlers.NewInvestmentHandler(q)
@@ -264,6 +265,7 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
 		log.Println("shutting down...")
+		llmQueue.Shutdown()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)

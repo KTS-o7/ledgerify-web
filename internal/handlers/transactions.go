@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
+	"github.com/KTS-o7/ledgerify-web/internal/llm"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
 	"github.com/go-chi/chi/v5"
@@ -17,12 +18,13 @@ import (
 )
 
 type TransactionHandler struct {
-	q    *db.Queries
-	pool *pgxpool.Pool
+	q        *db.Queries
+	pool     *pgxpool.Pool
+	llmQueue *llm.Queue
 }
 
-func NewTransactionHandler(q *db.Queries, pool *pgxpool.Pool) *TransactionHandler {
-	return &TransactionHandler{q: q, pool: pool}
+func NewTransactionHandler(q *db.Queries, pool *pgxpool.Pool, llmQueue *llm.Queue) *TransactionHandler {
+	return &TransactionHandler{q: q, pool: pool, llmQueue: llmQueue}
 }
 
 type createTransactionRequest struct {
@@ -219,6 +221,11 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 			utils.InternalError(w)
 			return
 		}
+	}
+
+	// Enqueue for LLM categorization if no category was provided
+	if req.CategoryID == "" && h.llmQueue != nil {
+		h.llmQueue.Enqueue(transaction.ID, userUUID)
 	}
 
 	utils.Created(w, transaction)
