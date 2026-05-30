@@ -1,6 +1,7 @@
 import { createResource, For, Show } from "solid-js";
 import { api } from "../lib/api";
 import { A } from "@solidjs/router";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 
 interface Summary {
   total_income: number;
@@ -8,118 +9,123 @@ interface Summary {
   recent_transactions: any[];
   account_balances: any[];
   budget_status: any[];
-  monthly_networth: any[];
 }
 
-function formatCurrency(amount: number | string): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(num || 0);
+function fmt(n: number | string): string {
+  const v = typeof n === "string" ? parseFloat(n) : n;
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v || 0);
 }
 
 export default function Dashboard() {
-  const [summary, { refetch }] = createResource(() =>
-    api.get<Summary>("/v1/summary")
-  );
+  const [summary] = createResource(() => api.get<Summary>("/v1/summary"));
 
   return (
-    <div>
-      <div class="page-header">
-        <h1>Dashboard</h1>
-      </div>
+    <div class="space-y-6">
+      <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
-      <Show when={summary.loading}>
-        <p aria-busy="true">Loading…</p>
-      </Show>
-
-      <Show when={summary.error}>
-        <p class="error">Failed to load summary.</p>
-      </Show>
+      <Show when={summary.loading}><p class="text-gray-500">Loading...</p></Show>
+      <Show when={summary.error}><p class="text-red-600 text-sm">Failed to load summary.</p></Show>
 
       <Show when={summary()}>
         {(s) => (
           <>
-            <div class="kpi-grid">
-              <article class="kpi-card">
-                <div class="kpi-label">Income</div>
-                <div class="kpi-value positive">{formatCurrency(s().total_income)}</div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">Expenses</div>
-                <div class="kpi-value negative">{formatCurrency(s().total_expenses)}</div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">Balance</div>
-                <div class="kpi-value">{formatCurrency(s().total_income - s().total_expenses)}</div>
-              </article>
+            <div class="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent class="p-4">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Income</div>
+                  <div class="text-lg font-semibold text-emerald-600 mt-1">{fmt(s().total_income)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent class="p-4">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Expenses</div>
+                  <div class="text-lg font-semibold text-red-600 mt-1">{fmt(s().total_expenses)}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent class="p-4">
+                  <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Balance</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{fmt(s().total_income - s().total_expenses)}</div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem">
-              <article>
-                <header><strong>Account Balances</strong></header>
-                <For each={s().account_balances}>
-                  {(acc) => (
-                    <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--line)">
-                      <span>{acc.name}</span>
-                      <span>{formatCurrency(acc.balance)}</span>
-                    </div>
-                  )}
-                </For>
-              </article>
-
-              <article>
-                <header><strong>Budget Status</strong></header>
-                <For each={s().budget_status}>
-                  {(b) => (
-                    <div style="margin-bottom:0.75rem">
-                      <div style="display:flex;justify-content:space-between">
-                        <span>{b.name}</span>
-                        <span class="negative">{formatCurrency(b.spent)} / {formatCurrency(b.amount)}</span>
-                      </div>
-                      <progress value={b.spent} max={b.amount} style="width:100%;height:6px" />
-                    </div>
-                  )}
-                </For>
-              </article>
-            </div>
-
-            <article>
-              <header>
-                <strong>Recent Transactions</strong>
-                <A href="/transactions" style="float:right;font-size:0.875rem">View all →</A>
-              </header>
-              <div style="overflow-x:auto">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Title</th>
-                      <th>Account</th>
-                      <th>Category</th>
-                      <th style="text-align:right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <For each={s().recent_transactions}>
-                      {(tx) => (
-                        <tr>
-                          <td>{tx.date}</td>
-                          <td>{tx.title}</td>
-                          <td>{tx.account_name}</td>
-                          <td>{tx.category_name || "—"}</td>
-                          <td style="text-align:right" class={tx.type === "income" ? "positive" : "negative"}>
-                            {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
-                          </td>
-                        </tr>
+            <div class="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader class="pb-2"><CardTitle>Account Balances</CardTitle></CardHeader>
+                <CardContent>
+                  <div class="divide-y divide-gray-100">
+                    <For each={s().account_balances}>
+                      {(a) => (
+                        <div class="flex justify-between py-2 text-sm">
+                          <span class="text-gray-700">{a.name}</span>
+                          <span class="font-medium text-gray-900">{fmt(a.balance)}</span>
+                        </div>
                       )}
                     </For>
-                  </tbody>
-                </table>
-              </div>
-            </article>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader class="pb-2"><CardTitle>Budget Status</CardTitle></CardHeader>
+                <CardContent>
+                  <div class="space-y-3">
+                    <For each={s().budget_status}>
+                      {(b) => (
+                        <div>
+                          <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-700">{b.name}</span>
+                            <span class="text-gray-500">{fmt(b.spent)} / {fmt(b.amount)}</span>
+                          </div>
+                          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-[#c25a3e] rounded-full" style={{ width: `${Math.min((b.spent / b.amount) * 100, 100)}%` }} />
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader class="pb-2">
+                <div class="flex items-center justify-between">
+                  <CardTitle>Recent Transactions</CardTitle>
+                  <A href="/transactions" class="text-sm text-[#c25a3e] hover:underline">View all</A>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead>
+                      <tr class="border-b border-gray-100">
+                        <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Title</th>
+                        <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Account</th>
+                        <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Category</th>
+                        <th class="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                      <For each={s().recent_transactions}>
+                        {(tx) => (
+                          <tr class="hover:bg-gray-50">
+                            <td class="py-2 px-3 text-gray-500">{tx.date}</td>
+                            <td class="py-2 px-3 font-medium text-gray-900">{tx.title}</td>
+                            <td class="py-2 px-3 text-gray-600">{tx.account_name}</td>
+                            <td class="py-2 px-3 text-gray-600">{tx.category_name || "—"}</td>
+                            <td class={`py-2 px-3 text-right font-medium ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
+                              {tx.type === "income" ? "+" : "−"}{fmt(tx.amount)}
+                            </td>
+                          </tr>
+                        )}
+                      </For>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </Show>

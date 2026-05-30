@@ -1,25 +1,17 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { api } from "../lib/api";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 
-interface Transaction {
-  id: string;
-  title: string;
-  amount: string;
-  type: string;
-  date: string;
-  category_name: string;
-  account_name: string;
-  note: string;
-}
+interface Tx { id: string; title: string; amount: string; type: string; date: string; category_name: string; account_name: string; }
+interface Account { id: string; name: string; }
+interface Category { id: string; name: string; }
 
-interface Account { id: string; name: string; currency: string; }
-interface Category { id: string; name: string; type: string; }
-
-function formatCurrency(amount: string | number): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency", currency: "INR", maximumFractionDigits: 0,
-  }).format(num || 0);
+function fmt(n: string | number): string {
+  const v = typeof n === "string" ? parseFloat(n) : n;
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v || 0);
 }
 
 export default function Transactions() {
@@ -28,168 +20,138 @@ export default function Transactions() {
   const [formError, setFormError] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
 
-  const [transactions, { refetch }] = createResource(
+  const [txns, { refetch }] = createResource(
     () => typeFilter(),
-    async (type) => {
-      const params = type ? `?type=${type}` : "";
-      return api.get<Transaction[]>(`/v1/transactions${params}`);
-    }
+    async (type) => api.get<Tx[]>(`/v1/transactions${type ? `?type=${type}` : ""}`)
   );
   const [accounts] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [categories] = createResource(() => api.get<Category[]>("/v1/categories"));
 
-  // Form state
   const [form, setForm] = createSignal({
     account_id: "", type: "expense", amount: "", currency: "INR",
-    title: "", date: new Date().toISOString().slice(0, 10),
-    category_id: "", note: "",
+    title: "", date: new Date().toISOString().slice(0, 10), category_id: "", note: "",
   });
+  const uf = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const updateForm = (field: string, value: string) =>
-    setForm((f) => ({ ...f, [field]: value }));
-
-  const handleCreate = async (e: Event) => {
-    e.preventDefault();
-    setFormError("");
-    setSubmitting(true);
+  const create = async (e: Event) => {
+    e.preventDefault(); setFormError(""); setSubmitting(true);
     try {
       const f = form();
-      await api.post("/v1/transactions", {
-        ...f,
-        amount: parseFloat(f.amount),
-      });
+      await api.post("/v1/transactions", { ...f, amount: parseFloat(f.amount) });
       setShowForm(false);
-      setForm({ account_id: "", type: "expense", amount: "", currency: "INR",
-        title: "", date: new Date().toISOString().slice(0, 10), category_id: "", note: "" });
+      setForm({ account_id: "", type: "expense", amount: "", currency: "INR", title: "", date: new Date().toISOString().slice(0, 10), category_id: "", note: "" });
       refetch();
-    } catch (err: any) {
-      setFormError(err.message || "Failed to create transaction");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err: any) { setFormError(err.message || "Failed"); }
+    finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this transaction?")) return;
-    try {
-      await api.delete(`/v1/transactions/${id}`);
-      refetch();
-    } catch {}
-  };
+  const del = async (id: string) => { if (confirm("Delete?")) { await api.delete(`/v1/transactions/${id}`); refetch(); } };
 
   return (
-    <div>
-      <div class="page-header">
-        <h1>Transactions</h1>
-        <button onClick={() => setShowForm((v) => !v)}>
-          {showForm() ? "Cancel" : "+ Add Transaction"}
-        </button>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-gray-900">Transactions</h1>
+        <Button onClick={() => setShowForm((v) => !v)}>{showForm() ? "Cancel" : "+ Add Transaction"}</Button>
       </div>
 
       <Show when={showForm()}>
-        <article style="margin-bottom:1.5rem">
-          <header><strong>New Transaction</strong></header>
-          {formError() && <div class="error">{formError()}</div>}
-          <form onSubmit={handleCreate}>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-              <label>
-                Title
-                <input type="text" value={form().title}
-                  onInput={(e) => updateForm("title", e.currentTarget.value)} required />
-              </label>
-              <label>
-                Amount
-                <input type="number" step="0.01" min="0.01" value={form().amount}
-                  onInput={(e) => updateForm("amount", e.currentTarget.value)} required />
-              </label>
-              <label>
-                Type
-                <select value={form().type} onChange={(e) => updateForm("type", e.currentTarget.value)}>
+        <Card>
+          <CardHeader><CardTitle>New Transaction</CardTitle></CardHeader>
+          <CardContent>
+            {formError() && <div class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{formError()}</div>}
+            <form onSubmit={create} class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Title</label>
+                <Input value={form().title} onInput={(e) => uf("title", e.currentTarget.value)} required />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Amount</label>
+                <Input type="number" step="0.01" min="0.01" value={form().amount} onInput={(e) => uf("amount", e.currentTarget.value)} required />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Type</label>
+                <Select value={form().type} onChange={(e) => uf("type", e.currentTarget.value)}>
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
                   <option value="transfer">Transfer</option>
-                </select>
-              </label>
-              <label>
-                Date
-                <input type="date" value={form().date}
-                  onInput={(e) => updateForm("date", e.currentTarget.value)} required />
-              </label>
-              <label>
-                Account
-                <select value={form().account_id} onChange={(e) => updateForm("account_id", e.currentTarget.value)} required>
-                  <option value="">Select account…</option>
-                  <For each={accounts()}>
-                    {(a) => <option value={a.id}>{a.name}</option>}
-                  </For>
-                </select>
-              </label>
-              <label>
-                Category
-                <select value={form().category_id} onChange={(e) => updateForm("category_id", e.currentTarget.value)}>
-                  <option value="">No category</option>
-                  <For each={categories()}>
-                    {(c) => <option value={c.id}>{c.name}</option>}
-                  </For>
-                </select>
-              </label>
-              <label style="grid-column:1/-1">
-                Note
-                <input type="text" value={form().note}
-                  onInput={(e) => updateForm("note", e.currentTarget.value)} />
-              </label>
-            </div>
-            <button type="submit" disabled={submitting()} aria-busy={submitting()}>
-              {submitting() ? "Saving…" : "Save Transaction"}
-            </button>
-          </form>
-        </article>
+                </Select>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Date</label>
+                <Input type="date" value={form().date} onInput={(e) => uf("date", e.currentTarget.value)} required />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Account</label>
+                <Select value={form().account_id} onChange={(e) => uf("account_id", e.currentTarget.value)} required>
+                  <option value="">Select...</option>
+                  <For each={accounts()}>{(a) => <option value={a.id}>{a.name}</option>}</For>
+                </Select>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Category</label>
+                <Select value={form().category_id} onChange={(e) => uf("category_id", e.currentTarget.value)}>
+                  <option value="">None</option>
+                  <For each={categories()}>{(c) => <option value={c.id}>{c.name}</option>}</For>
+                </Select>
+              </div>
+              <div class="col-span-2">
+                <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Note</label>
+                <Input value={form().note} onInput={(e) => uf("note", e.currentTarget.value)} />
+              </div>
+              <div class="col-span-2">
+                <Button type="submit" disabled={submitting()} class="w-full">{submitting() ? "Saving..." : "Save Transaction"}</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </Show>
 
-      <div class="filters">
-        <select onChange={(e) => setTypeFilter(e.currentTarget.value)}>
-          <option value="">All types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-          <option value="transfer">Transfer</option>
-          <option value="credit_payment">Credit Payment</option>
-        </select>
-      </div>
+      <Select class="w-48" onChange={(e) => setTypeFilter(e.currentTarget.value)}>
+        <option value="">All types</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+        <option value="transfer">Transfer</option>
+      </Select>
 
-      <Show when={transactions.loading}><p aria-busy="true">Loading…</p></Show>
-      <Show when={transactions.error}><p class="error">Failed to load transactions.</p></Show>
-      <Show when={transactions()}>
-        <div style="overflow-x:auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th><th>Title</th><th>Account</th>
-                <th>Category</th><th style="text-align:right">Amount</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={transactions()}>
-                {(tx) => (
-                  <tr>
-                    <td>{tx.date}</td>
-                    <td>{tx.title}</td>
-                    <td>{tx.account_name}</td>
-                    <td>{tx.category_name || <span style="color:var(--text-muted)">—</span>}</td>
-                    <td style="text-align:right" class={tx.type === "income" ? "positive" : "negative"}>
-                      {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
-                    </td>
-                    <td>
-                      <button class="outline secondary" style="padding:0.25rem 0.5rem;font-size:0.75rem"
-                        onClick={() => handleDelete(tx.id)}>
-                        Delete
-                      </button>
-                    </td>
+      <Show when={txns.loading}><p class="text-gray-500">Loading...</p></Show>
+      <Show when={txns.error}><p class="text-red-600 text-sm">Failed to load.</p></Show>
+      <Show when={txns()}>
+        <Card>
+          <CardContent class="p-0">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100">
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Title</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Account</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Category</th>
+                    <th class="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th class="py-2 px-3"></th>
                   </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <For each={txns()}>
+                    {(tx) => (
+                      <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-3 text-gray-500 whitespace-nowrap">{tx.date}</td>
+                        <td class="py-2 px-3 font-medium text-gray-900">{tx.title}</td>
+                        <td class="py-2 px-3 text-gray-600">{tx.account_name}</td>
+                        <td class="py-2 px-3 text-gray-600">{tx.category_name || <span class="text-gray-400">—</span>}</td>
+                        <td class={`py-2 px-3 text-right font-medium whitespace-nowrap ${tx.type === "income" ? "text-emerald-600" : "text-red-600"}`}>
+                          {tx.type === "income" ? "+" : "−"}{fmt(tx.amount)}
+                        </td>
+                        <td class="py-2 px-3">
+                          <Button variant="ghost" size="sm" onClick={() => del(tx.id)}>Delete</Button>
+                        </td>
+                      </tr>
+                    )}
+                  </For>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </Show>
     </div>
   );
