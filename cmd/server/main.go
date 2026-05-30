@@ -18,6 +18,7 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/handlers"
+	"github.com/KTS-o7/ledgerify-web/internal/llm"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/templates"
 )
@@ -45,6 +46,8 @@ func main() {
 
 	jwtCfg := auth.NewJWTConfig(cfg)
 
+	llmClient := llm.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMUserAgent)
+
 	corsHandler := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendURL, "http://localhost:3000", "http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -64,7 +67,7 @@ func main() {
 	loanHandler := handlers.NewLoanHandler(q)
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
-	importExportHandler := handlers.NewImportExportHandler(pool, q)
+	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
 	// Initialize templates with embedded assets
