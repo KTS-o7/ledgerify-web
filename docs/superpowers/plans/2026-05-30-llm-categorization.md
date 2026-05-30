@@ -388,11 +388,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Querier interface {
-	ListCategoriesByUser(ctx context.Context, userID pgtype.UUID) ([]pgtype.UUID, error)
-	GetTransactionByID(ctx context.Context, id pgtype.UUID) (Transaction, error)
-}
-
 type Transaction struct {
 	ID       pgtype.UUID
 	UserID   pgtype.UUID
@@ -432,7 +427,7 @@ func (q *Queue) Enqueue(txID, userID pgtype.UUID) {
 	select {
 	case q.ch <- item:
 	default:
-		log.Printf("llm queue full, dropping categorize for tx %s", pgtype.UUIDToBytes(txID))
+		log.Printf("llm queue full, dropping categorize for tx %s", txID.String())
 	}
 }
 
@@ -722,7 +717,7 @@ In the `Create` method, after `h.q.CreateTransaction()` succeeds and before retu
 
 ```go
 if req.CategoryID == "" && h.llmQueue != nil {
-	h.llmQueue.Enqueue(createdTx.ID, userID)
+	h.llmQueue.Enqueue(transaction.ID, userID)
 }
 ```
 

@@ -83,7 +83,7 @@ func AuthMiddleware(jwtCfg *auth.JWTConfig) func(ctx context.Context, r *http.Re
 			return ctx
 		}
 
-		claims, err := auth.ValidateToken(token, jwtCfg)
+		claims, err := jwtCfg.ValidateToken(token)
 		if err != nil {
 			return ctx
 		}
@@ -97,8 +97,6 @@ func GetUserID(ctx context.Context) (string, bool) {
 	return userID, ok
 }
 ```
-
-Note: Check if `auth.ValidateToken` exists. If not, look at `internal/auth/jwt.go` for the token validation function and use that instead.
 
 - [ ] **Step 2: Commit**
 
@@ -275,12 +273,43 @@ func handleListTransactions(deps *ToolDeps) server.ToolHandlerFunc {
 			limit = int(l)
 		}
 
-		rows, err := deps.Pool.Query(ctx,
-			`SELECT t.id, t.type, t.amount, t.currency, t.title, t.date, t.category_id, c.name as category_name
-			 FROM transactions t
-			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = $1 AND t.deleted_at IS NULL
-			 ORDER BY t.date DESC LIMIT $2`, userID, limit)
+		query := `SELECT t.id, t.type, t.amount, t.currency, t.title, t.date, c.name as category_name
+			FROM transactions t
+			LEFT JOIN categories c ON c.id = t.category_id
+			WHERE t.user_id = $1 AND t.deleted_at IS NULL`
+		args := []interface{}{userID}
+		argIdx := 2
+
+		if txType, err := req.RequireString("type"); err == nil {
+			query += fmt.Sprintf(" AND t.type = $%d", argIdx)
+			args = append(args, txType)
+			argIdx++
+		}
+		if accountID, err := req.RequireString("account_id"); err == nil {
+			query += fmt.Sprintf(" AND t.account_id = $%d", argIdx)
+			args = append(args, accountID)
+			argIdx++
+		}
+		if categoryID, err := req.RequireString("category_id"); err == nil {
+			query += fmt.Sprintf(" AND t.category_id = $%d", argIdx)
+			args = append(args, categoryID)
+			argIdx++
+		}
+		if fromDate, err := req.RequireString("from_date"); err == nil {
+			query += fmt.Sprintf(" AND t.date >= $%d", argIdx)
+			args = append(args, fromDate)
+			argIdx++
+		}
+		if toDate, err := req.RequireString("to_date"); err == nil {
+			query += fmt.Sprintf(" AND t.date <= $%d", argIdx)
+			args = append(args, toDate)
+			argIdx++
+		}
+
+		query += fmt.Sprintf(" ORDER BY t.date DESC LIMIT $%d", argIdx)
+		args = append(args, limit)
+
+		rows, err := deps.Pool.Query(ctx, query, args...)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
@@ -288,10 +317,9 @@ func handleListTransactions(deps *ToolDeps) server.ToolHandlerFunc {
 
 		var txs []map[string]interface{}
 		for rows.Next() {
-			var id, txType, currency, title, date string
+			var id, txType, currency, title, date, categoryName string
 			var amount float64
-			var categoryName, catID string
-			rows.Scan(&id, &txType, &amount, &currency, &title, &date, &catID, &categoryName)
+			rows.Scan(&id, &txType, &amount, &currency, &title, &date, &categoryName)
 			txs = append(txs, map[string]interface{}{
 				"id": id, "type": txType, "amount": amount, "currency": currency,
 				"title": title, "date": date, "category": categoryName,
@@ -310,14 +338,19 @@ func handleGetTransaction(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		var id, userID, accountID, txType, currency, title, date string
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		var id, ownerID, txType, currency, title, date string
 		var amount float64
 		var categoryName string
 		err = deps.Pool.QueryRow(ctx,
 			`SELECT t.id, t.user_id, t.type, t.amount, t.currency, t.title, t.date, COALESCE(c.name, '')
 			 FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.id = $1 AND t.deleted_at IS NULL`, txID,
-		).Scan(&id, &userID, &txType, &amount, &currency, &title, &date, &categoryName)
+			 WHERE t.id = $1 AND t.user_id = $2 AND t.deleted_at IS NULL`, txID, userID,
+		).Scan(&id, &ownerID, &txType, &amount, &currency, &title, &date, &categoryName)
 		if err != nil {
 			return mcp.NewToolResultError("transaction not found"), nil
 		}
@@ -345,11 +378,20 @@ func handleCreateTransaction(deps *ToolDeps) server.ToolHandlerFunc {
 		title, _ := req.RequireString("title")
 		date, _ := req.RequireString("date")
 
+		note := ""
+		if n, err := req.RequireString("note"); err == nil {
+			note = n
+		}
+		categoryID := ""
+		if c, err := req.RequireString("category_id"); err == nil {
+			categoryID = c
+		}
+
 		var id string
 		err = deps.Pool.QueryRow(ctx,
-			`INSERT INTO transactions (user_id, account_id, type, amount, currency, converted_amount, base_currency, title, date)
-			 VALUES ($1, $2, $3, $4, $4, $4, $4, $5, $6) RETURNING id`,
-			userID, accountID, txType, amount, currency, title, date,
+			`INSERT INTO transactions (user_id, account_id, type, amount, currency, converted_amount, base_currency, category_id, title, note, date)
+			 VALUES ($1, $2, $3, $4, $5, $4, $5, NULLIF($6, '')::uuid, $7, $8, $9) RETURNING id`,
+			userID, accountID, txType, amount, currency, categoryID, title, note, date,
 		).Scan(&id)
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
@@ -363,12 +405,66 @@ func handleCreateTransaction(deps *ToolDeps) server.ToolHandlerFunc {
 
 func handleUpdateTransaction(deps *ToolDeps) server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		txID, _ := req.RequireString("transaction_id")
 
-		title, titleErr := req.RequireString("note")
-		if titleErr == nil && title != "" {
-			deps.Pool.Exec(ctx, "UPDATE transactions SET note = $1 WHERE id = $2", title, txID)
+		// Verify ownership
+		var ownerID string
+		err = deps.Pool.QueryRow(ctx,
+			"SELECT user_id FROM transactions WHERE id = $1 AND deleted_at IS NULL", txID,
+		).Scan(&ownerID)
+		if err != nil {
+			return mcp.NewToolResultError("transaction not found"), nil
 		}
+		if ownerID != userID {
+			return mcp.NewToolResultError("unauthorized"), nil
+		}
+
+		// Build dynamic UPDATE
+		setClauses := []string{}
+		args := []interface{}{}
+		argIdx := 1
+
+		if title, err := req.RequireString("title"); err == nil {
+			setClauses = append(setClauses, fmt.Sprintf("title = $%d", argIdx))
+			args = append(args, title)
+			argIdx++
+		}
+		if note, err := req.RequireString("note"); err == nil {
+			setClauses = append(setClauses, fmt.Sprintf("note = $%d", argIdx))
+			args = append(args, note)
+			argIdx++
+		}
+		if amount, err := req.RequireFloat("amount"); err == nil {
+			setClauses = append(setClauses, fmt.Sprintf("amount = $%d", argIdx))
+			args = append(args, amount)
+			argIdx++
+		}
+		if catID, err := req.RequireString("category_id"); err == nil {
+			setClauses = append(setClauses, fmt.Sprintf("category_id = $%d", argIdx))
+			args = append(args, catID)
+			argIdx++
+		}
+
+		if len(setClauses) == 0 {
+			return mcp.NewToolResultText(`{"message": "no fields to update"}`), nil
+		}
+
+		query := fmt.Sprintf("UPDATE transactions SET %s WHERE id = $%d AND user_id = $%d",
+			strings.Join(setClauses, ", "), argIdx, argIdx+1)
+		args = append(args, txID, userID)
+
+		_, err = deps.Pool.Exec(ctx, query, args...)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		return mcp.NewToolResultText(`{"message": "transaction updated"}`), nil
+	}
+}
 
 		return mcp.NewToolResultText(`{"message": "transaction updated"}`), nil
 	}
@@ -587,7 +683,44 @@ func handleCategoriseTransactions(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		result := map[string]interface{}{"message": "categorisation triggered", "mode": "keyword+llm"}
+		// Get keywords
+		kwRows, err := deps.Pool.Query(ctx,
+			`SELECT ck.keyword, ck.category_id FROM category_keywords ck WHERE ck.user_id = $1`, userID)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		defer kwRows.Close()
+
+		type kwPair struct{ keyword, categoryID string }
+		var keywords []kwPair
+		for kwRows.Next() {
+			var k kwPair
+			kwRows.Scan(&k.keyword, &k.categoryID)
+			keywords = append(keywords, k)
+		}
+
+		// Get uncategorised transactions
+		txRows, err := deps.Pool.Query(ctx,
+			`SELECT id, title FROM transactions WHERE user_id = $1 AND category_id IS NULL AND deleted_at IS NULL`, userID)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		defer txRows.Close()
+
+		categorised := 0
+		for txRows.Next() {
+			var txID, title string
+			txRows.Scan(&txID, &title)
+			for _, kw := range keywords {
+				if strings.Contains(strings.ToLower(title), strings.ToLower(kw.keyword)) {
+					deps.Pool.Exec(ctx, "UPDATE transactions SET category_id = $1 WHERE id = $2", kw.categoryID, txID)
+					categorised++
+					break
+				}
+			}
+		}
+
+		result := map[string]interface{}{"categorised": categorised}
 		jsonBytes, _ := json.Marshal(result)
 		return mcp.NewToolResultText(string(jsonBytes)), nil
 	}
@@ -910,12 +1043,14 @@ mcpServer := mcp.NewMCPServer(pool, jwtCfg)
 sseServer := mcp.NewSSEHandler(mcpServer, jwtCfg)
 ```
 
-In the authenticated route group:
+In the authenticated route group (inside the `r.Group(func(r chi.Router) { ... })` block that already has `r.Use(middleware.AuthMiddleware(jwtCfg))`), add AFTER the existing API routes:
 
 ```go
 r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
 r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
 ```
+
+**Important:** These routes MUST go inside the existing auth middleware group (line 160 in main.go) — not at the top level. The SSE handler's `WithSSEContextFunc` handles MCP-level auth, but the chi middleware provides the initial JWT validation.
 
 - [ ] **Step 3: Commit**
 

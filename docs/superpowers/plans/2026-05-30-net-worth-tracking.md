@@ -26,13 +26,16 @@
 ## Task 1: Add Net Worth Snapshots Table
 
 **Files:**
-- Modify: `schema/001_schema.sql`
+- Create: `schema/002_networth_snapshots.sql`
 
-- [ ] **Step 1: Add table to schema**
+- [ ] **Step 1: Create migration file**
 
 ```sql
+-- Migration 002: Net Worth Snapshots
+-- Run: psql $DATABASE_URL -f schema/002_networth_snapshots.sql
+
 -- Net Worth Snapshots (daily snapshots for historical charting)
-CREATE TABLE "networth_snapshots" (
+CREATE TABLE IF NOT EXISTS "networth_snapshots" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "user_id" uuid NOT NULL,
     "date" date NOT NULL,
@@ -50,8 +53,8 @@ ALTER TABLE "networth_snapshots" ADD CONSTRAINT "networth_snapshots_user_id_fk"
 - [ ] **Step 2: Commit**
 
 ```bash
-git add schema/001_schema.sql
-git commit -m "feat: add networth_snapshots table to schema"
+git add schema/002_networth_snapshots.sql
+git commit -m "feat: add networth_snapshots migration"
 ```
 
 ---
@@ -180,6 +183,7 @@ git commit -m "feat: add asset/investment/liability breakdown queries"
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -190,13 +194,25 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// networthQuerierAdapter wraps *db.Queries and *db.CustomQueries to satisfy
+// utils.NetworthQuerier interface (which requires GetAccountBalance).
+type networthQuerierAdapter struct {
+	*db.Queries
+	cq *db.CustomQueries
+}
+
+func (a *networthQuerierAdapter) GetAccountBalance(ctx context.Context, accountID pgtype.UUID) (float64, error) {
+	return a.cq.GetAccountBalanceForUser(ctx, accountID)
+}
+
 type NetworthHandler struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
+	cq   *db.CustomQueries
 }
 
-func NewNetworthHandler(pool *pgxpool.Pool, q *db.Queries) *NetworthHandler {
-	return &NetworthHandler{pool: pool, q: q}
+func NewNetworthHandler(pool *pgxpool.Pool, q *db.Queries, cq *db.CustomQueries) *NetworthHandler {
+	return &NetworthHandler{pool: pool, q: q, cq: cq}
 }
 
 type NetworthResponse struct {
@@ -224,6 +240,15 @@ type BreakdownResponse struct {
 	Liabilities []BreakdownEntry `json:"liabilities"`
 }
 
+// numericToFloat64 safely converts pgtype.Numeric to float64
+func numericToFloat64(n pgtype.Numeric) float64 {
+	v, err := n.Float64Value()
+	if err != nil || !v.Valid {
+		return 0
+	}
+	return v.Float64
+}
+
 func (h *NetworthHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
@@ -238,21 +263,28 @@ func (h *NetworthHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prev, err := h.q.GetPreviousNetworthSnapshot(r.Context(), userID)
+	latestNetworth := numericToFloat64(latest.Networth)
+	latestAssets := numericToFloat64(latest.TotalAssets)
+	latestLiabilities := numericToFloat64(latest.TotalLiabilities)
+
+	// Get previous snapshot for daily change — need to pass a date before today
+	today := pgtype.Date{Time: time.Now(), Valid: true}
+	prev, err := h.q.GetPreviousNetworthSnapshot(r.Context(), userID, today)
 	if err != nil || !prev.Networth.Valid {
 		prev = latest
 	}
 
-	dailyChange := latest.Networth.Float64 - prev.Networth.Float64
+	prevNetworth := numericToFloat64(prev.Networth)
+	dailyChange := latestNetworth - prevNetworth
 	dailyChangePct := 0.0
-	if prev.Networth.Float64 != 0 {
-		dailyChangePct = (dailyChange / prev.Networth.Float64) * 100
+	if prevNetworth != 0 {
+		dailyChangePct = (dailyChange / prevNetworth) * 100
 	}
 
 	utils.OK(w, NetworthResponse{
-		TotalAssets:      latest.TotalAssets.Float64,
-		TotalLiabilities: latest.TotalLiabilities.Float64,
-		Networth:         latest.Networth.Float64,
+		TotalAssets:      latestAssets,
+		TotalLiabilities: latestLiabilities,
+		Networth:         latestNetworth,
 		DailyChange:      dailyChange,
 		DailyChangePct:   dailyChangePct,
 	})
@@ -267,8 +299,8 @@ func (h *NetworthHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	userID := stringToUUID(claims.UserID)
 
 	period := r.URL.Query().Get("period")
-	var fromDate pgtype.Date
 	now := time.Now()
+	var fromDate pgtype.Date
 
 	switch period {
 	case "1m":
@@ -293,9 +325,9 @@ func (h *NetworthHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	for i, s := range snapshots {
 		result[i] = SnapshotEntry{
 			Date:             s.Date,
-			TotalAssets:      s.TotalAssets.Float64,
-			TotalLiabilities: s.TotalLiabilities.Float64,
-			Networth:         s.Networth.Float64,
+			TotalAssets:      numericToFloat64(s.TotalAssets),
+			TotalLiabilities: numericToFloat64(s.TotalLiabilities),
+			Networth:         numericToFloat64(s.Networth),
 		}
 	}
 
@@ -332,13 +364,13 @@ func (h *NetworthHandler) GetBreakdown(w http.ResponseWriter, r *http.Request) {
 	for _, a := range assets {
 		assetEntries = append(assetEntries, BreakdownEntry{
 			Label: a.AccountType,
-			Value: a.Balance.Float64,
+			Value: numericToFloat64(a.Balance),
 		})
 	}
 	for _, inv := range investments {
 		assetEntries = append(assetEntries, BreakdownEntry{
 			Label: inv.AssetType,
-			Value: inv.Value.Float64,
+			Value: numericToFloat64(inv.Value),
 		})
 	}
 
@@ -346,7 +378,7 @@ func (h *NetworthHandler) GetBreakdown(w http.ResponseWriter, r *http.Request) {
 	for _, l := range liabilities {
 		liabilityEntries = append(liabilityEntries, BreakdownEntry{
 			Label: l.LoanType,
-			Value: l.Total.Float64,
+			Value: numericToFloat64(l.Total),
 		})
 	}
 
@@ -364,27 +396,30 @@ func (h *NetworthHandler) GenerateSnapshot(w http.ResponseWriter, r *http.Reques
 	}
 	userID := stringToUUID(claims.UserID)
 
-	result, err := utils.ComputeNetworth(h.q, userID)
+	adapter := &networthQuerierAdapter{Queries: h.q, cq: h.cq}
+	result, err := utils.ComputeNetworth(adapter, userID)
 	if err != nil {
 		utils.InternalError(w)
 		return
 	}
 
-	today := time.Now().Format("2006-01-02")
-	var date pgtype.Date
-	date.UnmarshalText([]byte(today))
+	date := pgtype.Date{Time: time.Now(), Valid: true}
+
+	// Construct pgtype.Numeric from float64 values
+	var assetsNum, liabilitiesNum, networthNum pgtype.Numeric
+	assetsNum.Scan(result.TotalAssets)
+	liabilitiesNum.Scan(result.TotalLiabilities)
+	networthNum.Scan(result.Networth)
 
 	err = h.q.UpsertNetworthSnapshot(r.Context(), userID, date,
-		pgtype.Numeric{Float64: &result.TotalAssets, Valid: true},
-		pgtype.Numeric{Float64: &result.TotalLiabilities, Valid: true},
-		pgtype.Numeric{Float64: &result.Networth, Valid: true},
+		assetsNum, liabilitiesNum, networthNum,
 	)
 	if err != nil {
 		utils.InternalError(w)
 		return
 	}
 
-	utils.OK(w, map[string]interface{}{"message": "snapshot generated", "date": today})
+	utils.OK(w, map[string]interface{}{"message": "snapshot generated", "date": time.Now().Format("2006-01-02")})
 }
 ```
 
@@ -405,7 +440,7 @@ git commit -m "feat: add net worth API handlers"
 - [ ] **Step 1: Create handler and mount routes**
 
 ```go
-networthHandler := handlers.NewNetworthHandler(pool, q)
+networthHandler := handlers.NewNetworthHandler(pool, q, cq)
 
 // In the authenticated route group:
 r.Get("/api/v1/networth", networthHandler.Get)
@@ -414,36 +449,28 @@ r.Get("/api/v1/networth/breakdown", networthHandler.GetBreakdown)
 r.Post("/api/v1/networth/snapshot", networthHandler.GenerateSnapshot)
 ```
 
-- [ ] **Step 2: Add daily snapshot generation (optional cron)**
+- [ ] **Step 2: Add daily snapshot generation**
 
-For a simple approach, generate snapshot on every `GET /api/v1/networth` if today's snapshot doesn't exist. Or add a background goroutine:
+Generate snapshot on-demand when today's snapshot doesn't exist. In `Get` handler, after getting `latest`, if `latest.date != today`, auto-generate:
 
 ```go
-// In main.go, after pool setup:
-go func() {
-    ticker := time.NewTicker(24 * time.Hour)
-    for range ticker.C {
-        // Generate snapshots for all users
-        rows, _ := pool.Query(ctx, "SELECT id FROM users WHERE deleted_at IS NULL")
-        defer rows.Close()
-        for rows.Next() {
-            var userID pgtype.UUID
-            rows.Scan(&userID)
-            result, err := utils.ComputeNetworth(q, userID)
-            if err != nil {
-                continue
-            }
-            today := time.Now().Format("2006-01-02")
-            var date pgtype.Date
-            date.UnmarshalText([]byte(today))
-            q.UpsertNetworthSnapshot(ctx, userID, date,
-                pgtype.Numeric{Float64: &result.TotalAssets, Valid: true},
-                pgtype.Numeric{Float64: &result.TotalLiabilities, Valid: true},
-                pgtype.Numeric{Float64: &result.Networth, Valid: true},
-            )
-        }
+// In the Get handler, after getting latest snapshot:
+today := time.Now().Format("2006-01-02")
+if latest.Date != today {
+    // Auto-generate today's snapshot
+    adapter := &networthQuerierAdapter{Queries: h.q, cq: h.cq}
+    result, err := utils.ComputeNetworth(adapter, userID)
+    if err == nil {
+        date := pgtype.Date{Time: time.Now(), Valid: true}
+        var assetsNum, liabilitiesNum, networthNum pgtype.Numeric
+        assetsNum.Scan(result.TotalAssets)
+        liabilitiesNum.Scan(result.TotalLiabilities)
+        networthNum.Scan(result.Networth)
+        h.q.UpsertNetworthSnapshot(r.Context(), userID, date, assetsNum, liabilitiesNum, networthNum)
+        // Re-fetch latest
+        latest, _ = h.q.GetLatestNetworthSnapshot(r.Context(), userID)
     }
-}()
+}
 ```
 
 - [ ] **Step 3: Commit**

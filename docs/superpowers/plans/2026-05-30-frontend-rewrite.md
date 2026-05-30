@@ -794,15 +794,18 @@ git commit -m "feat: add stub pages for all routes"
 
 ---
 
-## Task 13: Update Go Backend to Serve SPA
+## Task 13: Update Go Backend and Remove Old Templates (ATOMIC)
+
+**This task must be done atomically — all steps in one commit.**
 
 **Files:**
 - Modify: `embedassets.go`
 - Modify: `cmd/server/main.go`
+- Delete: `web/templates/` (all files)
+- Delete: `web/static/` (all files)
+- Delete: `internal/templates/` (all files)
 
 - [ ] **Step 1: Update embedassets.go**
-
-Replace `web/` embed with `frontend/dist/`:
 
 ```go
 package ledgerify
@@ -817,7 +820,20 @@ func StaticFS() embed.FS {
 }
 ```
 
-- [ ] **Step 2: Add SPA fallback handler in main.go**
+- [ ] **Step 2: Add SPA fallback handler and imports to main.go**
+
+Add these imports to `cmd/server/main.go`:
+
+```go
+import (
+	// ... existing imports ...
+	"embed"
+	"os"
+	"strings"
+)
+```
+
+Add the SPA handler function (before `main()`):
 
 ```go
 func spaHandler(fs embed.FS, root string) http.Handler {
@@ -830,8 +846,8 @@ func spaHandler(fs embed.FS, root string) http.Handler {
 		}
 
 		fullPath := root + "/" + path
-		if _, err := fs.Stat(fullPath); os.IsNotExist(err) {
-			r.URL.Path = "/"
+		stat, err := fs.Stat(fullPath)
+		if os.IsNotExist(err) || stat.IsDir() {
 			fullPath = root + "/index.html"
 		}
 
@@ -841,11 +857,19 @@ func spaHandler(fs embed.FS, root string) http.Handler {
 			return
 		}
 
-		if strings.HasSuffix(path, ".js") {
+		ext := strings.TrimPrefix(fullPath, root+"/")
+		switch {
+		case strings.HasSuffix(ext, ".js"):
 			w.Header().Set("Content-Type", "application/javascript")
-		} else if strings.HasSuffix(path, ".css") {
+		case strings.HasSuffix(ext, ".css"):
 			w.Header().Set("Content-Type", "text/css")
-		} else {
+		case strings.HasSuffix(ext, ".json"):
+			w.Header().Set("Content-Type", "application/json")
+		case strings.HasSuffix(ext, ".svg"):
+			w.Header().Set("Content-Type", "image/svg+xml")
+		case strings.HasSuffix(ext, ".png"), strings.HasSuffix(ext, ".jpg"), strings.HasSuffix(ext, ".ico"):
+			w.Header().Set("Content-Type", "image/"+ext)
+		default:
 			w.Header().Set("Content-Type", "text/html")
 		}
 		w.Write(data)
@@ -853,57 +877,28 @@ func spaHandler(fs embed.FS, root string) http.Handler {
 }
 ```
 
-Mount it:
+- [ ] **Step 3: Remove old page routes and template imports from main.go**
+
+Remove the entire page routes group (lines 96-145 in main.go). Remove `"github.com/KTS-o7/ledgerify-web/internal/templates"` import and all `ph.*` references. Remove the `embedassets.TemplateFS()` and `templates.Init(...)` calls.
+
+- [ ] **Step 4: Mount SPA handler AFTER API routes**
+
+Mount the SPA handler at the end of route registration (after all API routes), replacing the removed page routes:
 
 ```go
 r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))
 ```
 
-- [ ] **Step 3: Build frontend**
+**Important:** This MUST be registered AFTER all `/api/v1/*` routes to avoid intercepting API requests.
 
-```bash
-cd frontend && bun run build
-```
-
-- [ ] **Step 4: Build Go server**
-
-```bash
-go build -o /tmp/ledgerify-server ./cmd/server
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add embedassets.go cmd/server/main.go
-git commit -m "feat: serve SolidJS SPA from Go backend"
-```
-
----
-
-## Task 14: Remove Old Go Templates
-
-**Files:**
-- Delete: `web/templates/` (all files)
-- Delete: `web/static/` (all files)
-- Delete: `internal/templates/` (all files)
-- Modify: `cmd/server/main.go` (remove page route handlers)
-
-- [ ] **Step 1: Remove template files**
+- [ ] **Step 5: Remove old template and static files**
 
 ```bash
 rm -rf web/templates web/static
 rm -rf internal/templates
 ```
 
-- [ ] **Step 2: Remove page route handlers from main.go**
-
-Remove the entire page routes group (lines 96-145 in main.go). Keep only API routes, static file serving, and health check.
-
-- [ ] **Step 3: Remove template imports from main.go**
-
-Remove `"github.com/KTS-o7/ledgerify-web/internal/templates"` and all `ph.*` references.
-
-- [ ] **Step 4: Build and verify**
+- [ ] **Step 6: Build and verify**
 
 ```bash
 go build -o /tmp/ledgerify-server ./cmd/server
@@ -911,11 +906,11 @@ go build -o /tmp/ledgerify-server ./cmd/server
 
 Expected: Build succeeds. Server starts and serves the SPA.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit (atomic)**
 
 ```bash
 git add -A
-git commit -m "feat: remove old Go template frontend"
+git commit -m "feat: swap Go templates for SolidJS SPA (atomic)"
 ```
 
 ---
