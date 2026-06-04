@@ -19,6 +19,7 @@ func NewMCPServer(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) (*server.MCPServer
 	RegisterResources(s, deps)
 
 	sse := server.NewSSEServer(s,
+		server.WithBasePath("/api/v1/mcp"),
 		server.WithSSEEndpoint("/sse"),
 		server.WithMessageEndpoint("/message"),
 		server.WithSSEContextFunc(AuthMiddleware(jwtCfg)),
