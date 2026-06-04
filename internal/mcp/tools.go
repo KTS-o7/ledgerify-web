@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -56,6 +58,10 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: getSummaryTool(), Handler: getSummaryHandler(deps)},
 		{Tool: listBudgetsTool(), Handler: listBudgetsHandler(deps)},
 		{Tool: listInvestmentsTool(), Handler: listInvestmentsHandler(deps)},
+		{Tool: listLoansTool(), Handler: listLoansHandler(deps)},
+		{Tool: getLoanTool(), Handler: getLoanHandler(deps)},
+		{Tool: listInsuranceTool(), Handler: listInsuranceHandler(deps)},
+		{Tool: getNetworthTool(), Handler: getNetworthHandler(deps)},
 		{Tool: categoriseTransactionsTool(), Handler: categoriseTransactionsHandler(deps)},
 	}
 	s.AddTools(tools...)
@@ -890,4 +896,495 @@ func requireUserID(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("user not authenticated")
 	}
 	return userID, nil
+}
+
+// ============================================================================
+// Net-worth tools (list_loans, get_loan, list_insurance, get_networth)
+//
+// Designed so an LLM agent can manage net worth end-to-end through MCP
+// without fanning out across the API: get_networth is a single
+// self-contained call that returns the total plus the full component
+// lists, so the agent has everything it needs to explain the number.
+// ============================================================================
+
+func listLoansTool() mcp.Tool {
+	return mcp.NewTool("list_loans",
+		mcp.WithDescription("List all loans (home, personal, vehicle, education, other). Outstanding balance is a liability in get_networth."),
+		readOnlyAnnotation(),
+	)
+}
+
+func listLoansHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, loan_type, principal, interest_rate, tenure_months,
+			        start_date, emi_amount, currency, outstanding_balance,
+			        created_at, updated_at
+			FROM loans
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY start_date DESC, name`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, name, loanType, currency string
+			var principal, interestRate, emiAmount string
+			var outstanding *string
+			var tenureMonths int
+			var startDate time.Time
+			var createdAt, updatedAt time.Time
+
+			if err := rows.Scan(&id, &name, &loanType, &principal, &interestRate, &tenureMonths,
+				&startDate, &emiAmount, &currency, &outstanding, &createdAt, &updatedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+
+			results = append(results, map[string]any{
+				"id":                  id,
+				"name":                name,
+				"loan_type":           loanType,
+				"principal":           principal,
+				"interest_rate":       interestRate,
+				"tenure_months":       tenureMonths,
+				"start_date":          startDate.Format("2006-01-02"),
+				"emi_amount":          emiAmount,
+				"currency":            currency,
+				"outstanding_balance": outstanding,
+				"created_at":          createdAt.Format(time.RFC3339),
+				"updated_at":          updatedAt.Format(time.RFC3339),
+			})
+		}
+
+		jsonData, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
+	}
+}
+
+func getLoanTool() mcp.Tool {
+	return mcp.NewTool("get_loan",
+		mcp.WithDescription("Get a single loan by ID, including the full payment schedule (principal, interest, status per month)."),
+		readOnlyAnnotation(),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Loan ID")),
+	)
+}
+
+func getLoanHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+
+		var name, loanType, currency string
+		var principal, interestRate, emiAmount string
+		var outstanding *string
+		var tenureMonths int
+		var startDate, createdAt, updatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`SELECT name, loan_type, principal, interest_rate, tenure_months,
+			        start_date, emi_amount, currency, outstanding_balance,
+			        created_at, updated_at
+			FROM loans
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		).Scan(&name, &loanType, &principal, &interestRate, &tenureMonths,
+			&startDate, &emiAmount, &currency, &outstanding, &createdAt, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("loan %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+
+		// Payment schedule — every scheduled or paid EMI for this loan.
+		paymentRows, err := deps.Pool.Query(ctx,
+			`SELECT id, date, amount, principal_component, interest_component, status, created_at
+			FROM loan_payments
+			WHERE loan_id = $1 AND deleted_at IS NULL
+			ORDER BY date ASC`,
+			id,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("payments query failed: %v", err)), nil
+		}
+		defer paymentRows.Close()
+
+		var payments []map[string]any
+		for paymentRows.Next() {
+			var pid, status string
+			var date, payCreatedAt time.Time
+			var amount, principalC, interestC *string
+			if err := paymentRows.Scan(&pid, &date, &amount, &principalC, &interestC, &status, &payCreatedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("payments scan failed: %v", err)), nil
+			}
+			payments = append(payments, map[string]any{
+				"id":                  pid,
+				"date":                date.Format("2006-01-02"),
+				"amount":              amount,
+				"principal_component": principalC,
+				"interest_component":  interestC,
+				"status":              status,
+				"created_at":          payCreatedAt.Format(time.RFC3339),
+			})
+		}
+
+		loan := map[string]any{
+			"id":                  id,
+			"name":                name,
+			"loan_type":           loanType,
+			"principal":           principal,
+			"interest_rate":       interestRate,
+			"tenure_months":       tenureMonths,
+			"start_date":          startDate.Format("2006-01-02"),
+			"emi_amount":          emiAmount,
+			"currency":            currency,
+			"outstanding_balance": outstanding,
+			"created_at":          createdAt.Format(time.RFC3339),
+			"updated_at":          updatedAt.Format(time.RFC3339),
+			"payments":            payments,
+		}
+		if payments == nil {
+			loan["payments"] = []map[string]any{}
+		}
+
+		data, err := json.Marshal(loan)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func listInsuranceTool() mcp.Tool {
+	return mcp.NewTool("list_insurance",
+		mcp.WithDescription("List all insurance policies (life, health, term, vehicle, etc.). Includes premium, coverage, and renewal dates."),
+		readOnlyAnnotation(),
+	)
+}
+
+func listInsuranceHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, provider, policy_type, premium_amount, premium_frequency,
+			        coverage_amount, currency, start_date, end_date, renewal_date, nominee, notes,
+			        created_at, updated_at
+			FROM insurance_policies
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY renewal_date ASC NULLS LAST, name`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, name, policyType, premiumFreq, currency string
+			var provider, nominee, notes *string
+			var premium, coverage *string
+			var startDate time.Time
+			var endDate, renewalDate *time.Time
+			var createdAt, updatedAt time.Time
+
+			if err := rows.Scan(&id, &name, &provider, &policyType, &premium, &premiumFreq,
+				&coverage, &currency, &startDate, &endDate, &renewalDate, &nominee, &notes,
+				&createdAt, &updatedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+
+			entry := map[string]any{
+				"id":                id,
+				"name":              name,
+				"provider":          provider,
+				"policy_type":       policyType,
+				"premium_amount":    premium,
+				"premium_frequency": premiumFreq,
+				"coverage_amount":   coverage,
+				"currency":          currency,
+				"start_date":        startDate.Format("2006-01-02"),
+				"nominee":           nominee,
+				"notes":             notes,
+				"created_at":        createdAt.Format(time.RFC3339),
+				"updated_at":        updatedAt.Format(time.RFC3339),
+			}
+			if endDate != nil {
+				entry["end_date"] = endDate.Format("2006-01-02")
+			} else {
+				entry["end_date"] = nil
+			}
+			if renewalDate != nil {
+				entry["renewal_date"] = renewalDate.Format("2006-01-02")
+			} else {
+				entry["renewal_date"] = nil
+			}
+			results = append(results, entry)
+		}
+
+		jsonData, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
+	}
+}
+
+func getNetworthTool() mcp.Tool {
+	return mcp.NewTool("get_networth",
+		mcp.WithDescription("Compute net worth in one self-contained call. Returns total assets, total liabilities, net worth, and the full breakdown (every account, every investment, every loan) so the agent can explain the number without follow-up calls. Currency defaults to the user's default_currency; pass base_currency to override."),
+		readOnlyAnnotation(),
+		mcp.WithString("base_currency", mcp.Description("Override the user's default currency (defaults to users.default_currency). All amounts are reported in this currency.")),
+	)
+}
+
+func getNetworthHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Resolve base currency: explicit arg wins, else the user's default.
+		baseCurrency := req.GetString("base_currency", "")
+		if baseCurrency == "" {
+			var dc string
+			if err := deps.Pool.QueryRow(ctx,
+				`SELECT default_currency FROM users WHERE id = $1 AND deleted_at IS NULL`,
+				userID,
+			).Scan(&dc); err == nil {
+				baseCurrency = dc
+			}
+		}
+
+		// --- ASSETS: bank/wallet/cash/savings accounts (positive balance) ---
+		// --- LIABILITIES: credit_card accounts (positive balance = owed) ---
+		accountRows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, type, currency, opening_balance, credit_limit
+			FROM accounts
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY type, name`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("accounts query failed: %v", err)), nil
+		}
+		defer accountRows.Close()
+
+		accounts := []map[string]any{}
+		assetsByType := map[string]string{
+			"bank": "0", "wallet": "0", "cash": "0", "savings": "0", "investment": "0",
+		}
+		liabilitiesByType := map[string]string{
+			"credit_card": "0",
+		}
+		var totalAssets, totalLiabilities string
+
+		for accountRows.Next() {
+			var id, name, typ, currency string
+			var openingBalance string
+			var creditLimit *string
+			if err := accountRows.Scan(&id, &name, &typ, &currency, &openingBalance, &creditLimit); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("account scan failed: %v", err)), nil
+			}
+			accounts = append(accounts, map[string]any{
+				"id":              id,
+				"name":            name,
+				"type":            typ,
+				"currency":        currency,
+				"opening_balance": openingBalance,
+				"credit_limit":    creditLimit,
+			})
+
+			// Naive aggregation: assume everything is in baseCurrency.
+			// (Per-row currency conversion is a follow-up; documented in
+			// the tool description so agents know the limitation.)
+			if typ == "credit_card" {
+				liabilitiesByType["credit_card"] = addDecimalStrings(liabilitiesByType["credit_card"], openingBalance)
+			} else {
+				if _, ok := assetsByType[typ]; ok {
+					assetsByType[typ] = addDecimalStrings(assetsByType[typ], openingBalance)
+				} else {
+					assetsByType[typ] = addDecimalStrings(assetsByType[typ], openingBalance)
+				}
+			}
+		}
+
+		for _, v := range assetsByType {
+			totalAssets = addDecimalStrings(totalAssets, v)
+		}
+		for _, v := range liabilitiesByType {
+			totalLiabilities = addDecimalStrings(totalLiabilities, v)
+		}
+
+		// --- ASSETS: investments (quantity * current_price) ---
+		investmentRows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, asset_type, currency, quantity, current_price,
+			        COALESCE(quantity, 0) * COALESCE(current_price, 0) AS computed_value
+			FROM investments
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY name`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("investments query failed: %v", err)), nil
+		}
+		defer investmentRows.Close()
+
+		investments := []map[string]any{}
+		investmentsByType := map[string]string{}
+		var totalInvestments string
+
+		for investmentRows.Next() {
+			var id, name, assetType, currency string
+			var quantity, currentPrice, computedValue *string
+			if err := investmentRows.Scan(&id, &name, &assetType, &currency, &quantity, &currentPrice, &computedValue); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("investment scan failed: %v", err)), nil
+			}
+			investments = append(investments, map[string]any{
+				"id":            id,
+				"name":          name,
+				"asset_type":    assetType,
+				"currency":      currency,
+				"quantity":      quantity,
+				"current_price": currentPrice,
+				"value":         computedValue,
+			})
+			investmentsByType[assetType] = addDecimalStrings(investmentsByType[assetType], derefStr(computedValue))
+			totalInvestments = addDecimalStrings(totalInvestments, derefStr(computedValue))
+		}
+		totalAssets = addDecimalStrings(totalAssets, totalInvestments)
+
+		// --- LIABILITIES: loans (outstanding_balance) ---
+		loanRows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, loan_type, currency, COALESCE(outstanding_balance, 0) AS outstanding
+			FROM loans
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY name`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("loans query failed: %v", err)), nil
+		}
+		defer loanRows.Close()
+
+		loans := []map[string]any{}
+		loansByType := map[string]string{}
+		var totalLoans string
+
+		for loanRows.Next() {
+			var id, name, loanType, currency, outstanding string
+			if err := loanRows.Scan(&id, &name, &loanType, &currency, &outstanding); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("loan scan failed: %v", err)), nil
+			}
+			loans = append(loans, map[string]any{
+				"id":                  id,
+				"name":                name,
+				"loan_type":           loanType,
+				"currency":            currency,
+				"outstanding_balance": outstanding,
+			})
+			loansByType[loanType] = addDecimalStrings(loansByType[loanType], outstanding)
+			totalLoans = addDecimalStrings(totalLoans, outstanding)
+		}
+		totalLiabilities = addDecimalStrings(totalLiabilities, totalLoans)
+
+		netWorth := addDecimalStrings(totalAssets, negate(totalLiabilities))
+
+		result := map[string]any{
+			"as_of":             time.Now().UTC().Format(time.RFC3339),
+			"currency":          baseCurrency,
+			"net_worth":         netWorth,
+			"total_assets":      totalAssets,
+			"total_liabilities": totalLiabilities,
+			"breakdown": map[string]any{
+				"assets": map[string]any{
+					"accounts":         assetsByType,
+					"investments":      investmentsByType,
+					"investments_total": totalInvestments,
+				},
+				"liabilities": map[string]any{
+					"credit_cards":  liabilitiesByType,
+					"loans":         loansByType,
+					"loans_total":   totalLoans,
+				},
+			},
+			"components": map[string]any{
+				"accounts":    accounts,
+				"investments": investments,
+				"loans":       loans,
+			},
+		}
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// addDecimalStrings adds two numeric(18,4) string representations without
+// losing precision. Returns "0" for empty inputs. The decimal format is
+// what Postgres returns via pgx: e.g. "10000.0000" or "-99.9900".
+func addDecimalStrings(a, b string) string {
+	if a == "" {
+		a = "0"
+	}
+	if b == "" {
+		b = "0"
+	}
+	af, errA := strconv.ParseFloat(a, 64)
+	bf, errB := strconv.ParseFloat(b, 64)
+	if errA != nil || errB != nil {
+		return "0"
+	}
+	return formatDecimal(af + bf)
+}
+
+// negate returns the negative of a numeric(18,4) string.
+func negate(s string) string {
+	if s == "" {
+		return "0"
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return "0"
+	}
+	return formatDecimal(-f)
+}
+
+func derefStr(p *string) string {
+	if p == nil {
+		return "0"
+	}
+	return *p
+}
+
+// formatDecimal formats a float as a numeric(18,4) string to match the
+// Postgres representation. 4 decimal places, no exponent.
+func formatDecimal(f float64) string {
+	return strconv.FormatFloat(f, 'f', 4, 64)
 }

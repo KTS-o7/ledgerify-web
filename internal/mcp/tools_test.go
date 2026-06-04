@@ -208,6 +208,134 @@ func TestUpdateTransactionSQL_UsesCOALESCEForEnumTypeColumn(t *testing.T) {
 	}
 }
 
+// TestNetWorthTools_Registered ensures all four net-worth tools are
+// exposed to MCP clients. An LLM agent can't manage net worth through
+// the server if any of these are missing.
+func TestNetWorthTools_Registered(t *testing.T) {
+	want := []string{
+		"list_loans",
+		"get_loan",
+		"list_insurance",
+		"get_networth",
+	}
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	for _, name := range want {
+		ctor := snakeToCamel(name) + "Tool"
+		if !strings.Contains(src, "func "+ctor+"()") {
+			t.Errorf("missing tool constructor %q (expected func %s)", name, ctor)
+		}
+		if !strings.Contains(src, "{Tool: "+ctor+"()") {
+			t.Errorf("%s not wired into RegisterTools", ctor)
+		}
+	}
+}
+
+// TestNetWorthTools_AllReadOnly: list_loans, get_loan, list_insurance,
+// get_networth are all read-only. An LLM agent should be able to call
+// them without the user being prompted for destructive-action consent.
+func TestNetWorthTools_AllReadOnly(t *testing.T) {
+	tools := map[string]mcp.Tool{
+		"list_loans":     listLoansTool(),
+		"get_loan":       getLoanTool(),
+		"list_insurance": listInsuranceTool(),
+		"get_networth":   getNetworthTool(),
+	}
+	for name, tool := range tools {
+		if tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint {
+			t.Errorf("%s: DestructiveHint should be false (read-only tool)", name)
+		}
+		if tool.Annotations.ReadOnlyHint == nil || !*tool.Annotations.ReadOnlyHint {
+			t.Errorf("%s: ReadOnlyHint should be true (read-only tool)", name)
+		}
+	}
+}
+
+// TestGetNetworthTool_TakesNoRequiredParams: an LLM should be able to
+// call get_networth with zero arguments. The handler reads the user's
+// default_currency from context — anything else would force the agent
+// to discover the user's preferred currency first.
+func TestGetNetworthTool_TakesNoRequiredParams(t *testing.T) {
+	tool := getNetworthTool()
+	if len(tool.InputSchema.Required) != 0 {
+		t.Errorf("get_networth must not require any arguments; InputSchema.Required = %v", tool.InputSchema.Required)
+	}
+}
+
+// TestGetNetworthSQL_AggregatesAcrossAllSources: the net-worth query
+// must sum assets (bank/wallet/cash/savings accounts + investments) and
+// liabilities (credit_card accounts + loan outstanding balances). If
+// any of these sources is missing, the agent's number is wrong.
+func TestGetNetworthSQL_AggregatesAcrossAllSources(t *testing.T) {
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	// Must touch every relevant table. A missing source means the
+	// agent can call get_networth and get a confidently-wrong answer.
+	mustReference := []string{
+		"FROM accounts",         // bank + credit_card balances
+		"FROM investments",      // investment values
+		"FROM loans",            // outstanding balance
+		"asset",                 // asset/liability classification
+		"outstanding_balance",   // loan liability
+	}
+	for _, want := range mustReference {
+		if !strings.Contains(src, want) {
+			t.Errorf("get_networth source missing reference to %q (the net-worth number will be wrong)", want)
+		}
+	}
+}
+
+// TestGetNetworthSQL_HandlesNullBalances: investment quantity and
+// current_price can be NULL (e.g. for real estate or fixed deposits
+// that don't have a market price). outstanding_balance on a loan can
+// also be NULL when the user hasn't entered it. The aggregation must
+// use COALESCE to treat NULL as 0, not NULL + NULL = NULL.
+func TestGetNetworthSQL_HandlesNullBalances(t *testing.T) {
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	want := []string{
+		"COALESCE",   // for NULL handling on balances/prices
+		"quantity",
+		"current_price",
+	}
+	for _, w := range want {
+		if !strings.Contains(src, w) {
+			t.Errorf("get_networth source missing %q", w)
+		}
+	}
+}
+
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+// snakeToCamel converts a snake_case tool name (e.g. "list_loans") to
+// the Go CamelCase identifier suffix used by the constructor
+// (e.g. "listLoans").
+func snakeToCamel(s string) string {
+	parts := strings.Split(s, "_")
+	if len(parts) == 1 {
+		return strings.ToLower(s)
+	}
+	out := strings.ToLower(parts[0])
+	for _, p := range parts[1:] {
+		if p == "" {
+			continue
+		}
+		out += strings.ToUpper(p[:1]) + p[1:]
+	}
+	return out
+}
+
 // Regression: list_transactions returned "null" (text) when no rows matched,
 // because the handler used `var results []map[string]any` (nil slice) and
 // encoding/json marshals a nil slice as "null". MCP clients expect "[]".
