@@ -1,20 +1,27 @@
-# Stage 1: Build Go binary
-FROM golang:1.26-alpine AS builder
+# Stage 1: Build SolidJS frontend
+FROM node:22-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/bun.lock ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build Go binary with embedded frontend
+FROM golang:1.26-alpine AS go-builder
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /ledgerify ./cmd/server
 
-# Stage 2: Minimal production image
+# Stage 3: Minimal runtime
 FROM alpine:3.21
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
-COPY --from=builder /ledgerify /app/ledgerify
-COPY --from=builder /app/web/templates /app/web/templates
+COPY --from=go-builder /ledgerify /app/ledgerify
 EXPOSE 8080
 ENV PORT=8080
-ENV GIN_MODE=release
 USER nobody
 CMD ["/app/ledgerify"]
