@@ -369,7 +369,7 @@ func updateTransactionHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		err = deps.Pool.QueryRow(ctx,
 			`UPDATE transactions SET
 				account_id = COALESCE(NULLIF($3, '')::uuid, account_id),
-				type = COALESCE(NULLIF($4, ''), type),
+				type = COALESCE(NULLIF($4, '')::transaction_type, type),
 				amount = $5,
 				currency = COALESCE(NULLIF($6, ''), currency),
 				category_id = COALESCE(NULLIF($7, '')::uuid, category_id),

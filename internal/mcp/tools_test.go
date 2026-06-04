@@ -191,6 +191,23 @@ func TestUpdateTransactionSQL_UsesCOALESCEForUUIDColumns(t *testing.T) {
 	}
 }
 
+// Regression: update_transaction `type` column is a Postgres ENUM
+// (transaction_type). Same COALESCE-mismatch class as the uuid columns:
+// NULLIF($4, '') returns text, COALESCE on text vs an enum fails with
+// "COALESCE types text and transaction_type cannot be matched".
+// Live test on 2026-06-04 hit this with $4='' (the update scenario where
+// type is left unchanged).
+func TestUpdateTransactionSQL_UsesCOALESCEForEnumTypeColumn(t *testing.T) {
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	want := `type = COALESCE(NULLIF($4, '')::transaction_type, type)`
+	if !strings.Contains(src, want) {
+		t.Errorf("tools.go missing SQL fragment: %q\n(add it inside the UPDATE in updateTransactionHandler)", want)
+	}
+}
+
 // Regression: list_transactions returned "null" (text) when no rows matched,
 // because the handler used `var results []map[string]any` (nil slice) and
 // encoding/json marshals a nil slice as "null". MCP clients expect "[]".
