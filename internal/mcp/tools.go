@@ -15,6 +15,34 @@ type ToolDeps struct {
 	Pool *pgxpool.Pool
 }
 
+// readOnlyAnnotation marks a tool as non-destructive for MCP clients.
+// mcp.NewTool defaults to DestructiveHint=true; read-only tools must opt out
+// so clients like Claude Desktop don't prompt the user before each call.
+func readOnlyAnnotation() mcp.ToolOption {
+	f := false
+	t := true
+	return mcp.WithToolAnnotation(mcp.ToolAnnotation{
+		ReadOnlyHint:    &t,
+		DestructiveHint: &f,
+		IdempotentHint:  &t,
+		OpenWorldHint:   &f,
+	})
+}
+
+// marshalAsJSONArray serializes a list of records to JSON, normalizing nil
+// slices to "[]" so MCP clients always receive a JSON array (encoding/json
+// renders a nil slice as "null" by default, which breaks consumers).
+func marshalAsJSONArray(v []map[string]any) (string, error) {
+	if v == nil {
+		v = []map[string]any{}
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 	tools := []server.ServerTool{
 		{Tool: listTransactionsTool(), Handler: listTransactionsHandler(deps)},
@@ -43,6 +71,7 @@ func listTransactionsTool() mcp.Tool {
 		mcp.WithString("to_date", mcp.Description("End date (YYYY-MM-DD)")),
 		mcp.WithInteger("limit", mcp.Description("Max results (default 50)")),
 		mcp.WithInteger("offset", mcp.Description("Offset for pagination")),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -138,11 +167,11 @@ func listTransactionsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			})
 		}
 
-		jsonData, err := json.Marshal(results)
+		jsonData, err := marshalAsJSONArray(results)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
 
@@ -150,6 +179,7 @@ func getTransactionTool() mcp.Tool {
 	return mcp.NewTool("get_transaction",
 		mcp.WithDescription("Get a single transaction by ID"),
 		mcp.WithString("id", mcp.Required(), mcp.Description("Transaction ID")),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -338,11 +368,11 @@ func updateTransactionHandler(deps *ToolDeps) server.ToolHandlerFunc {
 
 		err = deps.Pool.QueryRow(ctx,
 			`UPDATE transactions SET
-				account_id = COALESCE(NULLIF($3, ''), account_id),
+				account_id = COALESCE(NULLIF($3, '')::uuid, account_id),
 				type = COALESCE(NULLIF($4, ''), type),
 				amount = $5,
 				currency = COALESCE(NULLIF($6, ''), currency),
-				category_id = $7,
+				category_id = COALESCE(NULLIF($7, '')::uuid, category_id),
 				title = COALESCE(NULLIF($8, ''), title),
 				note = COALESCE(NULLIF($9, ''), note),
 				date = COALESCE(NULLIF($10, '')::date, date),
@@ -408,6 +438,7 @@ func deleteTransactionHandler(deps *ToolDeps) server.ToolHandlerFunc {
 func listAccountsTool() mcp.Tool {
 	return mcp.NewTool("list_accounts",
 		mcp.WithDescription("List all accounts for the user"),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -450,11 +481,11 @@ func listAccountsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			})
 		}
 
-		jsonData, err := json.Marshal(results)
+		jsonData, err := marshalAsJSONArray(results)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
 
@@ -515,6 +546,7 @@ func createAccountHandler(deps *ToolDeps) server.ToolHandlerFunc {
 func listCategoriesTool() mcp.Tool {
 	return mcp.NewTool("list_categories",
 		mcp.WithDescription("List all categories (including system defaults)"),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -553,11 +585,11 @@ func listCategoriesHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			})
 		}
 
-		jsonData, err := json.Marshal(results)
+		jsonData, err := marshalAsJSONArray(results)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
 
@@ -566,6 +598,7 @@ func getSummaryTool() mcp.Tool {
 		mcp.WithDescription("Get a financial summary for a date range"),
 		mcp.WithString("from_date", mcp.Required(), mcp.Description("Start date YYYY-MM-DD")),
 		mcp.WithString("to_date", mcp.Required(), mcp.Description("End date YYYY-MM-DD")),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -615,6 +648,7 @@ func getSummaryHandler(deps *ToolDeps) server.ToolHandlerFunc {
 func listBudgetsTool() mcp.Tool {
 	return mcp.NewTool("list_budgets",
 		mcp.WithDescription("List all budgets for the user"),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -663,17 +697,18 @@ func listBudgetsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			})
 		}
 
-		jsonData, err := json.Marshal(results)
+		jsonData, err := marshalAsJSONArray(results)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
 
 func listInvestmentsTool() mcp.Tool {
 	return mcp.NewTool("list_investments",
 		mcp.WithDescription("List all investments for the user"),
+		readOnlyAnnotation(),
 	)
 }
 
@@ -716,11 +751,11 @@ func listInvestmentsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			})
 		}
 
-		jsonData, err := json.Marshal(results)
+		jsonData, err := marshalAsJSONArray(results)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(jsonData), nil
 	}
 }
 
