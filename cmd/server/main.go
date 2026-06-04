@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,8 +24,47 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/llm"
 	"github.com/KTS-o7/ledgerify-web/internal/mcp"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
-	"github.com/KTS-o7/ledgerify-web/internal/templates"
 )
+
+func spaHandler(fsys embed.FS, root string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if path == "/" {
+			path = "index.html"
+		} else {
+			path = strings.TrimPrefix(path, "/")
+		}
+
+		fullPath := root + "/" + path
+		stat, err := fs.Stat(fsys, fullPath)
+		if os.IsNotExist(err) || (stat != nil && stat.IsDir()) {
+			fullPath = root + "/index.html"
+		}
+
+		data, err := fsys.ReadFile(fullPath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		ext := fullPath
+		switch {
+		case strings.HasSuffix(ext, ".js"):
+			w.Header().Set("Content-Type", "application/javascript")
+		case strings.HasSuffix(ext, ".css"):
+			w.Header().Set("Content-Type", "text/css")
+		case strings.HasSuffix(ext, ".json"):
+			w.Header().Set("Content-Type", "application/json")
+		case strings.HasSuffix(ext, ".svg"):
+			w.Header().Set("Content-Type", "image/svg+xml")
+		case strings.HasSuffix(ext, ".png"), strings.HasSuffix(ext, ".jpg"), strings.HasSuffix(ext, ".ico"):
+			w.Header().Set("Content-Type", "image/"+strings.TrimPrefix(ext, "."))
+		default:
+			w.Header().Set("Content-Type", "text/html")
+		}
+		w.Write(data)
+	})
+}
 
 func main() {
 	cfg, err := auth.LoadConfig()
@@ -73,12 +115,6 @@ func main() {
 	_, sseServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
-	// Initialize templates with embedded assets
-	templates.Init(embedassets.TemplateFS(), embedassets.StaticFS(), false)
-
-	// Page handlers
-	ph := templates.NewPageHandlers(pool, q, cq, jwtCfg)
-
 	r := chi.NewRouter()
 	r.Use(corsHandler)
 	r.Use(chimw.Logger)
@@ -88,66 +124,10 @@ func main() {
 	r.Use(chimw.Timeout(30 * time.Second))
 	r.Use(middleware.BodyLimit(1 << 20)) // 1MB
 
-	// Static files (embedded)
-	r.Get("/static/*", templates.ServeStatic)
-
 	// Health
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
-	})
-
-	// === PAGE ROUTES ===
-	// Auth pages (no auth required)
-	r.Group(func(r chi.Router) {
-		r.Get("/login", ph.LoginPage)
-		r.Post("/login", ph.LoginAction)
-		r.Get("/register", ph.RegisterPage)
-		r.Post("/register", ph.RegisterAction)
-	})
-
-	// Protected page routes
-	r.Group(func(r chi.Router) {
-		r.Use(templates.PageAuthMiddleware(jwtCfg))
-
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-		})
-		r.Get("/dashboard", ph.DashboardPage)
-		r.Get("/transactions", ph.TransactionsPage)
-		r.Post("/transactions", ph.CreateTransaction)
-		r.Post("/transactions/delete", ph.DeleteTransaction)
-		r.Get("/accounts", ph.AccountsPage)
-		r.Post("/accounts", ph.CreateAccount)
-		r.Get("/accounts/{id}", ph.Placeholder("Account Detail"))
-		r.Get("/budgets", ph.BudgetsPage)
-		r.Post("/budgets", ph.CreateBudget)
-		r.Get("/budgets/{id}", ph.Placeholder("Budget Detail"))
-		r.Get("/budgets/goals", ph.Placeholder("Savings Goals"))
-		r.Get("/investments", ph.InvestmentsPage)
-		r.Post("/investments", ph.CreateInvestment)
-		r.Get("/loans", ph.LoansPage)
-		r.Post("/loans", ph.CreateLoan)
-		r.Get("/insurance", ph.InsurancePage)
-		r.Post("/insurance", ph.CreateInsurance)
-		r.Get("/networth", ph.Placeholder("Net Worth"))
-		r.Get("/reports", ph.ReportsPage)
-		r.Get("/reports/cash-flow", ph.CashFlowPage)
-		r.Get("/reports/category-breakdown", ph.CategoryBreakdownPage)
-		r.Get("/reports/budget-vs-actual", ph.BudgetVsActualPage)
-		r.Get("/reports/networth", ph.NetworthPage)
-		r.Get("/reports/investment-returns", ph.InvestmentReturnsPage)
-		r.Get("/reports/debt-payoff", ph.DebtPayoffPage)
-		r.Get("/import", ph.ImportPage)
-		r.Post("/import", ph.ImportCSV)
-		r.Get("/export", ph.ExportPage)
-		r.Get("/export/csv", ph.ExportCSV)
-		r.Get("/settings", ph.SettingsPage)
-		r.Get("/settings/categories", ph.CategoriesPage)
-		r.Post("/settings/categories", ph.CreateCategory)
-		r.Post("/settings/categories/{id}/delete", ph.DeleteCategory)
-		r.Get("/settings/data", ph.Placeholder("Data"))
-		r.Get("/logout", ph.LogoutAction)
 	})
 
 	// === API ROUTES ===
@@ -256,6 +236,9 @@ func main() {
 		r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
 		r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
 	})
+
+	// SPA catch-all: serve SolidJS frontend
+	r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
