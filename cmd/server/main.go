@@ -18,6 +18,8 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/handlers"
+	"github.com/KTS-o7/ledgerify-web/internal/llm"
+	"github.com/KTS-o7/ledgerify-web/internal/mcp"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/templates"
 )
@@ -45,6 +47,9 @@ func main() {
 
 	jwtCfg := auth.NewJWTConfig(cfg)
 
+	llmClient := llm.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMUserAgent)
+	llmQueue := llm.NewQueue(llmClient, pool, cfg.LLMQueueSize, cfg.LLMWorkers)
+
 	corsHandler := cors.Handler(cors.Options{
 		AllowedOrigins:   []string{cfg.FrontendURL, "http://localhost:3000", "http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -57,14 +62,15 @@ func main() {
 	accountHandler := handlers.NewAccountHandler(pool, q, cq)
 	categoryHandler := handlers.NewCategoryHandler(q)
 	tagHandler := handlers.NewTagHandler(q)
-	transactionHandler := handlers.NewTransactionHandler(q, pool)
+	transactionHandler := handlers.NewTransactionHandler(q, pool, llmQueue)
 	budgetHandler := handlers.NewBudgetHandler(pool, q)
 	summaryHandler := handlers.NewSummaryHandler(pool, q, cq)
 	investmentHandler := handlers.NewInvestmentHandler(q)
 	loanHandler := handlers.NewLoanHandler(q)
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
-	importExportHandler := handlers.NewImportExportHandler(pool, q)
+	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
+	_, sseServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
 	// Initialize templates with embedded assets
@@ -246,6 +252,9 @@ func main() {
 		r.Post("/api/v1/transactions/categorise", importExportHandler.Categorise)
 		r.Post("/api/import", importExportHandler.Import)
 		r.Get("/api/export", importExportHandler.Export)
+
+		r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
+		r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
 	})
 
 	srv := &http.Server{
@@ -261,6 +270,7 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
 		log.Println("shutting down...")
+		llmQueue.Shutdown()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)

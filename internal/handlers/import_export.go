@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
+	"github.com/KTS-o7/ledgerify-web/internal/llm"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -18,10 +19,11 @@ import (
 type ImportExportHandler struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
+	llm  *llm.Client
 }
 
-func NewImportExportHandler(pool *pgxpool.Pool, q *db.Queries) *ImportExportHandler {
-	return &ImportExportHandler{pool: pool, q: q}
+func NewImportExportHandler(pool *pgxpool.Pool, q *db.Queries, llmClient *llm.Client) *ImportExportHandler {
+	return &ImportExportHandler{pool: pool, q: q, llm: llmClient}
 }
 
 type ImportStats struct {
@@ -287,7 +289,15 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	mode := r.URL.Query().Get("mode")
+
 	keywords, err := h.q.ListCategoryKeywordsByUser(r.Context(), userID)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	categories, err := h.q.ListCategoriesByUser(r.Context(), userID)
 	if err != nil {
 		utils.InternalError(w)
 		return
@@ -295,6 +305,7 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 
 	categorised := 0
 	categoryMap := make(map[string]string)
+	var unmatched []string
 
 	for _, txID := range req.TransactionIDs {
 		txUUID := stringToUUID(txID)
@@ -310,14 +321,57 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 			continue
 		}
 
+		matched := false
 		for _, kw := range keywords {
 			if strings.Contains(strings.ToLower(tx.Title.String), strings.ToLower(kw.Keyword)) {
 				_, err := h.pool.Exec(r.Context(), "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3", kw.CategoryID, tx.ID, userID)
 				if err == nil {
-					categoryMap[kw.Keyword] = kw.CategoryName
+					categoryMap[txID] = kw.CategoryName
 					categorised++
 				}
+				matched = true
 				break
+			}
+		}
+
+		if !matched && mode != "keyword" {
+			unmatched = append(unmatched, txID)
+		}
+	}
+
+	if mode != "keyword" && h.llm != nil && len(unmatched) > 0 {
+		llmCategories := make([]llm.Category, len(categories))
+		for i, cat := range categories {
+			llmCategories[i] = llm.Category{
+				ID:   uuidToString(cat.ID),
+				Name: cat.Name,
+			}
+		}
+
+		for _, txID := range unmatched {
+			txUUID := stringToUUID(txID)
+			tx, err := h.q.GetTransactionByID(r.Context(), txUUID)
+			if err != nil {
+				continue
+			}
+			if tx.Title.String == "" {
+				continue
+			}
+
+			categoryName, err := h.llm.Categorize(r.Context(), tx.Title.String, llmCategories)
+			if err != nil || categoryName == "" {
+				continue
+			}
+
+			for _, cat := range categories {
+				if cat.Name == categoryName {
+					_, err := h.pool.Exec(r.Context(), "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3 AND category_id IS NULL", cat.ID, tx.ID, userID)
+					if err == nil {
+						categoryMap[txID] = categoryName
+						categorised++
+					}
+					break
+				}
 			}
 		}
 	}
