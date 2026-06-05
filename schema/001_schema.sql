@@ -236,6 +236,20 @@ CREATE TABLE "exchange_rates" (
     CONSTRAINT "exchange_rates_base_target_pk" PRIMARY KEY("base", "target")
 );
 
+-- Net Worth Snapshots (added 2026-06-05)
+CREATE TABLE "networth_snapshots" (
+    "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "user_id" uuid NOT NULL,
+    "as_of" timestamptz DEFAULT now() NOT NULL,
+    "currency" varchar(3) NOT NULL,
+    "total_assets" numeric(18, 4) NOT NULL,
+    "total_liabilities" numeric(18, 4) NOT NULL,
+    "net_worth" numeric(18, 4) NOT NULL,
+    "breakdown" jsonb NOT NULL,
+    "note" text,
+    "created_at" timestamptz DEFAULT now() NOT NULL
+);
+
 -- Audit Logs
 CREATE TABLE "audit_logs" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -277,6 +291,7 @@ ALTER TABLE "budgets" ADD CONSTRAINT "budgets_user_id_users_id_fk" FOREIGN KEY (
 ALTER TABLE "budgets" ADD CONSTRAINT "budgets_category_id_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "savings_goals" ADD CONSTRAINT "savings_goals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "savings_goals" ADD CONSTRAINT "savings_goals_linked_account_id_accounts_id_fk" FOREIGN KEY ("linked_account_id") REFERENCES "public"."accounts"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "networth_snapshots" ADD CONSTRAINT "networth_snapshots_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "category_keywords" ADD CONSTRAINT "category_keywords_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "category_keywords" ADD CONSTRAINT "category_keywords_category_id_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE no action ON UPDATE no action;

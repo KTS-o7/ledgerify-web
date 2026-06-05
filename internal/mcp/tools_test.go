@@ -370,6 +370,10 @@ func TestWriteToolsForNetWorth_Registered(t *testing.T) {
 		"create_investment_transaction", "delete_investment_transaction",
 		// bulk import/export
 		"import_transactions", "export_transactions",
+		// networth snapshots (added 2026-06-05 — task 1 of the "make
+		// MCP the no-hiccups net-worth toolchain" follow-up)
+		"snapshot_networth", "list_networth_snapshots",
+		"get_networth_trend", "delete_networth_snapshot",
 	}
 	src, err := readSourceFile("tools.go")
 	if err != nil {
@@ -433,6 +437,8 @@ func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
 		"delete_investment_transaction": deleteInvestmentTransactionTool(),
 		// bulk import
 		"import_transactions": importTransactionsTool(),
+		// networth snapshots
+		"delete_networth_snapshot": deleteNetworthSnapshotTool(),
 	}
 	for name, tool := range tools {
 		if tool.Annotations.DestructiveHint == nil || !*tool.Annotations.DestructiveHint {
@@ -446,10 +452,13 @@ func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
 // list_investment_transactions are read by definition.
 func TestReadOnlyListTools(t *testing.T) {
 	tools := map[string]mcp.Tool{
-		"list_savings_goals":         listSavingsGoalsTool(),
+		"list_savings_goals":           listSavingsGoalsTool(),
 		"list_investment_transactions": listInvestmentTransactionsTool(),
-		"get_savings_goal":            getSavingsGoalTool(),
-		"export_transactions":         exportTransactionsTool(),
+		"get_savings_goal":             getSavingsGoalTool(),
+		"export_transactions":          exportTransactionsTool(),
+		"snapshot_networth":            snapshotNetworthTool(),
+		"list_networth_snapshots":      listNetworthSnapshotsTool(),
+		"get_networth_trend":           getNetworthTrendTool(),
 	}
 	for name, tool := range tools {
 		if tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint {

@@ -238,7 +238,8 @@ func main() {
 	})
 
 	// SPA catch-all: serve SolidJS frontend
-	r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))
+		r.Get("/mcp-connect", mcpConnectHandler)
+		r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

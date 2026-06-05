@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -87,6 +88,10 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: createInsurancePaymentTool(), Handler: createInsurancePaymentHandler(deps)},
 		{Tool: markInsurancePremiumPaidTool(), Handler: markInsurancePremiumPaidHandler(deps)},
 		{Tool: getNetworthTool(), Handler: getNetworthHandler(deps)},
+		{Tool: snapshotNetworthTool(), Handler: snapshotNetworthHandler(deps)},
+		{Tool: listNetworthSnapshotsTool(), Handler: listNetworthSnapshotsHandler(deps)},
+		{Tool: getNetworthTrendTool(), Handler: getNetworthTrendHandler(deps)},
+		{Tool: deleteNetworthSnapshotTool(), Handler: deleteNetworthSnapshotHandler(deps)},
 		{Tool: getExchangeRatesTool(), Handler: getExchangeRatesHandler(deps)},
 		{Tool: setExchangeRateTool(), Handler: setExchangeRateHandler(deps)},
 		{Tool: updateUserProfileTool(), Handler: updateUserProfileHandler(deps)},
@@ -3535,6 +3540,288 @@ func listInsuranceHandler(deps *ToolDeps) server.ToolHandlerFunc {
 	}
 }
 
+// ============================================================================
+// Net-worth snapshots (Task 1: "make MCP the no-hiccups net-worth tool")
+//
+// snapshot_networth writes the current get_networth result to a row.
+// list_networth_snapshots returns the history.
+// get_networth_trend summarises the change over a window (default 30d).
+// delete_networth_snapshot removes one (snapshots are ephemeral metrics,
+// not financial records, so this is a hard DELETE — not soft).
+// ============================================================================
+
+func snapshotNetworthTool() mcp.Tool {
+	return mcp.NewTool("snapshot_networth",
+		mcp.WithDescription("Take a snapshot of the current net worth and persist it. Returns the snapshot id, the totals, and the as-of timestamp. Use list_networth_snapshots afterwards to see history; use get_networth_trend for a percentage change over a window."),
+		readOnlyAnnotation(), // a snapshot is a passive observation, not a mutation of financial data
+		mcp.WithString("base_currency", mcp.Description("Override the user's default currency (defaults to users.default_currency)")),
+		mcp.WithString("note", mcp.Description("Optional free-form note (e.g. 'end of Q3 2024')")),
+	)
+}
+
+func snapshotNetworthHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		baseCurrency := req.GetString("base_currency", "")
+		if baseCurrency == "" {
+			var dc string
+			if err := deps.Pool.QueryRow(ctx,
+				`SELECT default_currency FROM users WHERE id = $1 AND deleted_at IS NULL`,
+				userID,
+			).Scan(&dc); err == nil {
+				baseCurrency = dc
+			}
+		}
+
+		result, err := computeNetworth(ctx, deps.Pool, userID, baseCurrency)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("compute networth: %v", err)), nil
+		}
+
+		breakdown, err := json.Marshal(map[string]any{
+			"breakdown":                result.Breakdown,
+			"components":               result.Components,
+			"unconverted_currencies":   result.UnconvertedCurrencies,
+		})
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal breakdown: %v", err)), nil
+		}
+		note := req.GetString("note", "")
+
+		var id string
+		var asOf time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO networth_snapshots
+				(user_id, as_of, currency, total_assets, total_liabilities, net_worth, breakdown, note)
+			VALUES ($1, $2::timestamptz, $3, $4, $5, $6, $7::jsonb, NULLIF($8, ''))
+			RETURNING id, as_of`,
+			userID, result.AsOf, result.Currency, result.TotalAssets, result.TotalLiabilities, result.NetWorth, breakdown, note,
+		).Scan(&id, &asOf)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("insert snapshot: %v", err)), nil
+		}
+
+		resp := map[string]any{
+			"id":                id,
+			"as_of":             asOf.UTC().Format(time.RFC3339),
+			"currency":          result.Currency,
+			"net_worth":         result.NetWorth,
+			"total_assets":      result.TotalAssets,
+			"total_liabilities": result.TotalLiabilities,
+			"unconverted_currencies": result.UnconvertedCurrencies,
+		}
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func listNetworthSnapshotsTool() mcp.Tool {
+	return mcp.NewTool("list_networth_snapshots",
+		mcp.WithDescription("List historical net-worth snapshots, newest first. Each row carries the totals at the as-of timestamp and the full breakdown JSON."),
+		readOnlyAnnotation(),
+		mcp.WithString("from_date", mcp.Description("Filter: only snapshots on or after this date (YYYY-MM-DD)")),
+		mcp.WithString("to_date", mcp.Description("Filter: only snapshots on or before this date (YYYY-MM-DD)")),
+		mcp.WithInteger("limit", mcp.Description("Max results (default 100, max 1000)")),
+	)
+}
+
+func listNetworthSnapshotsHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		fromDate := req.GetString("from_date", "")
+		toDate := req.GetString("to_date", "")
+		limit := req.GetInt("limit", 100)
+		if limit <= 0 || limit > 1000 {
+			limit = 100
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT id, as_of, currency, total_assets, total_liabilities, net_worth, breakdown, note
+			FROM networth_snapshots
+			WHERE user_id = $1
+			  AND ($2 = '' OR as_of >= $2::timestamptz)
+			  AND ($3 = '' OR as_of <= $3::timestamptz)
+			ORDER BY as_of DESC
+			LIMIT $4`,
+			userID, fromDate, toDate, limit,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, currency string
+			var asOf time.Time
+			var totalAssets, totalLiabilities, netWorth string
+			var breakdown []byte
+			var note *string
+			if err := rows.Scan(&id, &asOf, &currency, &totalAssets, &totalLiabilities, &netWorth, &breakdown, &note); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+			entry := map[string]any{
+				"id":                id,
+				"as_of":             asOf.UTC().Format(time.RFC3339),
+				"currency":          currency,
+				"net_worth":         netWorth,
+				"total_assets":      totalAssets,
+				"total_liabilities": totalLiabilities,
+				"breakdown":         json.RawMessage(breakdown),
+				"note":              note,
+			}
+			results = append(results, entry)
+		}
+		data, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(data), nil
+	}
+}
+
+func getNetworthTrendTool() mcp.Tool {
+	return mcp.NewTool("get_networth_trend",
+		mcp.WithDescription("Compute the change in net worth over a window. Returns current_net_worth, baseline_net_worth (the oldest snapshot within the window, or '0' if none), absolute_change, percent_change, and snapshots_in_window. Pass days (default 30) or from_date/to_date."),
+		readOnlyAnnotation(),
+		mcp.WithInteger("days", mcp.Description("Window size in days ending today (default 30). Ignored if from_date is set.")),
+		mcp.WithString("from_date", mcp.Description("Window start (YYYY-MM-DD). Defaults to today - days.")),
+		mcp.WithString("to_date", mcp.Description("Window end (YYYY-MM-DD). Defaults to today.")),
+		mcp.WithString("base_currency", mcp.Description("Override the user's default currency (defaults to users.default_currency)")),
+	)
+}
+
+func getNetworthTrendHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		baseCurrency := req.GetString("base_currency", "")
+		if baseCurrency == "" {
+			var dc string
+			if err := deps.Pool.QueryRow(ctx,
+				`SELECT default_currency FROM users WHERE id = $1 AND deleted_at IS NULL`,
+				userID,
+			).Scan(&dc); err == nil {
+				baseCurrency = dc
+			}
+		}
+
+		// Resolve the window. to_date defaults to now; from_date
+		// defaults to (now - days).
+		now := time.Now().UTC()
+		toDate := req.GetString("to_date", "")
+		fromDate := req.GetString("from_date", "")
+		if toDate == "" {
+			toDate = now.Format("2006-01-02")
+		}
+		if fromDate == "" {
+			days := req.GetInt("days", 30)
+			if days <= 0 {
+				days = 30
+			}
+			fromDate = now.AddDate(0, 0, -days).Format("2006-01-02")
+		}
+
+		// Current value.
+		current, err := computeNetworth(ctx, deps.Pool, userID, baseCurrency)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("compute current: %v", err)), nil
+		}
+
+		// Find the oldest snapshot within the window.
+		var baselineNetWorth string
+		var snapshotsInWindow int
+		err = deps.Pool.QueryRow(ctx,
+			`SELECT net_worth, (
+				SELECT count(*) FROM networth_snapshots
+				WHERE user_id = $1
+				  AND as_of >= $2::timestamptz
+				  AND as_of <= ($3::date || 'T23:59:59Z')::timestamptz
+			) FROM networth_snapshots
+			WHERE user_id = $1
+			  AND as_of >= $2::timestamptz
+			  AND as_of <= ($3::date || 'T23:59:59Z')::timestamptz
+			ORDER BY as_of ASC
+			LIMIT 1`,
+			userID, fromDate, toDate,
+		).Scan(&baselineNetWorth, &snapshotsInWindow)
+		if err != nil {
+			if err != pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("baseline query: %v", err)), nil
+			}
+			baselineNetWorth = "0"
+			snapshotsInWindow = 0
+		}
+
+		absoluteChange := addDecimalStrings(current.NetWorth, negate(baselineNetWorth))
+		var pctChange *string
+		if baseline, err := strconv.ParseFloat(baselineNetWorth, 64); err == nil && baseline != 0 {
+			if cur, err := strconv.ParseFloat(current.NetWorth, 64); err == nil {
+				pct := (cur - baseline) / baseline * 100
+				s := formatDecimal(pct)
+				pctChange = &s
+			}
+		}
+
+		result := map[string]any{
+			"from":               fromDate,
+			"to":                 toDate,
+			"currency":           baseCurrency,
+			"current_net_worth":  current.NetWorth,
+			"baseline_net_worth": baselineNetWorth,
+			"absolute_change":    absoluteChange,
+			"snapshots_in_window": snapshotsInWindow,
+		}
+		if pctChange != nil {
+			result["percent_change"] = pctChange
+		} else {
+			result["percent_change"] = nil
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteNetworthSnapshotTool() mcp.Tool {
+	return mcp.NewTool("delete_networth_snapshot",
+		mcp.WithDescription("Delete a net-worth snapshot row. Hard DELETE — snapshots are not financial records, so there's no audit need for soft-delete."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Snapshot ID")),
+	)
+}
+
+func deleteNetworthSnapshotHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`DELETE FROM networth_snapshots WHERE id = $1 AND user_id = $2`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("snapshot %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
 func getNetworthTool() mcp.Tool {
 	return mcp.NewTool("get_networth",
 		mcp.WithDescription("Compute net worth in one self-contained call. Returns total assets, total liabilities, net worth, and the full breakdown (every account, every investment, every loan) so the agent can explain the number without follow-up calls. Currency defaults to the user's default_currency; pass base_currency to override."),
@@ -3562,171 +3849,277 @@ func getNetworthHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			}
 		}
 
-		// --- ASSETS: bank/wallet/cash/savings accounts (positive balance) ---
-		// --- LIABILITIES: credit_card accounts (positive balance = owed) ---
-		accountRows, err := deps.Pool.Query(ctx,
-			`SELECT id, name, type, currency, opening_balance, credit_limit
-			FROM accounts
-			WHERE user_id = $1 AND deleted_at IS NULL
-			ORDER BY type, name`,
-			userID,
-		)
+		result, err := computeNetworth(ctx, deps.Pool, userID, baseCurrency)
 		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("accounts query failed: %v", err)), nil
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		defer accountRows.Close()
-
-		accounts := []map[string]any{}
-		assetsByType := map[string]string{
-			"bank": "0", "wallet": "0", "cash": "0", "savings": "0", "investment": "0",
-		}
-		liabilitiesByType := map[string]string{
-			"credit_card": "0",
-		}
-		var totalAssets, totalLiabilities string
-
-		for accountRows.Next() {
-			var id, name, typ, currency string
-			var openingBalance string
-			var creditLimit *string
-			if err := accountRows.Scan(&id, &name, &typ, &currency, &openingBalance, &creditLimit); err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("account scan failed: %v", err)), nil
-			}
-			accounts = append(accounts, map[string]any{
-				"id":              id,
-				"name":            name,
-				"type":            typ,
-				"currency":        currency,
-				"opening_balance": openingBalance,
-				"credit_limit":    creditLimit,
-			})
-
-			// Naive aggregation: assume everything is in baseCurrency.
-			// (Per-row currency conversion is a follow-up; documented in
-			// the tool description so agents know the limitation.)
-			if typ == "credit_card" {
-				liabilitiesByType["credit_card"] = addDecimalStrings(liabilitiesByType["credit_card"], openingBalance)
-			} else {
-				if _, ok := assetsByType[typ]; ok {
-					assetsByType[typ] = addDecimalStrings(assetsByType[typ], openingBalance)
-				} else {
-					assetsByType[typ] = addDecimalStrings(assetsByType[typ], openingBalance)
-				}
-			}
-		}
-
-		for _, v := range assetsByType {
-			totalAssets = addDecimalStrings(totalAssets, v)
-		}
-		for _, v := range liabilitiesByType {
-			totalLiabilities = addDecimalStrings(totalLiabilities, v)
-		}
-
-		// --- ASSETS: investments (quantity * current_price) ---
-		investmentRows, err := deps.Pool.Query(ctx,
-			`SELECT id, name, asset_type, currency, quantity, current_price,
-			        COALESCE(quantity, 0) * COALESCE(current_price, 0) AS computed_value
-			FROM investments
-			WHERE user_id = $1 AND deleted_at IS NULL
-			ORDER BY name`,
-			userID,
-		)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("investments query failed: %v", err)), nil
-		}
-		defer investmentRows.Close()
-
-		investments := []map[string]any{}
-		investmentsByType := map[string]string{}
-		var totalInvestments string
-
-		for investmentRows.Next() {
-			var id, name, assetType, currency string
-			var quantity, currentPrice, computedValue *string
-			if err := investmentRows.Scan(&id, &name, &assetType, &currency, &quantity, &currentPrice, &computedValue); err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("investment scan failed: %v", err)), nil
-			}
-			investments = append(investments, map[string]any{
-				"id":            id,
-				"name":          name,
-				"asset_type":    assetType,
-				"currency":      currency,
-				"quantity":      quantity,
-				"current_price": currentPrice,
-				"value":         computedValue,
-			})
-			investmentsByType[assetType] = addDecimalStrings(investmentsByType[assetType], derefStr(computedValue))
-			totalInvestments = addDecimalStrings(totalInvestments, derefStr(computedValue))
-		}
-		totalAssets = addDecimalStrings(totalAssets, totalInvestments)
-
-		// --- LIABILITIES: loans (outstanding_balance) ---
-		loanRows, err := deps.Pool.Query(ctx,
-			`SELECT id, name, loan_type, currency, COALESCE(outstanding_balance, 0) AS outstanding
-			FROM loans
-			WHERE user_id = $1 AND deleted_at IS NULL
-			ORDER BY name`,
-			userID,
-		)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("loans query failed: %v", err)), nil
-		}
-		defer loanRows.Close()
-
-		loans := []map[string]any{}
-		loansByType := map[string]string{}
-		var totalLoans string
-
-		for loanRows.Next() {
-			var id, name, loanType, currency, outstanding string
-			if err := loanRows.Scan(&id, &name, &loanType, &currency, &outstanding); err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("loan scan failed: %v", err)), nil
-			}
-			loans = append(loans, map[string]any{
-				"id":                  id,
-				"name":                name,
-				"loan_type":           loanType,
-				"currency":            currency,
-				"outstanding_balance": outstanding,
-			})
-			loansByType[loanType] = addDecimalStrings(loansByType[loanType], outstanding)
-			totalLoans = addDecimalStrings(totalLoans, outstanding)
-		}
-		totalLiabilities = addDecimalStrings(totalLiabilities, totalLoans)
-
-		netWorth := addDecimalStrings(totalAssets, negate(totalLiabilities))
-
-		result := map[string]any{
-			"as_of":             time.Now().UTC().Format(time.RFC3339),
-			"currency":          baseCurrency,
-			"net_worth":         netWorth,
-			"total_assets":      totalAssets,
-			"total_liabilities": totalLiabilities,
-			"breakdown": map[string]any{
-				"assets": map[string]any{
-					"accounts":         assetsByType,
-					"investments":      investmentsByType,
-					"investments_total": totalInvestments,
-				},
-				"liabilities": map[string]any{
-					"credit_cards":  liabilitiesByType,
-					"loans":         loansByType,
-					"loans_total":   totalLoans,
-				},
-			},
-			"components": map[string]any{
-				"accounts":    accounts,
-				"investments": investments,
-				"loans":       loans,
-			},
-		}
-
 		data, err := json.Marshal(result)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
 		return mcp.NewToolResultText(string(data)), nil
 	}
+}
+
+// fxRateKey is the canonical key into the in-memory rates cache.
+// "USD/INR" means "1 USD = rate INR".
+type fxRateKey struct{ base, target string }
+
+// loadFXRates pulls the entire exchange_rates table into a map for O(1)
+// per-row lookup during net worth aggregation. The table is small
+// (one row per currency pair) so this is fine.
+func loadFXRates(ctx context.Context, pool *pgxpool.Pool) (map[fxRateKey]float64, error) {
+	rows, err := pool.Query(ctx, `SELECT base, target, rate FROM exchange_rates`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[fxRateKey]float64{}
+	for rows.Next() {
+		var base, target, rateStr string
+		if err := rows.Scan(&base, &target, &rateStr); err != nil {
+			return nil, err
+		}
+		rate, err := strconv.ParseFloat(rateStr, 64)
+		if err != nil || rate <= 0 {
+			continue
+		}
+		out[fxRateKey{base, target}] = rate
+	}
+	return out, nil
+}
+
+// convertAmount converts a numeric(18,4) string from native currency to
+// base currency. Returns (converted, true) if a direct or inverse rate
+// was found, or (original, false) if no rate exists (the agent should
+// still see the row in the per-currency breakdown).
+func convertAmount(amountStr, nativeCurrency, baseCurrency string, rates map[fxRateKey]float64) (string, bool) {
+	if nativeCurrency == baseCurrency {
+		return amountStr, true
+	}
+	amount, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		return "0", false
+	}
+	if rate, ok := rates[fxRateKey{nativeCurrency, baseCurrency}]; ok {
+		return formatDecimal(amount * rate), true
+	}
+	if rate, ok := rates[fxRateKey{baseCurrency, nativeCurrency}]; ok {
+		// inverse: amount_native = amount_base / rate
+		return formatDecimal(amount / rate), true
+	}
+	return amountStr, false
+}
+
+// networthResult is the shape returned by computeNetworth and stored
+// (as JSON) in the networth_snapshots table.
+type networthResult struct {
+	AsOf             string         `json:"as_of"`
+	Currency         string         `json:"currency"`
+	NetWorth         string         `json:"net_worth"`
+	TotalAssets      string         `json:"total_assets"`
+	TotalLiabilities string         `json:"total_liabilities"`
+	Breakdown        map[string]any `json:"breakdown"`
+	Components       map[string]any `json:"components"`
+	// Diagnostic: which native currencies were not converted to base.
+	// Helps the agent (and the user) know when set_exchange_rate is
+	// needed to get an accurate number.
+	UnconvertedCurrencies []string `json:"unconverted_currencies,omitempty"`
+}
+
+// computeNetworth is the canonical net-worth computation. Used by
+// get_networth (read-only) and snapshot_networth (writes a row). All
+// per-row amounts are converted to baseCurrency via the exchange_rates
+// table; rows whose native currency is unknown fall through to the
+// per-currency breakdown so they're still visible.
+func computeNetworth(ctx context.Context, pool *pgxpool.Pool, userID, baseCurrency string) (*networthResult, error) {
+	rates, err := loadFXRates(ctx, pool)
+	if err != nil {
+		return nil, fmt.Errorf("load fx rates: %w", err)
+	}
+
+	// --- ASSETS: bank/wallet/cash/savings accounts (positive balance) ---
+	// --- LIABILITIES: credit_card accounts (positive balance = owed) ---
+	accountRows, err := pool.Query(ctx,
+		`SELECT id, name, type, currency, opening_balance, credit_limit
+		FROM accounts
+		WHERE user_id = $1 AND deleted_at IS NULL
+		ORDER BY type, name`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("accounts query failed: %w", err)
+	}
+	defer accountRows.Close()
+
+	accounts := []map[string]any{}
+	assetsByType := map[string]string{
+		"bank": "0", "wallet": "0", "cash": "0", "savings": "0", "investment": "0",
+	}
+	liabilitiesByType := map[string]string{
+		"credit_card": "0",
+	}
+	// Per-native-currency subtotals (in base currency, after conversion).
+	// Lets the agent audit "what got counted" at a glance.
+	byCurrencyAssets := map[string]string{}
+	byCurrencyLiabilities := map[string]string{}
+	unconvertedSet := map[string]bool{}
+	var totalAssets, totalLiabilities string
+
+	for accountRows.Next() {
+		var id, name, typ, currency, openingBalance string
+		var creditLimit *string
+		if err := accountRows.Scan(&id, &name, &typ, &currency, &openingBalance, &creditLimit); err != nil {
+			return nil, fmt.Errorf("account scan failed: %w", err)
+		}
+		accounts = append(accounts, map[string]any{
+			"id":              id,
+			"name":            name,
+			"type":            typ,
+			"currency":        currency,
+			"opening_balance": openingBalance,
+			"credit_limit":    creditLimit,
+		})
+
+		converted, ok := convertAmount(openingBalance, currency, baseCurrency, rates)
+		if !ok {
+			unconvertedSet[currency] = true
+		}
+
+		if typ == "credit_card" {
+			liabilitiesByType["credit_card"] = addDecimalStrings(liabilitiesByType["credit_card"], converted)
+			byCurrencyLiabilities[currency] = addDecimalStrings(byCurrencyLiabilities[currency], converted)
+		} else {
+			assetsByType[typ] = addDecimalStrings(assetsByType[typ], converted)
+			byCurrencyAssets[currency] = addDecimalStrings(byCurrencyAssets[currency], converted)
+		}
+	}
+
+	for _, v := range assetsByType {
+		totalAssets = addDecimalStrings(totalAssets, v)
+	}
+	for _, v := range liabilitiesByType {
+		totalLiabilities = addDecimalStrings(totalLiabilities, v)
+	}
+
+	// --- ASSETS: investments (quantity * current_price, converted) ---
+	investmentRows, err := pool.Query(ctx,
+		`SELECT id, name, asset_type, currency, quantity, current_price,
+		        COALESCE(quantity, 0) * COALESCE(current_price, 0) AS computed_value
+		FROM investments
+		WHERE user_id = $1 AND deleted_at IS NULL
+		ORDER BY name`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("investments query failed: %w", err)
+	}
+	defer investmentRows.Close()
+
+	investments := []map[string]any{}
+	investmentsByType := map[string]string{}
+	var totalInvestments string
+
+	for investmentRows.Next() {
+		var id, name, assetType, currency string
+		var quantity, currentPrice, computedValue *string
+		if err := investmentRows.Scan(&id, &name, &assetType, &currency, &quantity, &currentPrice, &computedValue); err != nil {
+			return nil, fmt.Errorf("investment scan failed: %w", err)
+		}
+		investments = append(investments, map[string]any{
+			"id":            id,
+			"name":          name,
+			"asset_type":    assetType,
+			"currency":      currency,
+			"quantity":      quantity,
+			"current_price": currentPrice,
+			"value":         computedValue,
+		})
+		nativeValue := derefStr(computedValue)
+		converted, ok := convertAmount(nativeValue, currency, baseCurrency, rates)
+		if !ok {
+			unconvertedSet[currency] = true
+		}
+		investmentsByType[assetType] = addDecimalStrings(investmentsByType[assetType], converted)
+		totalInvestments = addDecimalStrings(totalInvestments, converted)
+		byCurrencyAssets[currency] = addDecimalStrings(byCurrencyAssets[currency], converted)
+	}
+	totalAssets = addDecimalStrings(totalAssets, totalInvestments)
+
+	// --- LIABILITIES: loans (outstanding_balance, converted) ---
+	loanRows, err := pool.Query(ctx,
+		`SELECT id, name, loan_type, currency, COALESCE(outstanding_balance, 0) AS outstanding
+		FROM loans
+		WHERE user_id = $1 AND deleted_at IS NULL
+		ORDER BY name`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("loans query failed: %w", err)
+	}
+	defer loanRows.Close()
+
+	loans := []map[string]any{}
+	loansByType := map[string]string{}
+	var totalLoans string
+
+	for loanRows.Next() {
+		var id, name, loanType, currency, outstanding string
+		if err := loanRows.Scan(&id, &name, &loanType, &currency, &outstanding); err != nil {
+			return nil, fmt.Errorf("loan scan failed: %w", err)
+		}
+		loans = append(loans, map[string]any{
+			"id":                  id,
+			"name":                name,
+			"loan_type":           loanType,
+			"currency":            currency,
+			"outstanding_balance": outstanding,
+		})
+		converted, ok := convertAmount(outstanding, currency, baseCurrency, rates)
+		if !ok {
+			unconvertedSet[currency] = true
+		}
+		loansByType[loanType] = addDecimalStrings(loansByType[loanType], converted)
+		totalLoans = addDecimalStrings(totalLoans, converted)
+		byCurrencyLiabilities[currency] = addDecimalStrings(byCurrencyLiabilities[currency], converted)
+	}
+	totalLiabilities = addDecimalStrings(totalLiabilities, totalLoans)
+
+	netWorth := addDecimalStrings(totalAssets, negate(totalLiabilities))
+
+	unconverted := make([]string, 0, len(unconvertedSet))
+	for c := range unconvertedSet {
+		unconverted = append(unconverted, c)
+	}
+	sort.Strings(unconverted) // stable for tests
+
+	return &networthResult{
+		AsOf:             time.Now().UTC().Format(time.RFC3339),
+		Currency:         baseCurrency,
+		NetWorth:         netWorth,
+		TotalAssets:      totalAssets,
+		TotalLiabilities: totalLiabilities,
+		Breakdown: map[string]any{
+			"assets": map[string]any{
+				"by_type":           assetsByType,
+				"by_type_investments": investmentsByType,
+				"investments_total": totalInvestments,
+				"by_currency":       byCurrencyAssets,
+			},
+			"liabilities": map[string]any{
+				"by_type":         liabilitiesByType,
+				"by_type_loans":   loansByType,
+				"loans_total":     totalLoans,
+				"by_currency":     byCurrencyLiabilities,
+			},
+		},
+		Components: map[string]any{
+			"accounts":    accounts,
+			"investments": investments,
+			"loans":       loans,
+		},
+		UnconvertedCurrencies: unconverted,
+	}, nil
 }
 
 // addDecimalStrings adds two numeric(18,4) string representations without
