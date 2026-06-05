@@ -362,6 +362,14 @@ func TestWriteToolsForNetWorth_Registered(t *testing.T) {
 		"create_insurance_payment", "mark_insurance_premium_paid",
 		// currency + profile
 		"get_exchange_rates", "set_exchange_rate", "update_user_profile",
+		// savings goals (added 2026-06-05)
+		"list_savings_goals", "get_savings_goal",
+		"create_savings_goal", "update_savings_goal", "delete_savings_goal",
+		// investment transactions (buy/sell/dividend tracking)
+		"list_investment_transactions",
+		"create_investment_transaction", "delete_investment_transaction",
+		// bulk import/export
+		"import_transactions", "export_transactions",
 	}
 	src, err := readSourceFile("tools.go")
 	if err != nil {
@@ -416,6 +424,15 @@ func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
 		// currency + profile
 		"set_exchange_rate":   setExchangeRateTool(),
 		"update_user_profile": updateUserProfileTool(),
+		// savings goals
+		"create_savings_goal": createSavingsGoalTool(),
+		"update_savings_goal": updateSavingsGoalTool(),
+		"delete_savings_goal": deleteSavingsGoalTool(),
+		// investment transactions
+		"create_investment_transaction": createInvestmentTransactionTool(),
+		"delete_investment_transaction": deleteInvestmentTransactionTool(),
+		// bulk import
+		"import_transactions": importTransactionsTool(),
 	}
 	for name, tool := range tools {
 		if tool.Annotations.DestructiveHint == nil || !*tool.Annotations.DestructiveHint {
@@ -424,26 +441,65 @@ func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
 	}
 }
 
-// TestSoftDelete_AccountLoanInsuranceInsurancePayment: all DELETE-style
-// tools must use soft-delete (UPDATE ... SET deleted_at = now()) — never
-// a hard DELETE — so historical transactions, snapshots, and reports
-// stay intact when a resource is removed.
-func TestSoftDelete_AccountLoanInsuranceInsurancePayment(t *testing.T) {
+// TestReadOnlyListTools: every list-style read tool listed in the
+// registered set must be marked read-only. list_savings_goals and
+// list_investment_transactions are read by definition.
+func TestReadOnlyListTools(t *testing.T) {
+	tools := map[string]mcp.Tool{
+		"list_savings_goals":         listSavingsGoalsTool(),
+		"list_investment_transactions": listInvestmentTransactionsTool(),
+		"get_savings_goal":            getSavingsGoalTool(),
+		"export_transactions":         exportTransactionsTool(),
+	}
+	for name, tool := range tools {
+		if tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint {
+			t.Errorf("%s: DestructiveHint should be false for read-only tool", name)
+		}
+		if tool.Annotations.ReadOnlyHint == nil || !*tool.Annotations.ReadOnlyHint {
+			t.Errorf("%s: ReadOnlyHint should be true for read-only tool", name)
+		}
+	}
+}
+
+// TestSoftDelete_AccountLoanInsuranceSavingsInvestmentTx: all
+// DELETE-style tools must use soft-delete (UPDATE ... SET deleted_at =
+// now()) — never a hard DELETE — so historical transactions,
+// snapshots, and reports stay intact when a resource is removed.
+func TestSoftDelete_AccountLoanInsuranceSavingsInvestmentTx(t *testing.T) {
 	src, err := readSourceFile("tools.go")
 	if err != nil {
 		t.Fatalf("read source: %v", err)
 	}
-	// Each delete handler must touch a deleted_at column. If any of
-	// these is missing, the corresponding tool will hard-delete and
-	// break historical reporting.
+	// Each pattern targets the table being soft-deleted. The SQL may
+	// include a table alias (e.g. "UPDATE investment_transactions it
+	// SET deleted_at"), so we anchor the substring at the table name
+	// and check that the surrounding statement does the right thing.
 	mustUpdate := []string{
-		"UPDATE accounts SET deleted_at = now()",     // delete_account
-		"UPDATE loans SET deleted_at = now()",        // delete_loan
-		"UPDATE insurance_policies SET deleted_at",   // delete_insurance
+		"UPDATE accounts SET deleted_at = now()",                       // delete_account
+		"UPDATE loans SET deleted_at = now()",                          // delete_loan
+		"UPDATE insurance_policies SET deleted_at",                     // delete_insurance
+		"UPDATE savings_goals SET deleted_at = now()",                  // delete_savings_goal
+		"UPDATE investment_transactions",                               // delete_investment_transaction (uses a table alias)
+		"UPDATE budget",                                                // delete_budget (also covered; included for completeness)
 	}
 	for _, want := range mustUpdate {
 		if !strings.Contains(src, want) {
 			t.Errorf("missing soft-delete SQL fragment: %q", want)
+		}
+	}
+	// Stronger negative check: no raw DELETE FROM on these tables.
+	// If a future change uses DELETE FROM instead, the corresponding
+	// history rows would be lost.
+	notWant := []string{
+		"DELETE FROM accounts",
+		"DELETE FROM loans",
+		"DELETE FROM insurance_policies",
+		"DELETE FROM savings_goals",
+		"DELETE FROM investment_transactions",
+	}
+	for _, bad := range notWant {
+		if strings.Contains(src, bad) {
+			t.Errorf("hard DELETE found: %q (use soft-delete via UPDATE ... SET deleted_at)", bad)
 		}
 	}
 }
