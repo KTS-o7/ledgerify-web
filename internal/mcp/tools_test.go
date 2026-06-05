@@ -344,6 +344,22 @@ func snakeToCamel(s string) string {
 // agent to actually MANAGE net worth (not just read it) must be
 // registered. If any of these is missing, the agent's "I added a new
 // loan" prompt silently fails.
+// readSourceFiles reads multiple source files and joins them so
+// source-level tests can find constructor/handler definitions that
+// live in dedicated per-feature files (e.g. auth_tools.go).
+func readSourceFiles(names ...string) (string, error) {
+	var sb strings.Builder
+	for _, n := range names {
+		data, err := os.ReadFile(n)
+		if err != nil {
+			return "", err
+		}
+		sb.Write(data)
+		sb.WriteByte('\n')
+	}
+	return sb.String(), nil
+}
+
 func TestWriteToolsForNetWorth_Registered(t *testing.T) {
 	want := []string{
 		// accounts
@@ -374,8 +390,11 @@ func TestWriteToolsForNetWorth_Registered(t *testing.T) {
 		// MCP the no-hiccups net-worth toolchain" follow-up)
 		"snapshot_networth", "list_networth_snapshots",
 		"get_networth_trend", "delete_networth_snapshot",
+		// auth self-service (added 2026-06-05 — so an LLM agent
+		// can renew its own token and report its expiry to the user)
+		"refresh_token", "get_auth_status",
 	}
-	src, err := readSourceFile("tools.go")
+	src, err := readSourceFiles("tools.go", "auth_tools.go")
 	if err != nil {
 		t.Fatalf("read source: %v", err)
 	}
@@ -439,6 +458,8 @@ func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
 		"import_transactions": importTransactionsTool(),
 		// networth snapshots
 		"delete_networth_snapshot": deleteNetworthSnapshotTool(),
+		// auth
+		"refresh_token": refreshTokenTool(),
 	}
 	for name, tool := range tools {
 		if tool.Annotations.DestructiveHint == nil || !*tool.Annotations.DestructiveHint {
@@ -459,6 +480,7 @@ func TestReadOnlyListTools(t *testing.T) {
 		"snapshot_networth":            snapshotNetworthTool(),
 		"list_networth_snapshots":      listNetworthSnapshotsTool(),
 		"get_networth_trend":           getNetworthTrendTool(),
+		"get_auth_status":              getAuthStatusTool(),
 	}
 	for name, tool := range tools {
 		if tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint {

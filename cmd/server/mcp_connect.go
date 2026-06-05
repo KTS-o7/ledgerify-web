@@ -138,6 +138,14 @@ const mcpConnectPage = `<!doctype html>
       <button data-copy-target="token">Copy</button>
     </div>
     <p class="muted">SSE endpoint: <code id="sse-url"></code></p>
+    <p class="muted" style="margin-top: 0.75rem;">Already have a token that's about to expire? <a href="#" id="refresh-link">Paste it here to get a new one (no re-login needed)</a>.</p>
+    <div id="refresh-form" class="hidden" style="margin-top: 0.75rem;">
+      <div class="token-row">
+        <input id="old-token" type="password" placeholder="Paste current (still-valid) bearer token">
+        <button id="refresh-btn">Refresh</button>
+      </div>
+      <p class="err hidden" id="refresh-err"></p>
+    </div>
   </div>
 
   <div class="card hidden" id="config-card">
@@ -257,6 +265,78 @@ const mcpConnectPage = `<!doctype html>
       setTimeout(function () { btn.textContent = orig; btn.disabled = false; }, 1400);
     }).catch(function () { target.select && target.select(); });
   });
+
+  // Refresh-token flow: paste an existing (still-valid) bearer
+  // token, get a new one in return. Useful when the agent is
+  // about to time out and the user wants to keep going without
+  // re-entering their password.
+  var refreshLink = document.getElementById('refresh-link');
+  var refreshForm = document.getElementById('refresh-form');
+  if (refreshLink) {
+    refreshLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      refreshForm.classList.toggle('hidden');
+      if (!refreshForm.classList.contains('hidden')) {
+        document.getElementById('old-token').focus();
+      }
+    });
+  }
+  var refreshBtn = document.getElementById('refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      var errEl = document.getElementById('refresh-err');
+      errEl.classList.add('hidden');
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Refreshing...';
+      var oldToken = document.getElementById('old-token').value.trim();
+      if (!oldToken) {
+        errEl.textContent = 'Paste a token first.';
+        errEl.classList.remove('hidden');
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+        return;
+      }
+      fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + oldToken }
+      })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) { throw new Error((j && j.error) || ('HTTP ' + r.status)); });
+        }
+        return r.json();
+      })
+      .then(function (resp) {
+        // Splat the refreshed token into the existing display + configs
+        // so the user can copy from anywhere.
+        var configs = buildConfigs(resp.token);
+        setValue('token', resp.token);
+        setText('sse-url', configs.sseUrl);
+        setText('claude-desktop-cfg', configs.claudeDesktop);
+        setText('cursor-cfg', configs.cursor);
+        setText('cli-cmd', configs.cli);
+        if (resp.expires_at) {
+          setText('user-name', (resp.user && (resp.user.name || resp.user.email)) || document.getElementById('user-name').textContent);
+        }
+        show('token-card');
+        show('config-card');
+        if (!document.getElementById('user-card').classList.contains('hidden') === false) show('user-card');
+        document.getElementById('old-token').value = '';
+        refreshForm.classList.add('hidden');
+        errEl.textContent = '';
+        errEl.classList.add('hidden');
+        window.scrollTo({ top: document.getElementById('token-card').offsetTop, behavior: 'smooth' });
+      })
+      .catch(function (err) {
+        errEl.textContent = 'Refresh failed: ' + err.message + ' (the token may have already expired — log in again)';
+        errEl.classList.remove('hidden');
+      })
+      .finally(function () {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+      });
+    });
+  }
 })();
 </script>
 </body>

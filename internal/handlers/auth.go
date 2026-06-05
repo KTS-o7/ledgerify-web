@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/KTS-o7/ledgerify-web/internal/db"
@@ -156,6 +157,58 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, map[string]string{"message": "logged out"})
+}
+
+// POST /api/v1/auth/refresh
+//
+// Accepts a still-valid bearer token (via Authorization header) and
+// returns a new one. Used by MCP clients and the /mcp-connect host
+// page to renew a token before (or right after) it expires without
+// asking the user to re-enter their password.
+//
+// Returns 401 if the token is missing, malformed, or already expired.
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		utils.Unauthorized(w)
+		return
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		utils.Unauthorized(w)
+		return
+	}
+	tokenStr := strings.TrimSpace(parts[1])
+
+	claims, err := h.jwtCfg.ValidateToken(tokenStr)
+	if err != nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	// Issue a fresh token for the same user. We don't extend the
+	// existing one (no revocation list); the new token has a fresh
+	// TTL from now.
+	newToken, expiry, err := h.jwtCfg.GenerateToken(claims.UserID, claims.Email)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	// Look up the user record for the response payload.
+	userUUID := stringToUUID(claims.UserID)
+	user, err := h.q.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		// Token was valid but user no longer exists / is soft-deleted.
+		utils.Unauthorized(w)
+		return
+	}
+
+	utils.OK(w, map[string]any{
+		"token":      newToken,
+		"expires_at": expiry.UTC().Format("2006-01-02T15:04:05Z"),
+		"user":       userToResponse(user),
+	})
 }
 
 // GET /api/v1/auth/me

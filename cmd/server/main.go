@@ -134,6 +134,13 @@ func main() {
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
+		// /refresh sits outside the auth-middleware group: it
+		// reads the bearer token from the Authorization header
+		// itself, validates it, and issues a new one. Putting
+		// it inside the middleware group would create a chicken-
+		// and-egg: the only way to get a token is to already
+		// have one.
+		r.Post("/refresh", authHandler.Refresh)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(jwtCfg))

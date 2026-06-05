@@ -16,17 +16,19 @@ type Claims struct {
 type JWTConfig struct {
 	Secret string
 	Issuer string
+	TTL    time.Duration
 }
 
 func NewJWTConfig(cfg *Config) *JWTConfig {
 	return &JWTConfig{
 		Secret: cfg.JWTSecret,
 		Issuer: cfg.JWTIssuer,
+		TTL:    cfg.JWTTTL,
 	}
 }
 
 func (c *JWTConfig) GenerateToken(userID, email string) (string, time.Time, error) {
-	expiry := time.Now().Add(7 * 24 * time.Hour)
+	expiry := time.Now().Add(c.TTL)
 	claims := &Claims{
 		UserID: userID,
 		Email:  email,

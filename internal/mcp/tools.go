@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KTS-o7/ledgerify-web/internal/auth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -19,6 +20,7 @@ import (
 
 type ToolDeps struct {
 	Pool *pgxpool.Pool
+	JWT  *auth.JWTConfig
 }
 
 // readOnlyAnnotation marks a tool as non-destructive for MCP clients.
@@ -92,6 +94,8 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: listNetworthSnapshotsTool(), Handler: listNetworthSnapshotsHandler(deps)},
 		{Tool: getNetworthTrendTool(), Handler: getNetworthTrendHandler(deps)},
 		{Tool: deleteNetworthSnapshotTool(), Handler: deleteNetworthSnapshotHandler(deps)},
+		{Tool: refreshTokenTool(), Handler: refreshTokenHandler(deps)},
+		{Tool: getAuthStatusTool(), Handler: getAuthStatusHandler(deps)},
 		{Tool: getExchangeRatesTool(), Handler: getExchangeRatesHandler(deps)},
 		{Tool: setExchangeRateTool(), Handler: setExchangeRateHandler(deps)},
 		{Tool: updateUserProfileTool(), Handler: updateUserProfileHandler(deps)},

@@ -13,7 +13,7 @@ func NewMCPServer(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) (*server.MCPServer
 		server.WithResourceCapabilities(true, true),
 	)
 
-	deps := &ToolDeps{Pool: pool}
+	deps := &ToolDeps{Pool: pool, JWT: jwtCfg}
 
 	RegisterTools(s, deps)
 	RegisterResources(s, deps)

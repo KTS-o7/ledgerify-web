@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateToken_Success(t *testing.T) {
-	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer"}
+	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer", TTL: 1 * time.Hour}
 
 	token, expiry, err := jc.GenerateToken("user-1", "user@example.com")
 	if err != nil {
@@ -23,7 +23,7 @@ func TestGenerateToken_Success(t *testing.T) {
 }
 
 func TestValidateToken_Success(t *testing.T) {
-	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer"}
+	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer", TTL: 1 * time.Hour}
 
 	token, _, err := jc.GenerateToken("user-1", "user@example.com")
 	if err != nil {
@@ -46,8 +46,8 @@ func TestValidateToken_Success(t *testing.T) {
 }
 
 func TestValidateToken_InvalidSecret(t *testing.T) {
-	jc1 := &JWTConfig{Secret: "secret-one", Issuer: "issuer"}
-	jc2 := &JWTConfig{Secret: "secret-two", Issuer: "issuer"}
+	jc1 := &JWTConfig{Secret: "secret-one", Issuer: "issuer", TTL: 1 * time.Hour}
+	jc2 := &JWTConfig{Secret: "secret-two", Issuer: "issuer", TTL: 1 * time.Hour}
 
 	token, _, err := jc1.GenerateToken("user-1", "user@example.com")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestValidateToken_InvalidSecret(t *testing.T) {
 }
 
 func TestValidateToken_MalformedToken(t *testing.T) {
-	jc := &JWTConfig{Secret: "test-secret", Issuer: "issuer"}
+	jc := &JWTConfig{Secret: "test-secret", Issuer: "issuer", TTL: 1 * time.Hour}
 
 	_, err := jc.ValidateToken("not-a-valid-jwt")
 	if err == nil {
@@ -70,7 +70,7 @@ func TestValidateToken_MalformedToken(t *testing.T) {
 }
 
 func TestValidateToken_ExpiredToken(t *testing.T) {
-	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer"}
+	jc := &JWTConfig{Secret: "test-secret", Issuer: "test-issuer", TTL: 1 * time.Hour}
 
 	claims := &Claims{
 		UserID: "user-1",
