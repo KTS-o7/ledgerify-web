@@ -7,7 +7,7 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
 )
 
-func NewMCPServer(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) (*server.MCPServer, *server.SSEServer) {
+func NewMCPServer(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) (*server.MCPServer, *server.SSEServer, *server.StreamableHTTPServer) {
 	s := server.NewMCPServer("ledgerify", "1.0.0",
 		server.WithToolCapabilities(true),
 		server.WithResourceCapabilities(true, true),
@@ -25,5 +25,10 @@ func NewMCPServer(pool *pgxpool.Pool, jwtCfg *auth.JWTConfig) (*server.MCPServer
 		server.WithSSEContextFunc(AuthMiddleware(jwtCfg)),
 	)
 
-	return s, sse
+	streamable := server.NewStreamableHTTPServer(s,
+		server.WithEndpointPath("/api/v1/mcp/stream"),
+		server.WithHTTPContextFunc(AuthMiddleware(jwtCfg)),
+	)
+
+	return s, sse, streamable
 }

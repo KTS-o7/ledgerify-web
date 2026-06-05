@@ -112,7 +112,7 @@ func main() {
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
 	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
-	_, sseServer := mcp.NewMCPServer(pool, jwtCfg)
+	_, sseServer, streamableServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
 	r := chi.NewRouter()
@@ -242,6 +242,7 @@ func main() {
 
 		r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
 		r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
+		r.Handle("/api/v1/mcp/stream", streamableServer)
 	})
 
 	// SPA catch-all: serve SolidJS frontend
