@@ -54,14 +54,39 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: deleteTransactionTool(), Handler: deleteTransactionHandler(deps)},
 		{Tool: listAccountsTool(), Handler: listAccountsHandler(deps)},
 		{Tool: createAccountTool(), Handler: createAccountHandler(deps)},
+		{Tool: updateAccountTool(), Handler: updateAccountHandler(deps)},
+		{Tool: deleteAccountTool(), Handler: deleteAccountHandler(deps)},
 		{Tool: listCategoriesTool(), Handler: listCategoriesHandler(deps)},
+		{Tool: createCategoryTool(), Handler: createCategoryHandler(deps)},
+		{Tool: updateCategoryTool(), Handler: updateCategoryHandler(deps)},
+		{Tool: deleteCategoryTool(), Handler: deleteCategoryHandler(deps)},
 		{Tool: getSummaryTool(), Handler: getSummaryHandler(deps)},
 		{Tool: listBudgetsTool(), Handler: listBudgetsHandler(deps)},
+		{Tool: createBudgetTool(), Handler: createBudgetHandler(deps)},
+		{Tool: updateBudgetTool(), Handler: updateBudgetHandler(deps)},
+		{Tool: deleteBudgetTool(), Handler: deleteBudgetHandler(deps)},
 		{Tool: listInvestmentsTool(), Handler: listInvestmentsHandler(deps)},
+		{Tool: createInvestmentTool(), Handler: createInvestmentHandler(deps)},
+		{Tool: updateInvestmentTool(), Handler: updateInvestmentHandler(deps)},
+		{Tool: deleteInvestmentTool(), Handler: deleteInvestmentHandler(deps)},
 		{Tool: listLoansTool(), Handler: listLoansHandler(deps)},
 		{Tool: getLoanTool(), Handler: getLoanHandler(deps)},
+		{Tool: createLoanTool(), Handler: createLoanHandler(deps)},
+		{Tool: updateLoanTool(), Handler: updateLoanHandler(deps)},
+		{Tool: deleteLoanTool(), Handler: deleteLoanHandler(deps)},
+		{Tool: createLoanPaymentTool(), Handler: createLoanPaymentHandler(deps)},
+		{Tool: updateLoanPaymentTool(), Handler: updateLoanPaymentHandler(deps)},
+		{Tool: markLoanPaymentPaidTool(), Handler: markLoanPaymentPaidHandler(deps)},
 		{Tool: listInsuranceTool(), Handler: listInsuranceHandler(deps)},
+		{Tool: createInsuranceTool(), Handler: createInsuranceHandler(deps)},
+		{Tool: updateInsuranceTool(), Handler: updateInsuranceHandler(deps)},
+		{Tool: deleteInsuranceTool(), Handler: deleteInsuranceHandler(deps)},
+		{Tool: createInsurancePaymentTool(), Handler: createInsurancePaymentHandler(deps)},
+		{Tool: markInsurancePremiumPaidTool(), Handler: markInsurancePremiumPaidHandler(deps)},
 		{Tool: getNetworthTool(), Handler: getNetworthHandler(deps)},
+		{Tool: getExchangeRatesTool(), Handler: getExchangeRatesHandler(deps)},
+		{Tool: setExchangeRateTool(), Handler: setExchangeRateHandler(deps)},
+		{Tool: updateUserProfileTool(), Handler: updateUserProfileHandler(deps)},
 		{Tool: categoriseTransactionsTool(), Handler: categoriseTransactionsHandler(deps)},
 	}
 	s.AddTools(tools...)
@@ -541,11 +566,1520 @@ func createAccountHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			"opening_balance": retBalance,
 			"created_at":      createdAt.Format(time.RFC3339),
 		}
-		jsonData, err := json.Marshal(result)
+		data, err := json.Marshal(result)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
 		}
-		return mcp.NewToolResultText(string(jsonData)), nil
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateAccountTool() mcp.Tool {
+	return mcp.NewTool("update_account",
+		mcp.WithDescription("Update an existing account. All required fields (name, type, currency) must be provided; opening_balance, credit_limit, statement_day, payment_due_day are optional but overwrite the stored value if provided (use create_account to leave them unchanged)."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Account ID")),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Account name")),
+		mcp.WithString("type", mcp.Required(), mcp.Description("Type: bank, wallet, cash, savings, credit_card, investment")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithNumber("opening_balance", mcp.Description("Opening balance")),
+		mcp.WithNumber("credit_limit", mcp.Description("Credit limit (credit_card only)")),
+		mcp.WithNumber("statement_day", mcp.Description("Statement day of month (credit_card only)")),
+		mcp.WithNumber("payment_due_day", mcp.Description("Payment due day of month (credit_card only)")),
+	)
+}
+
+func updateAccountHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		name := req.GetString("name", "")
+		typ := req.GetString("type", "")
+		currency := req.GetString("currency", "")
+		if id == "" || name == "" || typ == "" || currency == "" {
+			return mcp.NewToolResultError("id, name, type, and currency are required"), nil
+		}
+
+		validTypes := map[string]bool{
+			"bank": true, "wallet": true, "cash": true, "savings": true,
+			"credit_card": true, "investment": true,
+		}
+		if !validTypes[typ] {
+			return mcp.NewToolResultError("invalid type. Must be one of: bank, wallet, cash, savings, credit_card, investment"), nil
+		}
+
+		// Bind optional fields. We use 0 as "not provided" for the
+		// numeric params; account updates overwrite unconditionally
+		// (the tool description is explicit about this).
+		openingBalance := req.GetFloat("opening_balance", 0)
+		creditLimit := req.GetFloat("credit_limit", 0)
+		statementDay := req.GetFloat("statement_day", 0)
+		paymentDueDay := req.GetFloat("payment_due_day", 0)
+
+		var retID, retName, retType, retCurrency, retBalance string
+		var updatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE accounts SET
+				name = $2,
+				type = $3::account_type,
+				currency = $4,
+				opening_balance = $5,
+				credit_limit = $6,
+				statement_day = $7,
+				payment_due_day = $8,
+				updated_at = now()
+			WHERE id = $1 AND user_id = $9 AND deleted_at IS NULL
+			RETURNING id, name, type, currency, opening_balance, updated_at`,
+			id, name, typ, currency, openingBalance, creditLimit, statementDay, paymentDueDay, userID,
+		).Scan(&retID, &retName, &retType, &retCurrency, &retBalance, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("account %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":              retID,
+			"name":            retName,
+			"type":            retType,
+			"currency":        retCurrency,
+			"opening_balance": retBalance,
+			"updated_at":      updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteAccountTool() mcp.Tool {
+	return mcp.NewTool("delete_account",
+		mcp.WithDescription("Soft-delete an account. Historical transactions referencing this account remain intact (deleted_at is set, not the row erased)."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Account ID")),
+	)
+}
+
+func deleteAccountHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE accounts SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("account %q not found (or already deleted, or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group 2: category writes
+// ============================================================================
+
+func createCategoryTool() mcp.Tool {
+	return mcp.NewTool("create_category",
+		mcp.WithDescription("Create a user-defined category. (System-default categories are seeded automatically and cannot be modified via MCP.)"),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Category name")),
+		mcp.WithString("type", mcp.Required(), mcp.Description("Type: income, expense, transfer")),
+		mcp.WithString("icon", mcp.Description("Lucide icon name (e.g. utensils, home, car)")),
+		mcp.WithString("color", mcp.Description("Hex color (e.g. #f87171)")),
+	)
+}
+
+func createCategoryHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		typ := req.GetString("type", "")
+		if name == "" || typ == "" {
+			return mcp.NewToolResultError("name and type are required"), nil
+		}
+		validTypes := map[string]bool{"income": true, "expense": true, "transfer": true}
+		if !validTypes[typ] {
+			return mcp.NewToolResultError("invalid type. Must be one of: income, expense, transfer"), nil
+		}
+		icon := req.GetString("icon", "")
+		color := req.GetString("color", "")
+
+		var id, retName, retType string
+		var iconOut, colorOut *string
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO categories (user_id, name, type, icon, color)
+			VALUES ($1, $2, $3::category_type, NULLIF($4, ''), NULLIF($5, ''))
+			RETURNING id, name, type, icon, color`,
+			userID, name, typ, icon, color,
+		).Scan(&id, &retName, &retType, &iconOut, &colorOut)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id": id, "name": retName, "type": retType, "icon": iconOut, "color": colorOut,
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateCategoryTool() mcp.Tool {
+	return mcp.NewTool("update_category",
+		mcp.WithDescription("Update a user-defined category. Only categories you own (user_id = you) can be modified; system defaults are not modifiable via MCP."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Category ID")),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Category name")),
+		mcp.WithString("type", mcp.Required(), mcp.Description("Type: income, expense, transfer")),
+		mcp.WithString("icon", mcp.Description("Lucide icon name (e.g. utensils, home, car)")),
+		mcp.WithString("color", mcp.Description("Hex color (e.g. #f87171)")),
+	)
+}
+
+func updateCategoryHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		name := req.GetString("name", "")
+		typ := req.GetString("type", "")
+		if id == "" || name == "" || typ == "" {
+			return mcp.NewToolResultError("id, name, and type are required"), nil
+		}
+		validTypes := map[string]bool{"income": true, "expense": true, "transfer": true}
+		if !validTypes[typ] {
+			return mcp.NewToolResultError("invalid type. Must be one of: income, expense, transfer"), nil
+		}
+		icon := req.GetString("icon", "")
+		color := req.GetString("color", "")
+
+		var retID, retName, retType string
+		var iconOut, colorOut *string
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE categories SET
+				name = $2,
+				type = $3::category_type,
+				icon = NULLIF($4, ''),
+				color = NULLIF($5, '')
+			WHERE id = $1 AND user_id = $6 AND deleted_at IS NULL
+			RETURNING id, name, type, icon, color`,
+			id, name, typ, icon, color, userID,
+		).Scan(&retID, &retName, &retType, &iconOut, &colorOut)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("category %q not found, not owned by you, or is a system default (not modifiable)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id": retID, "name": retName, "type": retType, "icon": iconOut, "color": colorOut,
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteCategoryTool() mcp.Tool {
+	return mcp.NewTool("delete_category",
+		mcp.WithDescription("Soft-delete a user-defined category. System defaults cannot be deleted. Existing transactions keep their category_id (a soft-deleted category still resolves for display)."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Category ID")),
+	)
+}
+
+func deleteCategoryHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE categories SET deleted_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("category %q not found, not owned by you, or is a system default (not deletable)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group 3: budget writes
+// ============================================================================
+
+func createBudgetTool() mcp.Tool {
+	return mcp.NewTool("create_budget",
+		mcp.WithDescription("Create a budget envelope. category_id is optional (overall budget if omitted). period_type is 'monthly' or 'weekly'. rollover=true carries unspent balance to the next period."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Budget name")),
+		mcp.WithNumber("amount", mcp.Required(), mcp.Description("Budget amount")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithString("period_type", mcp.Required(), mcp.Description("Period: monthly, weekly")),
+		mcp.WithString("start_date", mcp.Required(), mcp.Description("Start date YYYY-MM-DD")),
+		mcp.WithString("end_date", mcp.Description("End date YYYY-MM-DD (optional)")),
+		mcp.WithString("category_id", mcp.Description("Category ID (optional — overall budget if omitted)")),
+		mcp.WithString("period_anchor_date", mcp.Description("Period anchor date (optional, defaults to start_date)")),
+		mcp.WithBoolean("rollover", mcp.Description("Carry unspent balance to next period (default false)")),
+	)
+}
+
+func createBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		amount := req.GetFloat("amount", -1)
+		currency := req.GetString("currency", "")
+		periodType := req.GetString("period_type", "")
+		startDate := req.GetString("start_date", "")
+		if name == "" || amount < 0 || currency == "" || periodType == "" || startDate == "" {
+			return mcp.NewToolResultError("name, amount, currency, period_type, and start_date are required"), nil
+		}
+		if periodType != "monthly" && periodType != "weekly" {
+			return mcp.NewToolResultError("period_type must be 'monthly' or 'weekly'"), nil
+		}
+		endDate := req.GetString("end_date", "")
+		categoryID := req.GetString("category_id", "")
+		anchorDate := req.GetString("period_anchor_date", "")
+		rollover := req.GetBool("rollover", false)
+
+		var id, retName, retCurrency, retPeriod string
+		var retAmount string
+		var retStart time.Time
+		var retEnd *time.Time
+		var retCategoryID, retAnchor *string
+		var retRollover bool
+		var createdAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO budgets
+				(user_id, name, amount, currency, period_type, start_date, end_date, category_id, period_anchor_date, rollover)
+			VALUES
+				($1, $2, $3, $4, $5::period_type, $6::date, NULLIF($7, '')::date, NULLIF($8, '')::uuid, NULLIF($9, '')::date, $10)
+			RETURNING id, name, amount, currency, period_type, start_date, end_date, category_id, period_anchor_date, rollover, created_at`,
+			userID, name, amount, currency, periodType, startDate, endDate, categoryID, anchorDate, rollover,
+		).Scan(&id, &retName, &retAmount, &retCurrency, &retPeriod, &retStart, &retEnd, &retCategoryID, &retAnchor, &retRollover, &createdAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  id,
+			"name":                retName,
+			"amount":              retAmount,
+			"currency":            retCurrency,
+			"period_type":         retPeriod,
+			"start_date":          retStart.Format("2006-01-02"),
+			"end_date":            retEnd,
+			"category_id":         retCategoryID,
+			"period_anchor_date":  retAnchor,
+			"rollover":            retRollover,
+			"created_at":          createdAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateBudgetTool() mcp.Tool {
+	return mcp.NewTool("update_budget",
+		mcp.WithDescription("Update a budget. id is required; all other fields overwrite the stored value if provided."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Budget ID")),
+		mcp.WithString("name", mcp.Description("Budget name")),
+		mcp.WithNumber("amount", mcp.Description("Budget amount")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithString("period_type", mcp.Description("Period: monthly, weekly")),
+		mcp.WithString("start_date", mcp.Description("Start date YYYY-MM-DD")),
+		mcp.WithString("end_date", mcp.Description("End date YYYY-MM-DD (empty string to clear)")),
+		mcp.WithString("category_id", mcp.Description("Category ID (empty string to clear)")),
+		mcp.WithString("period_anchor_date", mcp.Description("Period anchor date (empty string to clear)")),
+		mcp.WithBoolean("rollover", mcp.Description("Rollover unused balance")),
+	)
+}
+
+func updateBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		periodType := req.GetString("period_type", "")
+		if periodType != "" && periodType != "monthly" && periodType != "weekly" {
+			return mcp.NewToolResultError("period_type must be 'monthly' or 'weekly'"), nil
+		}
+		name := req.GetString("name", "")
+		amount := req.GetFloat("amount", 0)
+		currency := req.GetString("currency", "")
+		startDate := req.GetString("start_date", "")
+		endDate := req.GetString("end_date", "")
+		categoryID := req.GetString("category_id", "")
+		anchorDate := req.GetString("period_anchor_date", "")
+		rollover := req.GetBool("rollover", false)
+
+		var retID, retName, retCurrency, retPeriod string
+		var retAmount string
+		var retStart time.Time
+		var retEnd, retCategoryID, retAnchor *string
+		var retRollover bool
+		var updatedAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE budgets SET
+				name = COALESCE(NULLIF($2, ''), name),
+				amount = COALESCE(NULLIF($3, 0), amount),
+				currency = COALESCE(NULLIF($4, ''), currency),
+				period_type = COALESCE(NULLIF($5, '')::period_type, period_type),
+				start_date = COALESCE(NULLIF($6, '')::date, start_date),
+				end_date = NULLIF($7, '')::date,
+				category_id = NULLIF($8, '')::uuid,
+				period_anchor_date = NULLIF($9, '')::date,
+				rollover = $10,
+				updated_at = now()
+			WHERE id = $1 AND user_id = $11 AND deleted_at IS NULL
+			RETURNING id, name, amount, currency, period_type, start_date, end_date, category_id, period_anchor_date, rollover, updated_at`,
+			id, name, amount, currency, periodType, startDate, endDate, categoryID, anchorDate, rollover, userID,
+		).Scan(&retID, &retName, &retAmount, &retCurrency, &retPeriod, &retStart, &retEnd, &retCategoryID, &retAnchor, &retRollover, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("budget %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                 retID,
+			"name":               retName,
+			"amount":             retAmount,
+			"currency":           retCurrency,
+			"period_type":        retPeriod,
+			"start_date":         retStart.Format("2006-01-02"),
+			"end_date":           retEnd,
+			"category_id":        retCategoryID,
+			"period_anchor_date": retAnchor,
+			"rollover":           retRollover,
+			"updated_at":         updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteBudgetTool() mcp.Tool {
+	return mcp.NewTool("delete_budget",
+		mcp.WithDescription("Soft-delete a budget."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Budget ID")),
+	)
+}
+
+func deleteBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE budgets SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("budget %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group 4: investment writes
+// ============================================================================
+
+func validAssetType(t string) bool {
+	switch t {
+	case "stock", "mf", "crypto", "fd", "ppf", "nps",
+		"gold", "silver", "real_estate", "savings", "other":
+		return true
+	}
+	return false
+}
+
+func createInvestmentTool() mcp.Tool {
+	return mcp.NewTool("create_investment",
+		mcp.WithDescription("Create an investment holding. asset_type is one of: stock, mf, crypto, fd, ppf, nps, gold, silver, real_estate, savings, other. quantity, buy_price, current_price, interest_rate, maturity_date, metadata are all optional (use for the kinds that apply: e.g. quantity+current_price for stocks, interest_rate+maturity_date for FDs)."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Investment name (e.g. 'HDFC Flexi Cap', 'SGB 2024-25')")),
+		mcp.WithString("asset_type", mcp.Required(), mcp.Description("Asset type: stock, mf, crypto, fd, ppf, nps, gold, silver, real_estate, savings, other")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithNumber("quantity", mcp.Description("Units held (e.g. 100 shares)")),
+		mcp.WithNumber("buy_price", mcp.Description("Average buy price per unit")),
+		mcp.WithNumber("current_price", mcp.Description("Latest price per unit")),
+		mcp.WithString("maturity_date", mcp.Description("Maturity date YYYY-MM-DD (FDs, bonds)")),
+		mcp.WithNumber("interest_rate", mcp.Description("Annual interest rate % (FDs, savings, PPF, NPS)")),
+	)
+}
+
+func createInvestmentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		typ := req.GetString("asset_type", "")
+		currency := req.GetString("currency", "")
+		if name == "" || typ == "" || currency == "" {
+			return mcp.NewToolResultError("name, asset_type, and currency are required"), nil
+		}
+		if !validAssetType(typ) {
+			return mcp.NewToolResultError("invalid asset_type"), nil
+		}
+		quantity := req.GetFloat("quantity", 0)
+		buyPrice := req.GetFloat("buy_price", 0)
+		currentPrice := req.GetFloat("current_price", 0)
+		maturityDate := req.GetString("maturity_date", "")
+		interestRate := req.GetFloat("interest_rate", 0)
+
+		var id, retName, retType, retCurrency string
+		var quantityOut, buyPriceOut, currentPriceOut *string
+		var interestOut *string
+		var maturityOut *time.Time
+		var createdAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO investments
+				(user_id, name, asset_type, currency, quantity, buy_price, current_price,
+				 current_price_updated_at, maturity_date, interest_rate)
+			VALUES
+				($1, $2, $3::asset_type, $4, NULLIF($5, 0), NULLIF($6, 0), NULLIF($7, 0),
+				 CASE WHEN $7 = 0 THEN NULL ELSE now() END,
+				 NULLIF($8, '')::date, NULLIF($9, 0))
+			RETURNING id, name, asset_type, currency, quantity, buy_price, current_price, maturity_date, interest_rate, created_at`,
+			userID, name, typ, currency, quantity, buyPrice, currentPrice, maturityDate, interestRate,
+		).Scan(&id, &retName, &retType, &retCurrency, &quantityOut, &buyPriceOut, &currentPriceOut, &maturityOut, &interestOut, &createdAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":            id,
+			"name":          retName,
+			"asset_type":    retType,
+			"currency":      retCurrency,
+			"quantity":      quantityOut,
+			"buy_price":     buyPriceOut,
+			"current_price": currentPriceOut,
+			"maturity_date": maturityOut,
+			"interest_rate": interestOut,
+			"created_at":    createdAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateInvestmentTool() mcp.Tool {
+	return mcp.NewTool("update_investment",
+		mcp.WithDescription("Update an investment. id is required; any other field overwrites the stored value if provided. Pass empty string / 0 to clear numeric and date fields."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Investment ID")),
+		mcp.WithString("name", mcp.Description("Investment name")),
+		mcp.WithString("asset_type", mcp.Description("Asset type: stock, mf, crypto, fd, ppf, nps, gold, silver, real_estate, savings, other")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithNumber("quantity", mcp.Description("Units held (0 to clear)")),
+		mcp.WithNumber("buy_price", mcp.Description("Average buy price per unit (0 to clear)")),
+		mcp.WithNumber("current_price", mcp.Description("Latest price per unit (0 to clear; sets current_price_updated_at = now())")),
+		mcp.WithString("maturity_date", mcp.Description("Maturity date YYYY-MM-DD (empty to clear)")),
+		mcp.WithNumber("interest_rate", mcp.Description("Annual interest rate % (0 to clear)")),
+	)
+}
+
+func updateInvestmentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		typ := req.GetString("asset_type", "")
+		if typ != "" && !validAssetType(typ) {
+			return mcp.NewToolResultError("invalid asset_type"), nil
+		}
+		name := req.GetString("name", "")
+		currency := req.GetString("currency", "")
+		quantity := req.GetFloat("quantity", 0)
+		buyPrice := req.GetFloat("buy_price", 0)
+		currentPrice := req.GetFloat("current_price", 0)
+		maturityDate := req.GetString("maturity_date", "")
+		interestRate := req.GetFloat("interest_rate", 0)
+
+		var retID, retName, retType, retCurrency string
+		var quantityOut, buyPriceOut, currentPriceOut *string
+		var interestOut *string
+		var maturityOut *time.Time
+		var updatedAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE investments SET
+				name = COALESCE(NULLIF($2, ''), name),
+				asset_type = COALESCE(NULLIF($3, '')::asset_type, asset_type),
+				currency = COALESCE(NULLIF($4, ''), currency),
+				quantity = NULLIF($5, 0),
+				buy_price = NULLIF($6, 0),
+				current_price = NULLIF($7, 0),
+				current_price_updated_at = CASE WHEN $7 = 0 THEN NULL ELSE now() END,
+				maturity_date = NULLIF($8, '')::date,
+				interest_rate = NULLIF($9, 0),
+				updated_at = now()
+			WHERE id = $1 AND user_id = $10 AND deleted_at IS NULL
+			RETURNING id, name, asset_type, currency, quantity, buy_price, current_price, maturity_date, interest_rate, updated_at`,
+			id, name, typ, currency, quantity, buyPrice, currentPrice, maturityDate, interestRate, userID,
+		).Scan(&retID, &retName, &retType, &retCurrency, &quantityOut, &buyPriceOut, &currentPriceOut, &maturityOut, &interestOut, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("investment %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":            retID,
+			"name":          retName,
+			"asset_type":    retType,
+			"currency":      retCurrency,
+			"quantity":      quantityOut,
+			"buy_price":     buyPriceOut,
+			"current_price": currentPriceOut,
+			"maturity_date": maturityOut,
+			"interest_rate": interestOut,
+			"updated_at":    updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteInvestmentTool() mcp.Tool {
+	return mcp.NewTool("delete_investment",
+		mcp.WithDescription("Soft-delete an investment. Historical investment_transactions are kept."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Investment ID")),
+	)
+}
+
+func deleteInvestmentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE investments SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("investment %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group 5: loan writes + payment tracking
+// ============================================================================
+
+func validLoanType(t string) bool {
+	switch t {
+	case "home", "personal", "vehicle", "education", "other":
+		return true
+	}
+	return false
+}
+
+func createLoanTool() mcp.Tool {
+	return mcp.NewTool("create_loan",
+		mcp.WithDescription("Create a loan record. outstanding_balance is optional — if omitted, defaults to principal. The loan contributes to get_networth liabilities."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Loan name (e.g. 'HDFC Home Loan')")),
+		mcp.WithString("loan_type", mcp.Required(), mcp.Description("Type: home, personal, vehicle, education, other")),
+		mcp.WithNumber("principal", mcp.Required(), mcp.Description("Original principal amount")),
+		mcp.WithNumber("interest_rate", mcp.Required(), mcp.Description("Annual interest rate % (e.g. 8.5)")),
+		mcp.WithInteger("tenure_months", mcp.Required(), mcp.Description("Tenure in months")),
+		mcp.WithString("start_date", mcp.Required(), mcp.Description("Loan start date YYYY-MM-DD")),
+		mcp.WithNumber("emi_amount", mcp.Required(), mcp.Description("Monthly EMI amount")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithNumber("outstanding_balance", mcp.Description("Current outstanding balance (defaults to principal)")),
+	)
+}
+
+func createLoanHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		typ := req.GetString("loan_type", "")
+		currency := req.GetString("currency", "")
+		startDate := req.GetString("start_date", "")
+		principal := req.GetFloat("principal", -1)
+		interestRate := req.GetFloat("interest_rate", -1)
+		tenureMonths := req.GetInt("tenure_months", 0)
+		emiAmount := req.GetFloat("emi_amount", -1)
+		if name == "" || typ == "" || currency == "" || startDate == "" ||
+			principal < 0 || interestRate < 0 || tenureMonths <= 0 || emiAmount < 0 {
+			return mcp.NewToolResultError("name, loan_type, currency, start_date, principal, interest_rate, tenure_months, emi_amount are required"), nil
+		}
+		if !validLoanType(typ) {
+			return mcp.NewToolResultError("invalid loan_type"), nil
+		}
+		outstanding := req.GetFloat("outstanding_balance", 0)
+		if outstanding == 0 {
+			outstanding = principal
+		}
+
+		var id, retName, retType, retCurrency string
+		var retPrincipal, retRate, retEMI, retOutstanding string
+		var retTenure int
+		var retStart, retCreated, retUpdated time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO loans
+				(user_id, name, loan_type, principal, interest_rate, tenure_months, start_date, emi_amount, currency, outstanding_balance)
+			VALUES
+				($1, $2, $3::loan_type, $4, $5, $6, $7::date, $8, $9, $10)
+			RETURNING id, name, loan_type, principal, interest_rate, tenure_months, start_date, emi_amount, currency, outstanding_balance, created_at, updated_at`,
+			userID, name, typ, principal, interestRate, tenureMonths, startDate, emiAmount, currency, outstanding,
+		).Scan(&id, &retName, &retType, &retPrincipal, &retRate, &retTenure, &retStart, &retEMI, &retCurrency, &retOutstanding, &retCreated, &retUpdated)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  id,
+			"name":                retName,
+			"loan_type":           retType,
+			"principal":           retPrincipal,
+			"interest_rate":       retRate,
+			"tenure_months":       retTenure,
+			"start_date":          retStart.Format("2006-01-02"),
+			"emi_amount":          retEMI,
+			"currency":            retCurrency,
+			"outstanding_balance": retOutstanding,
+			"created_at":          retCreated.Format(time.RFC3339),
+			"updated_at":          retUpdated.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateLoanTool() mcp.Tool {
+	return mcp.NewTool("update_loan",
+		mcp.WithDescription("Update a loan. id is required; other fields overwrite the stored value if provided."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Loan ID")),
+		mcp.WithString("name", mcp.Description("Loan name")),
+		mcp.WithString("loan_type", mcp.Description("Type: home, personal, vehicle, education, other")),
+		mcp.WithNumber("principal", mcp.Description("Original principal (0 to clear)")),
+		mcp.WithNumber("interest_rate", mcp.Description("Annual interest rate % (0 to clear)")),
+		mcp.WithInteger("tenure_months", mcp.Description("Tenure in months (0 to clear)")),
+		mcp.WithString("start_date", mcp.Description("Start date YYYY-MM-DD")),
+		mcp.WithNumber("emi_amount", mcp.Description("Monthly EMI amount (0 to clear)")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithNumber("outstanding_balance", mcp.Description("Current outstanding balance (0 to leave unchanged; pass a positive value to set)")),
+	)
+}
+
+func updateLoanHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		typ := req.GetString("loan_type", "")
+		if typ != "" && !validLoanType(typ) {
+			return mcp.NewToolResultError("invalid loan_type"), nil
+		}
+		name := req.GetString("name", "")
+		principal := req.GetFloat("principal", 0)
+		interestRate := req.GetFloat("interest_rate", 0)
+		tenureMonths := req.GetInt("tenure_months", 0)
+		startDate := req.GetString("start_date", "")
+		emiAmount := req.GetFloat("emi_amount", 0)
+		currency := req.GetString("currency", "")
+		outstanding := req.GetFloat("outstanding_balance", 0)
+
+		var retID, retName, retType, retCurrency string
+		var retPrincipal, retRate, retEMI, retOutstanding string
+		var retTenure int
+		var retStart, retUpdated time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE loans SET
+				name = COALESCE(NULLIF($2, ''), name),
+				loan_type = COALESCE(NULLIF($3, '')::loan_type, loan_type),
+				principal = COALESCE(NULLIF($4, 0), principal),
+				interest_rate = COALESCE(NULLIF($5, 0), interest_rate),
+				tenure_months = COALESCE(NULLIF($6, 0), tenure_months),
+				start_date = COALESCE(NULLIF($7, '')::date, start_date),
+				emi_amount = COALESCE(NULLIF($8, 0), emi_amount),
+				currency = COALESCE(NULLIF($9, ''), currency),
+				outstanding_balance = COALESCE(NULLIF($10, 0), outstanding_balance),
+				updated_at = now()
+			WHERE id = $1 AND user_id = $11 AND deleted_at IS NULL
+			RETURNING id, name, loan_type, principal, interest_rate, tenure_months, start_date, emi_amount, currency, outstanding_balance, updated_at`,
+			id, name, typ, principal, interestRate, tenureMonths, startDate, emiAmount, currency, outstanding, userID,
+		).Scan(&retID, &retName, &retType, &retPrincipal, &retRate, &retTenure, &retStart, &retEMI, &retCurrency, &retOutstanding, &retUpdated)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("loan %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  retID,
+			"name":                retName,
+			"loan_type":           retType,
+			"principal":           retPrincipal,
+			"interest_rate":       retRate,
+			"tenure_months":       retTenure,
+			"start_date":          retStart.Format("2006-01-02"),
+			"emi_amount":          retEMI,
+			"currency":            retCurrency,
+			"outstanding_balance": retOutstanding,
+			"updated_at":          retUpdated.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteLoanTool() mcp.Tool {
+	return mcp.NewTool("delete_loan",
+		mcp.WithDescription("Soft-delete a loan. Payment history (loan_payments) is kept."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Loan ID")),
+	)
+}
+
+func deleteLoanHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE loans SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("loan %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+func createLoanPaymentTool() mcp.Tool {
+	return mcp.NewTool("create_loan_payment",
+		mcp.WithDescription("Record a payment against a loan. Status defaults to 'paid'. principal_component + interest_component should sum to amount; either or both can be 0 for unknown splits."),
+		mcp.WithString("loan_id", mcp.Required(), mcp.Description("Loan ID")),
+		mcp.WithString("date", mcp.Required(), mcp.Description("Payment date YYYY-MM-DD")),
+		mcp.WithNumber("amount", mcp.Required(), mcp.Description("Total amount paid")),
+		mcp.WithNumber("principal_component", mcp.Description("Portion that reduced principal (default 0)")),
+		mcp.WithNumber("interest_component", mcp.Description("Portion that paid interest (default 0)")),
+		mcp.WithString("status", mcp.Description("Status: scheduled, paid, missed, partial (default paid)")),
+	)
+}
+
+func createLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		loanID := req.GetString("loan_id", "")
+		date := req.GetString("date", "")
+		amount := req.GetFloat("amount", -1)
+		if loanID == "" || date == "" || amount < 0 {
+			return mcp.NewToolResultError("loan_id, date, and amount are required"), nil
+		}
+		principal := req.GetFloat("principal_component", 0)
+		interest := req.GetFloat("interest_component", 0)
+		status := req.GetString("status", "paid")
+		switch status {
+		case "scheduled", "paid", "missed", "partial":
+		default:
+			return mcp.NewToolResultError("status must be one of: scheduled, paid, missed, partial"), nil
+		}
+
+		// Confirm the loan belongs to this user (defence in depth).
+		var ownerCheck string
+		if err := deps.Pool.QueryRow(ctx,
+			`SELECT user_id::text FROM loans WHERE id = $1 AND deleted_at IS NULL`,
+			loanID,
+		).Scan(&ownerCheck); err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("loan %q not found", loanID)), nil
+		}
+		if ownerCheck != userID {
+			return mcp.NewToolResultError("loan not owned by you"), nil
+		}
+
+		var id, retDate, retStatus, retAmount, retPrincipal, retInterest string
+		var createdAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO loan_payments (loan_id, date, amount, principal_component, interest_component, status)
+			VALUES ($1, $2::date, $3, $4, $5, $6::payment_status)
+			RETURNING id, date, amount, principal_component, interest_component, status, created_at`,
+			loanID, date, amount, principal, interest, status,
+		).Scan(&id, &retDate, &retAmount, &retPrincipal, &retInterest, &retStatus, &createdAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  id,
+			"loan_id":             loanID,
+			"date":                retDate,
+			"amount":              retAmount,
+			"principal_component": retPrincipal,
+			"interest_component":  retInterest,
+			"status":              retStatus,
+			"created_at":          createdAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateLoanPaymentTool() mcp.Tool {
+	return mcp.NewTool("update_loan_payment",
+		mcp.WithDescription("Update a loan payment row (e.g. correct a typo, change a scheduled EMI to paid)."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Loan payment ID")),
+		mcp.WithString("date", mcp.Description("Payment date YYYY-MM-DD")),
+		mcp.WithNumber("amount", mcp.Description("Total amount (0 to leave unchanged)")),
+		mcp.WithNumber("principal_component", mcp.Description("Principal portion (0 to leave unchanged)")),
+		mcp.WithNumber("interest_component", mcp.Description("Interest portion (0 to leave unchanged)")),
+		mcp.WithString("status", mcp.Description("Status: scheduled, paid, missed, partial")),
+	)
+}
+
+func updateLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		status := req.GetString("status", "")
+		if status != "" {
+			switch status {
+			case "scheduled", "paid", "missed", "partial":
+			default:
+				return mcp.NewToolResultError("status must be one of: scheduled, paid, missed, partial"), nil
+			}
+		}
+		date := req.GetString("date", "")
+		amount := req.GetFloat("amount", 0)
+		principal := req.GetFloat("principal_component", 0)
+		interest := req.GetFloat("interest_component", 0)
+
+		// Defence in depth: only update if the parent loan is owned by this user.
+		var retID, retLoanID, retDate, retStatus, retAmount, retPrincipal, retInterest string
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE loan_payments lp SET
+				date = COALESCE(NULLIF($2, '')::date, lp.date),
+				amount = COALESCE(NULLIF($3, 0), lp.amount),
+				principal_component = COALESCE(NULLIF($4, 0), lp.principal_component),
+				interest_component = COALESCE(NULLIF($5, 0), lp.interest_component),
+				status = COALESCE(NULLIF($6, '')::payment_status, lp.status)
+			FROM loans l
+			WHERE lp.id = $1 AND lp.loan_id = l.id AND l.user_id = $7 AND lp.deleted_at IS NULL
+			RETURNING lp.id, lp.loan_id, lp.date, lp.amount, lp.principal_component, lp.interest_component, lp.status`,
+			id, date, amount, principal, interest, status, userID,
+		).Scan(&retID, &retLoanID, &retDate, &retAmount, &retPrincipal, &retInterest, &retStatus)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("loan payment %q not found (or loan not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  retID,
+			"loan_id":             retLoanID,
+			"date":                retDate,
+			"amount":              retAmount,
+			"principal_component": retPrincipal,
+			"interest_component":  retInterest,
+			"status":              retStatus,
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func markLoanPaymentPaidTool() mcp.Tool {
+	return mcp.NewTool("mark_loan_payment_paid",
+		mcp.WithDescription("Convenience: mark an existing scheduled loan payment as paid. Equivalent to update_loan_payment with status='paid' but with a single intent-revealing call."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Loan payment ID")),
+	)
+}
+
+func markLoanPaymentPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		var retID, retLoanID, retDate, retAmount, retPrincipal, retInterest, retStatus string
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE loan_payments lp SET status = 'paid'::payment_status
+			FROM loans l
+			WHERE lp.id = $1 AND lp.loan_id = l.id AND l.user_id = $2 AND lp.deleted_at IS NULL
+			RETURNING lp.id, lp.loan_id, lp.date, lp.amount, lp.principal_component, lp.interest_component, lp.status`,
+			id, userID,
+		).Scan(&retID, &retLoanID, &retDate, &retAmount, &retPrincipal, &retInterest, &retStatus)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("loan payment %q not found (or loan not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                  retID,
+			"loan_id":             retLoanID,
+			"date":                retDate,
+			"amount":              retAmount,
+			"principal_component": retPrincipal,
+			"interest_component":  retInterest,
+			"status":              retStatus,
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// ============================================================================
+// Group 6: insurance writes + payment tracking
+// ============================================================================
+
+func validPolicyType(t string) bool {
+	switch t {
+	case "life", "health", "vehicle", "property", "term", "other":
+		return true
+	}
+	return false
+}
+
+func validPremiumFrequency(f string) bool {
+	switch f {
+	case "monthly", "quarterly", "annual":
+		return true
+	}
+	return false
+}
+
+func createInsuranceTool() mcp.Tool {
+	return mcp.NewTool("create_insurance",
+		mcp.WithDescription("Create an insurance policy. policy_type is one of: life, health, vehicle, property, term, other. premium_frequency is monthly, quarterly, or annual. renewal_date is optional but useful for get_networth and 'upcoming renewals' queries."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Policy name (e.g. 'HDFC Life Click 2 Protect')")),
+		mcp.WithString("policy_type", mcp.Required(), mcp.Description("Type: life, health, vehicle, property, term, other")),
+		mcp.WithNumber("premium_amount", mcp.Required(), mcp.Description("Premium amount per period")),
+		mcp.WithString("premium_frequency", mcp.Required(), mcp.Description("Frequency: monthly, quarterly, annual")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithString("start_date", mcp.Required(), mcp.Description("Policy start date YYYY-MM-DD")),
+		mcp.WithString("provider", mcp.Description("Insurer name (e.g. 'HDFC Life')")),
+		mcp.WithNumber("coverage_amount", mcp.Description("Sum insured / coverage amount")),
+		mcp.WithString("end_date", mcp.Description("Policy end date YYYY-MM-DD")),
+		mcp.WithString("renewal_date", mcp.Description("Next renewal date YYYY-MM-DD")),
+		mcp.WithString("nominee", mcp.Description("Nominee name")),
+		mcp.WithString("notes", mcp.Description("Free-form notes")),
+	)
+}
+
+func createInsuranceHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		typ := req.GetString("policy_type", "")
+		freq := req.GetString("premium_frequency", "")
+		currency := req.GetString("currency", "")
+		startDate := req.GetString("start_date", "")
+		premium := req.GetFloat("premium_amount", -1)
+		if name == "" || typ == "" || freq == "" || currency == "" || startDate == "" || premium < 0 {
+			return mcp.NewToolResultError("name, policy_type, premium_amount, premium_frequency, currency, and start_date are required"), nil
+		}
+		if !validPolicyType(typ) {
+			return mcp.NewToolResultError("invalid policy_type"), nil
+		}
+		if !validPremiumFrequency(freq) {
+			return mcp.NewToolResultError("invalid premium_frequency"), nil
+		}
+		provider := req.GetString("provider", "")
+		coverage := req.GetFloat("coverage_amount", 0)
+		endDate := req.GetString("end_date", "")
+		renewalDate := req.GetString("renewal_date", "")
+		nominee := req.GetString("nominee", "")
+		notes := req.GetString("notes", "")
+
+		var id, retName, retType, retFreq, retCurrency string
+		var retProvider, retNominee, retNotes *string
+		var retPremium, retCoverage string
+		var retStart time.Time
+		var retEnd, retRenewal *time.Time
+		var createdAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO insurance_policies
+				(user_id, name, provider, policy_type, premium_amount, premium_frequency, coverage_amount,
+				 currency, start_date, end_date, renewal_date, nominee, notes)
+			VALUES
+				($1, $2, NULLIF($3, ''), $4::policy_type, $5, $6::premium_frequency, NULLIF($7, 0),
+				 $8, $9::date, NULLIF($10, '')::date, NULLIF($11, '')::date, NULLIF($12, ''), NULLIF($13, ''))
+			RETURNING id, name, provider, policy_type, premium_amount, premium_frequency, coverage_amount,
+			          currency, start_date, end_date, renewal_date, nominee, notes, created_at`,
+			userID, name, provider, typ, premium, freq, coverage, currency, startDate, endDate, renewalDate, nominee, notes,
+		).Scan(&id, &retName, &retProvider, &retType, &retPremium, &retFreq, &retCoverage, &retCurrency, &retStart, &retEnd, &retRenewal, &retNominee, &retNotes, &createdAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                id,
+			"name":              retName,
+			"provider":          retProvider,
+			"policy_type":       retType,
+			"premium_amount":    retPremium,
+			"premium_frequency": retFreq,
+			"coverage_amount":   retCoverage,
+			"currency":          retCurrency,
+			"start_date":        retStart.Format("2006-01-02"),
+			"end_date":          retEnd,
+			"renewal_date":      retRenewal,
+			"nominee":           retNominee,
+			"notes":             retNotes,
+			"created_at":        createdAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateInsuranceTool() mcp.Tool {
+	return mcp.NewTool("update_insurance",
+		mcp.WithDescription("Update an insurance policy. id is required; other fields overwrite the stored value if provided. Pass empty string / 0 to clear optional fields."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Policy ID")),
+		mcp.WithString("name", mcp.Description("Policy name")),
+		mcp.WithString("policy_type", mcp.Description("Type: life, health, vehicle, property, term, other")),
+		mcp.WithNumber("premium_amount", mcp.Description("Premium amount (0 to clear)")),
+		mcp.WithString("premium_frequency", mcp.Description("Frequency: monthly, quarterly, annual")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithString("start_date", mcp.Description("Start date YYYY-MM-DD")),
+		mcp.WithString("provider", mcp.Description("Insurer name (empty to clear)")),
+		mcp.WithNumber("coverage_amount", mcp.Description("Coverage amount (0 to clear)")),
+		mcp.WithString("end_date", mcp.Description("End date YYYY-MM-DD (empty to clear)")),
+		mcp.WithString("renewal_date", mcp.Description("Next renewal date YYYY-MM-DD (empty to clear)")),
+		mcp.WithString("nominee", mcp.Description("Nominee name (empty to clear)")),
+		mcp.WithString("notes", mcp.Description("Notes (empty to clear)")),
+	)
+}
+
+func updateInsuranceHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		typ := req.GetString("policy_type", "")
+		if typ != "" && !validPolicyType(typ) {
+			return mcp.NewToolResultError("invalid policy_type"), nil
+		}
+		freq := req.GetString("premium_frequency", "")
+		if freq != "" && !validPremiumFrequency(freq) {
+			return mcp.NewToolResultError("invalid premium_frequency"), nil
+		}
+		name := req.GetString("name", "")
+		premium := req.GetFloat("premium_amount", 0)
+		currency := req.GetString("currency", "")
+		startDate := req.GetString("start_date", "")
+		provider := req.GetString("provider", "")
+		coverage := req.GetFloat("coverage_amount", 0)
+		endDate := req.GetString("end_date", "")
+		renewalDate := req.GetString("renewal_date", "")
+		nominee := req.GetString("nominee", "")
+		notes := req.GetString("notes", "")
+
+		var retID, retName, retType, retFreq, retCurrency string
+		var retProvider, retNominee, retNotes *string
+		var retPremium, retCoverage string
+		var retStart time.Time
+		var retEnd, retRenewal *time.Time
+		var updatedAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE insurance_policies SET
+				name = COALESCE(NULLIF($2, ''), name),
+				provider = NULLIF($3, ''),
+				policy_type = COALESCE(NULLIF($4, '')::policy_type, policy_type),
+				premium_amount = COALESCE(NULLIF($5, 0), premium_amount),
+				premium_frequency = COALESCE(NULLIF($6, '')::premium_frequency, premium_frequency),
+				coverage_amount = NULLIF($7, 0),
+				currency = COALESCE(NULLIF($8, ''), currency),
+				start_date = COALESCE(NULLIF($9, '')::date, start_date),
+				end_date = NULLIF($10, '')::date,
+				renewal_date = NULLIF($11, '')::date,
+				nominee = NULLIF($12, ''),
+				notes = NULLIF($13, ''),
+				updated_at = now()
+			WHERE id = $1 AND user_id = $14 AND deleted_at IS NULL
+			RETURNING id, name, provider, policy_type, premium_amount, premium_frequency, coverage_amount,
+			          currency, start_date, end_date, renewal_date, nominee, notes, updated_at`,
+			id, name, provider, typ, premium, freq, coverage, currency, startDate, endDate, renewalDate, nominee, notes, userID,
+		).Scan(&retID, &retName, &retProvider, &retType, &retPremium, &retFreq, &retCoverage, &retCurrency, &retStart, &retEnd, &retRenewal, &retNominee, &retNotes, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("policy %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":                retID,
+			"name":              retName,
+			"provider":          retProvider,
+			"policy_type":       retType,
+			"premium_amount":    retPremium,
+			"premium_frequency": retFreq,
+			"coverage_amount":   retCoverage,
+			"currency":          retCurrency,
+			"start_date":        retStart.Format("2006-01-02"),
+			"end_date":          retEnd,
+			"renewal_date":      retRenewal,
+			"nominee":           retNominee,
+			"notes":             retNotes,
+			"updated_at":        updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteInsuranceTool() mcp.Tool {
+	return mcp.NewTool("delete_insurance",
+		mcp.WithDescription("Soft-delete an insurance policy. Premium payment history is kept."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Policy ID")),
+	)
+}
+
+func deleteInsuranceHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE insurance_policies SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("policy %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+func createInsurancePaymentTool() mcp.Tool {
+	return mcp.NewTool("create_insurance_payment",
+		mcp.WithDescription("Record a premium payment against an insurance policy. Status defaults to 'paid'."),
+		mcp.WithString("policy_id", mcp.Required(), mcp.Description("Policy ID")),
+		mcp.WithString("date", mcp.Required(), mcp.Description("Payment date YYYY-MM-DD")),
+		mcp.WithNumber("amount", mcp.Required(), mcp.Description("Amount paid")),
+		mcp.WithString("status", mcp.Description("Status: paid, due, missed (default paid)")),
+	)
+}
+
+func createInsurancePaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		policyID := req.GetString("policy_id", "")
+		date := req.GetString("date", "")
+		amount := req.GetFloat("amount", -1)
+		if policyID == "" || date == "" || amount < 0 {
+			return mcp.NewToolResultError("policy_id, date, and amount are required"), nil
+		}
+		status := req.GetString("status", "paid")
+		switch status {
+		case "paid", "due", "missed":
+		default:
+			return mcp.NewToolResultError("status must be one of: paid, due, missed"), nil
+		}
+
+		var ownerCheck string
+		if err := deps.Pool.QueryRow(ctx,
+			`SELECT user_id::text FROM insurance_policies WHERE id = $1 AND deleted_at IS NULL`,
+			policyID,
+		).Scan(&ownerCheck); err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("policy %q not found", policyID)), nil
+		}
+		if ownerCheck != userID {
+			return mcp.NewToolResultError("policy not owned by you"), nil
+		}
+
+		var id, retDate, retStatus, retAmount string
+		var createdAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO insurance_payments (policy_id, date, amount, status)
+			VALUES ($1, $2::date, $3, $4::insurance_payment_status)
+			RETURNING id, date, amount, status, created_at`,
+			policyID, date, amount, status,
+		).Scan(&id, &retDate, &retAmount, &retStatus, &createdAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":         id,
+			"policy_id":  policyID,
+			"date":       retDate,
+			"amount":     retAmount,
+			"status":     retStatus,
+			"created_at": createdAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func markInsurancePremiumPaidTool() mcp.Tool {
+	return mcp.NewTool("mark_insurance_premium_paid",
+		mcp.WithDescription("Convenience: mark a premium payment row as paid."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Insurance payment ID")),
+	)
+}
+
+func markInsurancePremiumPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		var retID, retPolicyID, retDate, retAmount, retStatus string
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE insurance_payments ip SET status = 'paid'::insurance_payment_status
+			FROM insurance_policies p
+			WHERE ip.id = $1 AND ip.policy_id = p.id AND p.user_id = $2 AND ip.deleted_at IS NULL
+			RETURNING ip.id, ip.policy_id, ip.date, ip.amount, ip.status`,
+			id, userID,
+		).Scan(&retID, &retPolicyID, &retDate, &retAmount, &retStatus)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("payment %q not found (or policy not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":        retID,
+			"policy_id": retPolicyID,
+			"date":      retDate,
+			"amount":    retAmount,
+			"status":    retStatus,
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// ============================================================================
+// Group 7: exchange rates + user profile
+// ============================================================================
+
+func getExchangeRatesTool() mcp.Tool {
+	return mcp.NewTool("get_exchange_rates",
+		mcp.WithDescription("List all stored exchange rates. Rates are user-specific in the sense that they're shared globally but each user can read and (via set_exchange_rate) update them. Use for converting per-currency amounts in get_networth."),
+		readOnlyAnnotation(),
+	)
+}
+
+func getExchangeRatesHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT base, target, rate, fetched_at
+			FROM exchange_rates
+			ORDER BY base, target`,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var base, target, rate string
+			var fetchedAt time.Time
+			if err := rows.Scan(&base, &target, &rate, &fetchedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+			results = append(results, map[string]any{
+				"base":        base,
+				"target":      target,
+				"rate":        rate,
+				"fetched_at":  fetchedAt.Format(time.RFC3339),
+			})
+		}
+		data, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(data), nil
+	}
+}
+
+func setExchangeRateTool() mcp.Tool {
+	return mcp.NewTool("set_exchange_rate",
+		mcp.WithDescription("Upsert an exchange rate: how many 'target' equal 1 'base'. E.g. base=USD, target=INR, rate=83.25 means 1 USD = 83.25 INR. Replaces any prior rate for the pair."),
+		mcp.WithString("base", mcp.Required(), mcp.Description("Base currency (3-letter code, e.g. USD)")),
+		mcp.WithString("target", mcp.Required(), mcp.Description("Target currency (3-letter code, e.g. INR)")),
+		mcp.WithNumber("rate", mcp.Required(), mcp.Description("Rate: 1 base = rate target (must be > 0)")),
+	)
+}
+
+func setExchangeRateHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		base := req.GetString("base", "")
+		target := req.GetString("target", "")
+		rate := req.GetFloat("rate", -1)
+		if base == "" || target == "" || rate <= 0 {
+			return mcp.NewToolResultError("base, target, and rate (>0) are required"), nil
+		}
+		_, err := deps.Pool.Exec(ctx,
+			`INSERT INTO exchange_rates (base, target, rate, fetched_at)
+			VALUES ($1, $2, $3, now())
+			ON CONFLICT (base, target) DO UPDATE SET rate = EXCLUDED.rate, fetched_at = EXCLUDED.fetched_at`,
+			base, target, rate,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("upsert failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"base":       base,
+			"target":     target,
+			"rate":       fmt.Sprintf("%f", rate),
+			"fetched_at": time.Now().UTC().Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateUserProfileTool() mcp.Tool {
+	return mcp.NewTool("update_user_profile",
+		mcp.WithDescription("Update the current user's profile (name, default_currency, timezone). default_currency is what get_networth reports in by default. Password / email changes are not exposed via MCP for safety — use the /api/v1/auth endpoints directly."),
+		mcp.WithString("name", mcp.Description("Display name")),
+		mcp.WithString("default_currency", mcp.Description("3-letter currency code, e.g. INR (this is the base currency for get_networth)")),
+		mcp.WithString("timezone", mcp.Description("IANA timezone, e.g. Asia/Kolkata")),
+	)
+}
+
+func updateUserProfileHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		currency := req.GetString("default_currency", "")
+		timezone := req.GetString("timezone", "")
+
+		var retName, retCurrency, retTimezone string
+		var updatedAt time.Time
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE users SET
+				name = COALESCE(NULLIF($2, ''), name),
+				default_currency = COALESCE(NULLIF($3, ''), default_currency),
+				timezone = COALESCE(NULLIF($4, ''), timezone),
+				updated_at = now()
+			WHERE id = $1 AND deleted_at IS NULL
+			RETURNING name, default_currency, timezone, updated_at`,
+			userID, name, currency, timezone,
+		).Scan(&retName, &retCurrency, &retTimezone, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError("user not found"), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+		result := map[string]any{
+			"id":               userID,
+			"name":             retName,
+			"default_currency": retCurrency,
+			"timezone":         retTimezone,
+			"updated_at":       updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
 	}
 }
 

@@ -336,6 +336,118 @@ func snakeToCamel(s string) string {
 	return out
 }
 
+// ============================================================================
+// Write-tool coverage tests (groups 1-7 of the net-worth batch)
+// ============================================================================
+
+// TestWriteToolsForNetWorth_Registered: every tool needed for an LLM
+// agent to actually MANAGE net worth (not just read it) must be
+// registered. If any of these is missing, the agent's "I added a new
+// loan" prompt silently fails.
+func TestWriteToolsForNetWorth_Registered(t *testing.T) {
+	want := []string{
+		// accounts
+		"update_account", "delete_account",
+		// categories
+		"create_category", "update_category", "delete_category",
+		// budgets
+		"create_budget", "update_budget", "delete_budget",
+		// investments
+		"create_investment", "update_investment", "delete_investment",
+		// loans + payments
+		"create_loan", "update_loan", "delete_loan",
+		"create_loan_payment", "update_loan_payment", "mark_loan_payment_paid",
+		// insurance + payments
+		"create_insurance", "update_insurance", "delete_insurance",
+		"create_insurance_payment", "mark_insurance_premium_paid",
+		// currency + profile
+		"get_exchange_rates", "set_exchange_rate", "update_user_profile",
+	}
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	for _, name := range want {
+		ctor := snakeToCamel(name) + "Tool"
+		if !strings.Contains(src, "func "+ctor+"()") {
+			t.Errorf("missing tool constructor %q (expected func %s)", name, ctor)
+		}
+		if !strings.Contains(src, "{Tool: "+ctor+"()") {
+			t.Errorf("%s not wired into RegisterTools", ctor)
+		}
+	}
+}
+
+// TestWriteToolsForNetWorth_AllDestructive: every write tool listed
+// in TestWriteToolsForNetWorth_Registered must report DestructiveHint
+// (or OpenWorldHint) so the client asks the user before invoking.
+// Otherwise a malicious prompt could mutate the user's books without
+// consent.
+func TestWriteToolsForNetWorth_AllDestructive(t *testing.T) {
+	tools := map[string]mcp.Tool{
+		// accounts
+		"update_account": updateAccountTool(),
+		"delete_account": deleteAccountTool(),
+		// categories
+		"create_category": createCategoryTool(),
+		"update_category": updateCategoryTool(),
+		"delete_category": deleteCategoryTool(),
+		// budgets
+		"create_budget": createBudgetTool(),
+		"update_budget": updateBudgetTool(),
+		"delete_budget": deleteBudgetTool(),
+		// investments
+		"create_investment": createInvestmentTool(),
+		"update_investment": updateInvestmentTool(),
+		"delete_investment": deleteInvestmentTool(),
+		// loans + payments
+		"create_loan":            createLoanTool(),
+		"update_loan":            updateLoanTool(),
+		"delete_loan":            deleteLoanTool(),
+		"create_loan_payment":    createLoanPaymentTool(),
+		"update_loan_payment":    updateLoanPaymentTool(),
+		"mark_loan_payment_paid": markLoanPaymentPaidTool(),
+		// insurance + payments
+		"create_insurance":            createInsuranceTool(),
+		"update_insurance":            updateInsuranceTool(),
+		"delete_insurance":            deleteInsuranceTool(),
+		"create_insurance_payment":    createInsurancePaymentTool(),
+		"mark_insurance_premium_paid": markInsurancePremiumPaidTool(),
+		// currency + profile
+		"set_exchange_rate":   setExchangeRateTool(),
+		"update_user_profile": updateUserProfileTool(),
+	}
+	for name, tool := range tools {
+		if tool.Annotations.DestructiveHint == nil || !*tool.Annotations.DestructiveHint {
+			t.Errorf("%s: DestructiveHint should be true for write tool", name)
+		}
+	}
+}
+
+// TestSoftDelete_AccountLoanInsuranceInsurancePayment: all DELETE-style
+// tools must use soft-delete (UPDATE ... SET deleted_at = now()) — never
+// a hard DELETE — so historical transactions, snapshots, and reports
+// stay intact when a resource is removed.
+func TestSoftDelete_AccountLoanInsuranceInsurancePayment(t *testing.T) {
+	src, err := readSourceFile("tools.go")
+	if err != nil {
+		t.Fatalf("read source: %v", err)
+	}
+	// Each delete handler must touch a deleted_at column. If any of
+	// these is missing, the corresponding tool will hard-delete and
+	// break historical reporting.
+	mustUpdate := []string{
+		"UPDATE accounts SET deleted_at = now()",     // delete_account
+		"UPDATE loans SET deleted_at = now()",        // delete_loan
+		"UPDATE insurance_policies SET deleted_at",   // delete_insurance
+	}
+	for _, want := range mustUpdate {
+		if !strings.Contains(src, want) {
+			t.Errorf("missing soft-delete SQL fragment: %q", want)
+		}
+	}
+}
+
 // Regression: list_transactions returned "null" (text) when no rows matched,
 // because the handler used `var results []map[string]any` (nil slice) and
 // encoding/json marshals a nil slice as "null". MCP clients expect "[]".
