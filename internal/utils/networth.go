@@ -8,8 +8,8 @@ import (
 )
 
 type NetworthResult struct {
-	TotalAssets      float64 `json:"totalAssets"`
-	TotalLiabilities float64 `json:"totalLiabilities"`
+	TotalAssets      float64 `json:"total_assets"`
+	TotalLiabilities float64 `json:"total_liabilities"`
 	Networth         float64 `json:"networth"`
 }
 

@@ -107,6 +107,7 @@ func main() {
 	transactionHandler := handlers.NewTransactionHandler(q, pool, llmQueue)
 	budgetHandler := handlers.NewBudgetHandler(pool, q)
 	summaryHandler := handlers.NewSummaryHandler(pool, q, cq)
+	netWorthHandler := handlers.NewNetWorthHandler(q, cq)
 	investmentHandler := handlers.NewInvestmentHandler(q)
 	loanHandler := handlers.NewLoanHandler(q)
 	insuranceHandler := handlers.NewInsuranceHandler(q)
@@ -186,6 +187,7 @@ func main() {
 		})
 
 		r.Get("/api/v1/summary", summaryHandler.GetSummary)
+		r.Get("/api/v1/networth", netWorthHandler.Get)
 
 		r.Route("/api/v1/budgets", func(r chi.Router) {
 			r.Get("/", budgetHandler.List)

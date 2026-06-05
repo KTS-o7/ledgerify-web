@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -219,6 +220,47 @@ func TestComputeNetworth_NullInvestmentPrices(t *testing.T) {
 	if result.TotalAssets != 0 {
 		t.Errorf("TotalAssets = %v, want 0", result.TotalAssets)
 	}
+}
+
+// TestNetworthResult_JSONKeys is a regression test for the field naming
+// the frontend depends on. The NetWorth page (frontend/src/pages/NetWorth.tsx)
+// reads `total_assets`, `total_liabilities`, and `networth` directly off
+// the response. If anyone changes the JSON tags back to camelCase
+// (totalAssets etc.) the page renders nothing but "Net Worth" forever.
+//
+// Regression target: never change utils.NetworthResult's JSON tags without
+// also updating the NetWorth page to match.
+func TestNetworthResult_JSONKeys(t *testing.T) {
+	r := NetworthResult{TotalAssets: 100, TotalLiabilities: 50, Networth: 50}
+	b, err := json.Marshal(r)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	want := []string{"total_assets", "total_liabilities", "networth"}
+	for _, k := range want {
+		if _, ok := m[k]; !ok {
+			t.Errorf("JSON missing key %q (got keys %v)", k, mapKeys(m))
+		}
+	}
+	// also make sure the camelCase spellings are NOT present
+	notWant := []string{"totalAssets", "totalLiabilities", "netWorth", "net_worth"}
+	for _, k := range notWant {
+		if _, ok := m[k]; ok {
+			t.Errorf("JSON unexpectedly contains key %q (frontend expects snake_case)", k)
+		}
+	}
+}
+
+func mapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // mathRound tests
