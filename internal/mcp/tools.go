@@ -1465,8 +1465,8 @@ func createLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("loan not owned by you"), nil
 		}
 
-		var id, retDate, retStatus, retAmount, retPrincipal, retInterest string
-		var createdAt time.Time
+		var id, retStatus, retAmount, retPrincipal, retInterest string
+		var retDate, createdAt time.Time
 		err = deps.Pool.QueryRow(ctx,
 			`INSERT INTO loan_payments (loan_id, date, amount, principal_component, interest_component, status)
 			VALUES ($1, $2::date, $3, $4, $5, $6::payment_status)
@@ -1479,7 +1479,7 @@ func createLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		result := map[string]any{
 			"id":                  id,
 			"loan_id":             loanID,
-			"date":                retDate,
+			"date":                retDate.Format("2006-01-02"),
 			"amount":              retAmount,
 			"principal_component": retPrincipal,
 			"interest_component":  retInterest,
@@ -1527,7 +1527,8 @@ func updateLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		interest := req.GetFloat("interest_component", 0)
 
 		// Defence in depth: only update if the parent loan is owned by this user.
-		var retID, retLoanID, retDate, retStatus, retAmount, retPrincipal, retInterest string
+		var retID, retLoanID, retStatus, retAmount, retPrincipal, retInterest string
+		var retDate time.Time
 		err = deps.Pool.QueryRow(ctx,
 			`UPDATE loan_payments lp SET
 				date = COALESCE(NULLIF($2, '')::date, lp.date),
@@ -1549,7 +1550,7 @@ func updateLoanPaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		result := map[string]any{
 			"id":                  retID,
 			"loan_id":             retLoanID,
-			"date":                retDate,
+			"date":                retDate.Format("2006-01-02"),
 			"amount":              retAmount,
 			"principal_component": retPrincipal,
 			"interest_component":  retInterest,
@@ -1577,7 +1578,8 @@ func markLoanPaymentPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		if id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}
-		var retID, retLoanID, retDate, retAmount, retPrincipal, retInterest, retStatus string
+		var retID, retLoanID, retAmount, retPrincipal, retInterest, retStatus string
+		var retDate time.Time
 		err = deps.Pool.QueryRow(ctx,
 			`UPDATE loan_payments lp SET status = 'paid'::payment_status
 			FROM loans l
@@ -1594,7 +1596,7 @@ func markLoanPaymentPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		result := map[string]any{
 			"id":                  retID,
 			"loan_id":             retLoanID,
-			"date":                retDate,
+			"date":                retDate.Format("2006-01-02"),
 			"amount":              retAmount,
 			"principal_component": retPrincipal,
 			"interest_component":  retInterest,
@@ -1885,8 +1887,8 @@ func createInsurancePaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("policy not owned by you"), nil
 		}
 
-		var id, retDate, retStatus, retAmount string
-		var createdAt time.Time
+		var id, retStatus, retAmount string
+		var retDate, createdAt time.Time
 		err = deps.Pool.QueryRow(ctx,
 			`INSERT INTO insurance_payments (policy_id, date, amount, status)
 			VALUES ($1, $2::date, $3, $4::insurance_payment_status)
@@ -1899,7 +1901,7 @@ func createInsurancePaymentHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		result := map[string]any{
 			"id":         id,
 			"policy_id":  policyID,
-			"date":       retDate,
+			"date":       retDate.Format("2006-01-02"),
 			"amount":     retAmount,
 			"status":     retStatus,
 			"created_at": createdAt.Format(time.RFC3339),
@@ -1926,7 +1928,8 @@ func markInsurancePremiumPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		if id == "" {
 			return mcp.NewToolResultError("id is required"), nil
 		}
-		var retID, retPolicyID, retDate, retAmount, retStatus string
+		var retID, retPolicyID, retAmount, retStatus string
+		var retDate time.Time
 		err = deps.Pool.QueryRow(ctx,
 			`UPDATE insurance_payments ip SET status = 'paid'::insurance_payment_status
 			FROM insurance_policies p
@@ -1943,7 +1946,7 @@ func markInsurancePremiumPaidHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		result := map[string]any{
 			"id":        retID,
 			"policy_id": retPolicyID,
-			"date":      retDate,
+			"date":      retDate.Format("2006-01-02"),
 			"amount":    retAmount,
 			"status":    retStatus,
 		}
