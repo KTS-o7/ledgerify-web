@@ -5,7 +5,6 @@ export default defineConfig({
   plugins: [solidPlugin()],
   test: {
     environment: "jsdom",
-    globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     passWithNoTests: true,
