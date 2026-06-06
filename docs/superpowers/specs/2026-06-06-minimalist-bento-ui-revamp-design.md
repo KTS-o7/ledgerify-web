@@ -2,7 +2,9 @@
 
 ## 1. Overview
 
-Ledgerify's frontend is a SolidJS SPA (`frontend/src/`) styled with a warm terracotta theme (`#c25a3e`) on a near-white surface. This revamp replaces the visual language with a **dark-mode-only "Minimalist Bento"** aesthetic — high-contrast zinc surfaces, neon-lime accents, exaggerated 24px radii, mobile-first bento grids — and applies it across **all 14 current pages**. The stack is unchanged: SolidJS, Solid Router, TanStack Query, Tailwind v4, lucide-solid, Chart.js, Vite. The Stitch HTML mockups (Dashboard, Analytics, Recent Transactions) are the design source of truth; the desktop/web layout is responsive scale-up of the same primitives.
+Ledgerify's frontend is a SolidJS SPA (`frontend/src/`) styled with a warm terracotta theme (`#c25a3e`) on a near-white surface. This revamp replaces the visual language with a **dark-mode-only "Minimalist Bento"** aesthetic — high-contrast zinc surfaces, neon-lime accents, exaggerated 24px radii, mobile-first bento grids — and applies it across **all 14 current pages**. The stack is unchanged: SolidJS, Solid Router, TanStack Query, Tailwind v4, lucide-solid, Chart.js, Vite. The Stitch HTML mockups (Dashboard, Analytics, Recent Transactions) are the design source of truth; the desktop/web layout shares the same `<Outlet>` and page-content components as mobile, with only the navigation chrome and grid columns changing at the breakpoint.
+
+**Project history:** the previous stack was Next.js/React, which has been removed (see `AGENTS.md`). This spec is the visual design system for the current SolidJS codebase, not a re-architecture. The terracotta theme predates the SolidJS migration; replacing it with the bento aesthetic is a deliberate departure, not an accidental drift.
 
 ## 2. Goals
 
@@ -31,6 +33,8 @@ Ledgerify's frontend is a SolidJS SPA (`frontend/src/`) styled with a warm terra
 | Theme | Dark mode only | Bento aesthetic is designed for deep zinc surfaces |
 | Stack | Unchanged (SolidJS, Tailwind v4, Solid Router, TanStack Query, lucide-solid, Chart.js) | User constraint |
 | Build order | Foundation → mockup pages → remaining pages → polish | Cheap primitives, fast page work later |
+| Brand direction | Robinhood-style high-energy (neon lime on black) | Established by the mockups; deliberate departure from the prior terracotta's warmer "fiduciary" tone |
+| Bottom nav (mobile) | 5 tabs: Home / Accounts / Analytics / Activity / More | "More" is the 5th tab; no long-press, no overflow icon (idiomatic for iOS/Android) |
 
 ## 5. Design Tokens
 
@@ -108,11 +112,11 @@ Implementation: a single `MainLayout` component reads `window.matchMedia("(min-w
 │   <Outlet />            │  ← page content, 16px screen padding
 │                         │
 ├─────────────────────────┤
-│  BottomNav (sticky)     │  ← h-16 + safe-area, 4 tabs
+│  BottomNav (sticky)     │  ← h-16 + safe-area, 5 tabs
 └─────────────────────────┘
 ```
 
-BottomNav (4 tabs):
+BottomNav (5 tabs):
 
 | # | Tab | Route | Icon (lucide-solid) |
 |---|---|---|---|
@@ -120,8 +124,9 @@ BottomNav (4 tabs):
 | 2 | Accounts | `/accounts` | `Wallet` |
 | 3 | Analytics | `/analytics` | `PieChart` |
 | 4 | Activity | `/activity` | `Receipt` |
+| 5 | More | `/more` | `Grid3x3` (or `Menu`) |
 
-Long-press on any tab or a 5th-icon overflow affordance (top-right of the BottomNav) opens the **More sheet** — a bottom drawer listing the 8 secondary routes (Budgets, Investments, Loans, Insurance, NetWorth, Reports, Import, Export, Settings) plus Logout. The More sheet uses the same bento surface color with 24px top corners.
+Tapping the **More** tab opens the **More sheet** — a bottom drawer listing the 8 secondary routes (Budgets, Investments, Loans, Insurance, NetWorth, Reports, Import, Export, Settings) plus Logout. The More sheet uses the same bento surface color with 24px top corners. **No long-press; no overflow icon.** A bottom-tab "More" is the iOS/Android-idiomatic pattern (Settings app, Files app, App Store, etc.). The `/more` route renders nothing on its own — it always opens the sheet via `onClick`.
 
 ### Desktop shell (`≥ 768px`)
 
@@ -275,13 +280,15 @@ type DonutChartProps = {
 };
 ```
 
-Default segment palette (in render order):
-1. `--color-text`
-2. `--color-muted`
-3. `--color-border-strong`
-4. (cycles back to `--color-text` for the 4th, 7th, etc.)
+Default segment palette (5 distinct colors, in descending-value order):
 
-Auto-color: if a `color` is not provided, segments are colored by **descending value**: the largest segment always gets `--color-primary` (the "win" is always lime), the second-largest gets `--color-text`, the third gets `--color-muted`, the fourth gets `--color-border-strong`, and additional segments cycle through the muted tones. If a `color` is explicitly provided for a segment, that overrides the default assignment. Implementation: pure inline SVG with stroke-dasharray math (mockup shows the technique). No Chart.js for this — Chart.js is heavyweight for one chart and would not match the bento aesthetic.
+1. `--color-primary` (lime, the "win")
+2. `--color-text` (off-white, the runner-up)
+3. `--color-muted` (zinc-400, mid-tier)
+4. `--color-border-strong` (zinc-700, lower-tier)
+5. `#71717A` (zinc-500, lowest tier — introduced specifically so the 5th segment is distinguishable from the 4th and 6th)
+
+Auto-color: if a `color` is not provided, segments are colored by **descending value**: the largest segment always gets `--color-primary` (the "win" is always lime), the second-largest gets `--color-text`, the third gets `--color-muted`, the fourth gets `--color-border-strong`, the fifth gets `#71717A`. For N > 5 (rare in finance — category breakdowns are usually 4–6 segments), additional segments cycle through positions 3–5 with a 50% opacity overlay so the user can tell them apart at a glance. If a `color` is explicitly provided for a segment, that overrides the default assignment. Implementation: pure inline SVG with stroke-dasharray math (mockup shows the technique). No Chart.js for this — Chart.js is heavyweight for one chart and would not match the bento aesthetic.
 
 ### 7.7 `CategoryBar` (new, `category-bar.tsx`)
 
@@ -496,7 +503,24 @@ No bento grid on auth — auth is intentionally simpler than the app. The bento 
 
 ## 10. Implementation Phases
 
-Each phase ends with a green `go test ./... && go build -o /tmp/ledgerify-server ./cmd/server` per AGENTS.md plus a manual smoke test of the affected pages on a 375px viewport and a 1280px viewport.
+Each phase ends with a green verification gate. The gate catches frontend regressions (the actual subject of this work) **and** backend regressions (the `//go:embed` boundary). A phase is not "done" until the gate is green plus a manual smoke test on the affected pages at 375px and 1280px.
+
+```bash
+# Required — catches TS / Vite / CSS regressions
+cd frontend && bun run build
+
+# Required — catches embed breakage, regression in Go tests
+go test ./...
+go build -o /tmp/ledgerify-server ./cmd/server
+
+# Required — lint
+git diff --check
+
+# Required — color-lint (added by Phase 1)
+cd frontend && bun run lint:colors
+```
+
+A failing step blocks the phase. The `go test` / `go build` steps remain in the gate because the spec touches `frontend/dist/` (which is embedded into the Go binary via `embedassets.go`); they catch nothing visual but they ensure the binary still builds. The `bun run build` step is the load-bearing one for this work — a successful Go build with a broken frontend is still a broken product.
 
 ### Phase 1 — Foundation (3-4 days)
 
@@ -505,9 +529,10 @@ Each phase ends with a green `go test ./... && go build -o /tmp/ledgerify-server
 3. Refactor `button.tsx`, `input.tsx`, `select.tsx`, `badge.tsx` to the new color/type tokens (§7.13). Card primitives stay (for now) as re-exports of bento shims.
 4. Build new primitives in `frontend/src/components/ui/`: `bento-block.tsx`, `page-header.tsx`, `stat.tsx`, `account-row.tsx`, `transaction-row.tsx`, `donut-chart.tsx`, `category-bar.tsx`, `segmented-control.tsx`, `search-bar.tsx`, `empty-state.tsx`, `skeleton.tsx`, `sparkline.tsx`.
 5. Build `nav.tsx` (`BottomNav` + `Sidebar` + `MoreSheet`) and `nav-items.ts` (single source of truth for primary + secondary routes, including a `section: "primary" | "secondary"` field per item).
-6. Rewrite `frontend/src/layouts/MainLayout.tsx` to use the breakpoint-driven shell. Remove the icon-only 60px sidebar.
+6. Rewrite `frontend/src/layouts/MainLayout.tsx` to use the breakpoint-driven shell. Remove the icon-only 60px sidebar. The BottomNav has 5 tabs (Home / Accounts / Analytics / Activity / More); the 5th tab opens the More sheet on tap.
 7. Add `frontend/src/lib/format.ts` with `formatCurrency(n, currency)`, `formatDate(iso)`, `formatDateGroup(iso)` helpers. The app currently inlines `Intl.NumberFormat` in every page — consolidate.
-8. Smoke test: app loads, BottomNav shows 4 tabs on mobile, Sidebar shows 4 primary + More on desktop.
+8. Add `frontend/scripts/lint-colors.mjs` and wire `bun run lint:colors` in `package.json`. Verify it runs and fails on a synthetic bad usage.
+9. Smoke test: app loads, BottomNav shows 5 tabs on mobile (with the 5th opening the More sheet), Sidebar shows 4 primary + expandable More section on desktop.
 
 ### Phase 2 — Mockup pages (4-5 days)
 
@@ -522,13 +547,49 @@ Apply §9 to Budgets, Investments, Loans, Insurance, NetWorth, Reports, Import, 
 ### Phase 4 — Polish + docs (1-2 days)
 
 1. Micro-interactions: block entrance animation, hover/press states, skeleton→content crossfade.
-2. Accessibility: focus rings on every interactive element (the mockups use `ring-1 ring-primary`); `aria-label` on icon-only buttons; color contrast checked (lime on zinc-900 = 14:1, well above WCAG AAA).
+2. Final a11y audit: tab through every page, verify focus order, run an automated check (e.g., `axe-core` via Playwright) on each route. Fix any reported violations.
 3. Remove the dead `index.css` file. Remove the unused `card.tsx` exports if no page imports them.
 4. Update `frontend/README.md` with the new design language + link to this spec.
-5. **Fix `AGENTS.md`:** it incorrectly says the stack is "Go + HTMX + Pico.css" with templates in `web/templates/`. The actual stack (per `frontend/package.json`, `cmd/server/main.go:252`, and `embedassets.go`) is SolidJS + Tailwind v4, embedded via `//go:embed all:frontend/dist`. The `web/templates/` directory does not exist. Update AGENTS.md to reflect reality.
-6. Final smoke test on iPhone SE (375px), iPhone 15 Pro (393px), iPad Mini (768px), 1280px desktop, 1920px desktop.
+5. Final smoke test on iPhone SE (375px), iPhone 15 Pro (393px), iPad Mini (768px), 1280px desktop, 1920px desktop.
 
-## 11. Technical Decisions
+---
+
+## 11. Accessibility
+
+A non-negotiable for a finance app — users with low vision, screen readers, or reduced-motion settings must be first-class. The bento aesthetic must not regress accessibility relative to the current terracotta UI (which uses standard Tailwind defaults).
+
+**Touch targets:** minimum 44×44px on all interactive elements. AccountRow (80px) and TransactionRow (72px) both exceed this. Icon-only buttons (40×40) get an invisible 4px outer padding extending the tap target to 48×48.
+
+**Keyboard navigation:**
+- The 2-col bento grid uses CSS grid which preserves DOM order, so tab order follows source order. This is critical — do not reorder with `order-` utilities.
+- AccountRow and TransactionRow render as `<button>`s (not `<div>`s with click handlers). Each gets a clear `aria-label` summarizing the row content (e.g., `"Whole Foods Market, Groceries, expense, minus 45 dollars, October 12"`).
+- For the category list in Analytics, `ArrowUp` / `ArrowDown` move focus between rows (the ARIA `listbox` pattern). The current category's `DonutChart` segment highlights in sync with the focused row.
+- The `SegmentedControl` uses `role="tablist"` with two `role="tab"` buttons; `ArrowLeft` / `ArrowRight` move between them; the active tab panel is announced.
+
+**Focus indicators:** `focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg`. Visible on every interactive element. Suppressed on mouse focus (only shows on keyboard focus, via `:focus-visible`).
+
+**MoreSheet focus trap:** when open, focus is trapped inside the drawer (hand-rolled in `MoreSheet` — SolidJS does not bundle a focus-trap). `Esc` closes the drawer; focus returns to the trigger button. `aria-modal="true"`, `role="dialog"`, `aria-labelledby` pointing to the drawer title. The page content behind the drawer gets `aria-hidden="true"` while the drawer is open.
+
+**Reduced motion:** all animations (block entrance, donut segment transitions, press scale, modal slide) are wrapped in `@media (prefers-reduced-motion: no-preference)`. Under reduced motion, the press-state still changes instantly (no animation, but the visual change still occurs — no `display: none` fallbacks).
+
+**Reduced transparency:** `backdrop-blur-sm` on PageHeader and DateHeader is gated on `@media (prefers-reduced-transparency: no-preference)`. Outside that query, fall back to solid `bg-bg` (no opacity, no blur). This is critical for low-end Android devices where blur is GPU-expensive.
+
+**Color contrast (verified ratios):**
+- `--color-text` (`#FAFAFA`) on `--color-bg` (`#09090B`): 18.7:1 (AAA)
+- `--color-text` on `--color-surface` (`#18181B`): 16.1:1 (AAA)
+- `--color-primary` (`#CCFF00`) on `--color-bg`: 14.3:1 (AAA)
+- `--color-primary` on `--color-surface`: 12.4:1 (AAA)
+- `--color-primary` on `--color-text` (inverted, active SegmentedControl): 1.3:1 — this is a **decorative pairing**, never used for body copy. Acceptable for the active-state pill only because the inactive state uses `--color-muted` on `--color-surface` (passes AA on its own).
+- `--color-muted` (`#A1A1AA`) on `--color-bg`: 7.4:1 (AAA for body text)
+- `--color-accent` (`#FF4D4D`) on `--color-bg`: 4.7:1 (AA for large text; AA for UI components). **Coral is never used for body copy** — only for the +/- expense indicator on TransactionRow and explicit error states.
+
+**Screen reader labels:** every icon-only button gets a descriptive `aria-label`. The DonutChart has an `aria-label` summarizing the total (e.g., `"Total spent $4,250.00 across 4 categories"`) and a visually-hidden `<table>` of segments for screen readers; the SVG itself is `aria-hidden="true"`. The SearchBar in Activity wraps the `<input>` in a `<label>` with `sr-only` text "Search transactions."
+
+**Form labels:** every `<input>` and `<select>` has an associated `<label>` (visible or `sr-only`). The current code uses placeholder-only labeling in some forms (visible in `frontend/src/pages/Login.tsx:43`); Phase 3 adds proper labels as part of the bento rewrite.
+
+**Skip link:** a "Skip to main content" link is the first focusable element on every page. Hidden by default, visible on focus.
+
+## 12. Technical Decisions
 
 ### Chart library
 
@@ -536,7 +597,27 @@ Apply §9 to Budgets, Investments, Loans, Insurance, NetWorth, Reports, Import, 
 
 ### Currency
 
-Current app uses `en-IN` / INR throughout (`frontend/src/pages/Dashboard.tsx:16`). The mockup uses `$` (USD). The new `formatCurrency` helper respects a user-configurable default in Settings (per §9.9) and falls back to `en-IN` / INR. The mockup's `$12,450.00` is a styling reference, not a hardcoded value.
+The current app uses `en-IN` / INR throughout (`frontend/src/pages/Dashboard.tsx:16`). The mockup uses `$` (USD), but that is a **styling placeholder, not a hardcoded value**. The new `formatCurrency` helper:
+
+- **Default for new and existing users: `en-IN` / INR.** This preserves the current behavior with zero migration risk and no surprise for existing users' screens. The default lives in `frontend/src/lib/format.ts` and reads from `localStorage["ledgerify.currency"]` if set.
+- **Settings page (§9.9) lets users switch** to USD, EUR, GBP, or any other ISO 4217 currency. The selection is persisted to `localStorage` (not a backend round-trip — this is a UI preference, not a financial setting).
+- **No browser-detect.** A user on a US-IP laptop with a fresh install still sees INR until they change it. This is a deliberate choice: browser-detect creates surprising behavior for VPN users and traveling users, and "consistency with the prior app" is more valuable than "smart defaults." If a different default is desired later, it's a one-line change in `format.ts`.
+
+### Color lint rule
+
+A `bun run lint:colors` script (in `frontend/package.json`) enforces one rule:
+
+> `text-primary` is only legal when paired with `bg-bg`, `bg-surface`, `bg-surface-hover`, or `bg-text` in the same class string.
+
+This is implemented as a small Node script (`frontend/scripts/lint-colors.mjs`) that walks `frontend/src/**/*.{tsx,ts}` and greps for `text-primary` outside of those pairings. Rationale: lime text on a light/ambiguous background vibrates and is the single biggest readability risk in the design. The rule makes a stray `text-primary` on body copy a CI failure rather than a code-review lottery.
+
+Allowed pairings, with their only legal contexts:
+- `text-primary` + `bg-bg` (or `bg-bg/*`): the "+2.4% this month" trend label on the Dashboard Total Balance block
+- `text-primary` + `bg-surface` (or `bg-surface/*`): the donut "win" segment label (none in current design, but allowed for future use), and the active primary `Button` text
+- `text-primary` + `bg-text` (inverted): the active segment of the Analytics `SegmentedControl` (white background, lime text)
+- `bg-primary` + `text-bg` (inverted): primary CTAs — covered by the existing primary-button component, not via arbitrary class strings
+
+The script also reports (but does not fail on) the count of `text-primary` and `bg-primary` usages per file, so reviewers can spot concentration of lime in any one component.
 
 ### Routing changes
 
@@ -552,19 +633,21 @@ The current app uses Solid signals + `createResource` per page. TanStack Query i
 
 The backend (`cmd/server/main.go`, `/api/v1/*`) is untouched. The data contracts are unchanged. The frontend is the only thing being modified.
 
-## 12. Risks & Open Questions
+## 13. Risks & Open Questions
 
 | Risk | Mitigation |
 |---|---|
 | Tailwind v4 `@theme` block is a 2024 syntax; some users may not know it | Reference the existing usage in `frontend/src/styles/custom.css:4`; document the v3→v4 differences inline |
 | Hand-rolling the donut math (stroke-dasharray) is fiddly | Write 3 component tests covering: equal segments, single segment, 6-segment case |
 | 12px bento gap on small screens leaves very little breathing room | Test on 320px viewport (smallest supported). If cramped, drop to 8px gap on `< 375px` via container query |
-| Lime `#CCFF00` on text-heavy surfaces may vibrate | Use lime only for: primary CTAs, active state of the donut, +income amounts. Body text stays zinc-50 |
+| **Lime `#CCFF00` text on light or ambiguous backgrounds vibrates and becomes unreadable** | **`lint:colors` script (§12) fails the build on any `text-primary` usage outside the allowed pairings. The mitigation is mechanical, not advisory.** |
+| **Dark mode is hard to read outdoors** | Acknowledged. A high-contrast / "outdoor" theme is **deferred to a future revamp** and called out in `frontend/README.md` as a known gap. The current bento aesthetic is acceptable for indoor use (the dominant case for a finance app's primary screen, dashboard). When the deferred theme lands, it can be implemented as a `@media (prefers-contrast: more)` opt-in or a Settings toggle. |
+| **`backdrop-blur-sm` on PageHeader and DateHeader is GPU-expensive on low-end Android** | Gated on `@media (prefers-reduced-transparency: no-preference)`. Outside that query, fall back to solid `bg-bg` (no opacity). This is in the a11y section (§11). |
 | The "View all" link in Dashboard's Recent block → where does it go? Mockup shows it on Dashboard; the full list is on Activity. | It links to `/activity` (current `/transactions` route) |
 | Sparkline needs historical data the backend may not have for new users | Empty state: dashed `BentoBlock` with "Add data to see trends" CTA |
 | Card primitives are used by ~6 pages; removing them in Phase 4 might miss a usage | Phase 1 keeps the shim exports; Phase 4 grep-verifies `card` imports are 0 before deleting |
 
-## 13. Files Touched (Reference)
+## 14. Files Touched (Reference)
 
 New files:
 - `frontend/src/components/ui/bento-block.tsx`
@@ -608,4 +691,4 @@ Refactored:
 - `frontend/src/App.tsx` (add `/analytics` and `/activity` routes; update nav)
 - `frontend/package.json` (add fontsource packages)
 - `frontend/README.md` (document new design)
-- `AGENTS.md` (correct the stack description — see §10.5)
+- `AGENTS.md` (corrected in the same commit that landed this spec — the spec and AGENTS.md are now in sync)
