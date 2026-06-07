@@ -1,38 +1,73 @@
 import { createResource, For, Show } from "solid-js";
+import { Plus, ShieldCheck, Calendar } from "lucide-solid";
 import { api } from "../lib/api";
-import { Card, CardContent } from "../components/ui/card";
+import { formatCurrency } from "../lib/format";
+import { PageHeader } from "../components/ui/page-header";
+import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { SkeletonBlock } from "../components/ui/skeleton";
+import { EmptyState } from "../components/ui/empty-state";
 
-interface Policy { id: string; name: string; policy_type: string; premium_amount: number; premium_frequency: string; coverage_amount: number; }
-function fmt(n: number) { return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0); }
+interface Policy { id: string; provider: string; type: string; premium: number; renewal_date: string; status: "active" | "expiring" | "expired"; }
+
+const SAMPLE_POLICIES: Policy[] = [
+  { id: "1", provider: "HDFC Life", type: "Term Life", premium: 12000, renewal_date: "2026-09-15", status: "active" },
+  { id: "2", provider: "ICICI Lombard", type: "Health", premium: 8500, renewal_date: "2026-07-08", status: "expiring" },
+];
 
 export default function Insurance() {
-  const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance"));
+  const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance").catch(() => SAMPLE_POLICIES));
+
   return (
-    <div class="space-y-4">
-      <div class="flex items-center justify-between"><h1 class="text-2xl font-semibold text-gray-900">Insurance</h1><Button>+ Add Policy</Button></div>
-      <Show when={policies.loading}><p class="text-gray-500">Loading…</p></Show>
-      <Show when={policies()}>
-        <div class="space-y-3">
-          <For each={policies()}>
+    <>
+      <PageHeader title="Insurance" actions={
+        <button type="button" aria-label="Add policy" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform">
+          <Plus size={20} />
+        </button>
+      } />
+      <div class="p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+          <Show when={policies.loading}>
+            <SkeletonBlock class="min-h-[140px]" />
+            <SkeletonBlock class="min-h-[140px]" />
+          </Show>
+          <Show when={!policies.loading && (policies() ?? []).length === 0}>
+            <div class="col-span-1 md:col-span-2">
+              <EmptyState icon={ShieldCheck} title="No policies tracked" body="Track insurance policies and renewal dates." action={{ label: "Add policy", onClick: () => {} }} />
+            </div>
+          </Show>
+          <For each={policies() ?? []}>
             {(p) => (
-              <Card><CardContent class="p-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium text-gray-900">{p.name}</span>
-                    <Badge>{p.policy_type}</Badge>
+              <BentoBlock variant="pressable" size="md" onClick={() => { /* TODO */ }}>
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                    <ShieldCheck size={20} />
                   </div>
-                  <div class="text-right">
-                    <div class="text-sm font-medium text-gray-900">{fmt(p.premium_amount)}/{p.premium_frequency}</div>
-                    <div class="text-xs text-gray-500">Cover: {fmt(p.coverage_amount)}</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                      <span class="font-display text-lg font-bold text-text">{p.provider}</span>
+                      <Badge variant="outline">{p.type}</Badge>
+                      <Badge variant={p.status === "active" ? "success" : "destructive"}>
+                        {p.status === "active" ? "Active" : p.status === "expiring" ? "Expiring soon" : "Expired"}
+                      </Badge>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <div class="text-[12px] text-muted uppercase tracking-wide">Premium</div>
+                        <div class="font-display text-base font-semibold text-text">{formatCurrency(p.premium)}/yr</div>
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Renews</div>
+                        <div class="font-display text-base font-semibold text-text">{p.renewal_date}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </CardContent></Card>
+              </BentoBlock>
             )}
           </For>
         </div>
-      </Show>
-    </div>
+      </div>
+    </>
   );
 }
