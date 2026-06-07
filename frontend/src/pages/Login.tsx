@@ -4,6 +4,7 @@ import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { BentoBlock } from "../components/ui/bento-block";
 
 export default function Login() {
   const [email, setEmail] = createSignal("");
@@ -18,10 +19,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await api.post<{ token: string; user: any }>("/v1/auth/login", {
-        email: email(),
-        password: password(),
-      });
+      const res = await api.post<{ token: string; user: any }>("/v1/auth/login", { email: email(), password: password() });
       login(res.token, res.user);
       navigate("/dashboard");
     } catch (err: any) {
@@ -32,53 +30,34 @@ export default function Login() {
   };
 
   return (
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div class="w-full max-w-sm">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div class="mb-6 text-center">
-            <h1 class="text-xl font-semibold text-gray-900">Ledgerify</h1>
-            <p class="text-sm text-gray-500 mt-1">Sign in to your account</p>
-          </div>
-
-          <Show when={error()}>
-            <div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-              {error()}
-            </div>
-          </Show>
-
-          <form onSubmit={handleSubmit} class="flex flex-col gap-4">
-            <div>
-              <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Email</label>
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email()}
-                onInput={(e) => setEmail(e.currentTarget.value)}
-                required
-                autocomplete="email"
-              />
-            </div>
-            <div>
-              <label class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 block">Password</label>
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password()}
-                onInput={(e) => setPassword(e.currentTarget.value)}
-                required
-                autocomplete="current-password"
-              />
-            </div>
-            <Button type="submit" disabled={loading()} class="w-full mt-1">
-              {loading() ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-
-          <p class="text-center text-sm text-gray-500 mt-4">
-            No account? <A href="/register" class="text-[#c25a3e] hover:underline font-medium">Register</A>
-          </p>
+    <div class="min-h-screen flex items-center justify-center bg-bg p-4">
+      <BentoBlock size="md" class="w-full max-w-[360px]">
+        <div class="flex flex-col items-center text-center mb-6">
+          <div class="w-12 h-12 rounded-input bg-primary flex items-center justify-center text-bg font-display font-bold text-2xl mb-3">L</div>
+          <h1 class="font-display text-2xl font-bold text-text">Ledgerify</h1>
+          <p class="text-sm text-muted mt-1">Sign in to your account</p>
         </div>
-      </div>
+
+        <Show when={error()}>
+          <div class="mb-4 rounded-input bg-accent/10 border border-accent/30 px-3 py-2 text-sm text-accent">{error()}</div>
+        </Show>
+
+        <form onSubmit={handleSubmit} class="flex flex-col gap-3">
+          <div>
+            <label for="login-email" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Email</label>
+            <Input id="login-email" type="email" value={email()} onInput={(e) => setEmail(e.currentTarget.value)} required autocomplete="email" />
+          </div>
+          <div>
+            <label for="login-password" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Password</label>
+            <Input id="login-password" type="password" value={password()} onInput={(e) => setPassword(e.currentTarget.value)} required autocomplete="current-password" />
+          </div>
+          <Button type="submit" disabled={loading()} class="w-full mt-1">{loading() ? "Signing in…" : "Sign in"}</Button>
+        </form>
+
+        <p class="text-center text-sm text-muted mt-4">
+          No account? <A href="/register" class="text-primary hover:underline font-medium">Sign up</A>
+        </p>
+      </BentoBlock>
     </div>
   );
 }

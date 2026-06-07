@@ -1,29 +1,45 @@
+import { For } from "solid-js";
 import { A } from "@solidjs/router";
-import { Card, CardContent } from "../components/ui/card";
+import { LineChart, BarChart3, Wallet, TrendingUp, ChevronRight } from "lucide-solid";
+import { PageHeader } from "../components/ui/page-header";
+import { BentoBlock } from "../components/ui/bento-block";
 
-const reports = [
-  { path: "/reports/cashflow", title: "Cash Flow", desc: "Income vs expenses over time" },
-  { path: "/reports/category-breakdown", title: "Category Breakdown", desc: "Spending by category" },
-  { path: "/reports/budget-vs-actual", title: "Budget vs Actual", desc: "Budget adherence" },
-  { path: "/reports/networth", title: "Net Worth", desc: "Net worth over time" },
+const REPORTS = [
+  { path: "/reports/cashflow", title: "Cash Flow", description: "Income vs expenses over time", icon: LineChart },
+  { path: "/reports/category-breakdown", title: "Category Breakdown", description: "Where your money goes by category", icon: BarChart3 },
+  { path: "/reports/budget-vs-actual", title: "Budget vs Actual", description: "Compare planned vs actual spending", icon: Wallet },
+  { path: "/reports/networth", title: "Net Worth", description: "Track assets and liabilities over time", icon: TrendingUp },
 ];
 
 export default function Reports() {
   return (
-    <div class="space-y-4">
-      <h1 class="text-2xl font-semibold text-gray-900">Reports</h1>
-      <div class="grid grid-cols-2 gap-4">
-        {reports.map((r) => (
-          <A href={r.path} class="block">
-            <Card class="hover:border-gray-300 transition-colors cursor-pointer">
-              <CardContent class="p-4">
-                <h3 class="font-medium text-gray-900">{r.title}</h3>
-                <p class="text-sm text-gray-500 mt-1">{r.desc}</p>
-              </CardContent>
-            </Card>
-          </A>
-        ))}
+    <>
+      <PageHeader title="Reports" />
+      <div class="p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+          <For each={REPORTS}>
+            {(r) => {
+              const Icon = r.icon;
+              return (
+                <A href={r.path} class="block">
+                  <BentoBlock variant="pressable" size="md" class="h-full">
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                        <Icon size={24} />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-display text-lg font-bold text-text mb-0.5">{r.title}</div>
+                        <div class="text-sm text-muted">{r.description}</div>
+                      </div>
+                      <ChevronRight size={20} class="text-muted flex-shrink-0" />
+                    </div>
+                  </BentoBlock>
+                </A>
+              );
+            }}
+          </For>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
