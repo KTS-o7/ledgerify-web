@@ -19,6 +19,7 @@ export default function Import() {
             ref={inputRef}
             type="file"
             accept=".csv"
+            aria-label="Choose CSV file"
             class="sr-only"
             onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
           />

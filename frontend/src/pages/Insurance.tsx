@@ -21,7 +21,7 @@ export default function Insurance() {
   return (
     <>
       <PageHeader title="Insurance" actions={
-        <button type="button" aria-label="Add policy" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform">
+        <button type="button" aria-label="Add policy" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
           <Plus size={20} />
         </button>
       } />

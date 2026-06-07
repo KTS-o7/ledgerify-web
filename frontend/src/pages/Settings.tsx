@@ -13,7 +13,7 @@ function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () =
     <button
       type="button"
       onClick={props.onClick}
-      class="w-full h-14 flex items-center gap-3 px-2 -mx-2 rounded-input text-left hover:bg-surface-hover transition-colors"
+      class="w-full h-14 flex items-center gap-3 px-2 -mx-2 rounded-input text-left hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
       <Icon size={18} class={props.danger ? "text-accent" : "text-muted"} />
       <span class={`flex-1 font-body text-base ${props.danger ? "text-accent" : "text-text"}`}>{props.label}</span>
@@ -50,8 +50,8 @@ export default function Settings() {
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>
           <div class="flex items-center gap-3 h-14">
             <Globe size={18} class="text-muted" />
-            <span class="flex-1 font-body text-base text-text">Currency</span>
-            <Select value={currency()} onChange={onCurrencyChange} class="w-32">
+            <label for="settings-currency" class="flex-1 font-body text-base text-text">Currency</label>
+            <Select id="settings-currency" value={currency()} onChange={onCurrencyChange} class="w-32">
               <option value="INR">INR (₹)</option>
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
@@ -60,8 +60,8 @@ export default function Settings() {
           </div>
           <div class="flex items-center gap-3 h-14">
             <Calendar size={18} class="text-muted" />
-            <span class="flex-1 font-body text-base text-text">Date format</span>
-            <Select class="w-32" value="MMM DD">
+            <label for="settings-date-format" class="flex-1 font-body text-base text-text">Date format</label>
+            <Select id="settings-date-format" class="w-32" value="MMM DD">
               <option>MMM DD</option>
               <option>DD/MM/YYYY</option>
               <option>YYYY-MM-DD</option>

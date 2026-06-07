@@ -94,7 +94,7 @@ export default function Export() {
                       <div class="font-body text-base text-text truncate">{e.name}</div>
                       <div class="text-[13px] text-muted">{e.date}</div>
                     </div>
-                    <button type="button" aria-label={`Download ${e.name}`} class="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover transition-colors">
+                    <button type="button" aria-label={`Download ${e.name}`} class="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
                       <Download size={18} />
                     </button>
                   </li>

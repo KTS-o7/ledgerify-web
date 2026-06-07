@@ -27,7 +27,7 @@ export default function NetWorth() {
   return (
     <>
       <PageHeader title="Net Worth" actions={
-        <button type="button" aria-label="Add snapshot" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform">
+        <button type="button" aria-label="Add snapshot" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
           <Plus size={20} />
         </button>
       } />

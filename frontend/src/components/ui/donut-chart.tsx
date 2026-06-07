@@ -47,7 +47,13 @@ export const DonutChart: Component<DonutChartProps> = (props) => {
   const radius = () => (size() - thickness()) / 2;
   const strokes = () => computeSegmentStrokes(props.segments, radius());
   const isHighlighted = (i: number) => props.highlightIndex == null || props.highlightIndex === i;
-  const a11yLabel = () => `Donut chart with ${props.segments.length} segments totaling ${props.centerValue ?? ""}`;
+  const a11yLabel = () => {
+    const n = props.segments.length;
+    const noun = n === 1 ? "category" : "categories";
+    const label = props.centerLabel ?? "Donut chart";
+    const value = props.centerValue ? ` ${props.centerValue}` : "";
+    return `${label}${value} across ${n} ${noun}`;
+  };
 
   return (
     <div class="relative flex items-center justify-center" style={{ width: `${size()}px`, height: `${size()}px` }} role="img" aria-label={a11yLabel()}>

@@ -14,7 +14,7 @@ export const PageHeader: Component<PageHeaderProps> = (props): JSX.Element => {
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform"
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           >
             <ArrowLeft size={20} />
           </button>

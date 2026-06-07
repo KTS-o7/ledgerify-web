@@ -37,7 +37,7 @@ export const BottomNav: Component = (): JSX.Element => {
           <button
             type="button"
             onClick={onMore}
-            class="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted active:text-text transition-colors"
+            class="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted active:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             aria-label="More navigation options"
           >
             <Grid3x3 size={22} />
@@ -88,7 +88,7 @@ export const Sidebar: Component = (): JSX.Element => {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          class="w-full flex items-center justify-between px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           aria-expanded={expanded()}
         >
           <span class="flex items-center gap-3">
@@ -120,7 +120,7 @@ export const Sidebar: Component = (): JSX.Element => {
         <button
           type="button"
           onClick={() => { logout(); navigate("/login"); }}
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <LogOut size={18} />
           <span class="text-sm font-medium">Logout</span>
@@ -185,7 +185,7 @@ export const MoreSheet: Component = (): JSX.Element => {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                class="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover"
+                class="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 <X size={20} />
               </button>
@@ -197,7 +197,7 @@ export const MoreSheet: Component = (): JSX.Element => {
                     <button
                       type="button"
                       onClick={() => onSelect(item)}
-                      class="w-full aspect-square flex flex-col items-center justify-center gap-1.5 rounded-input bg-bg text-muted hover:text-text hover:bg-surface-hover transition-colors"
+                      class="w-full aspect-square flex flex-col items-center justify-center gap-1.5 rounded-input bg-bg text-muted hover:text-text hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                     >
                       <item.icon size={24} />
                       <span class="text-[12px] font-medium">{item.label}</span>
@@ -209,7 +209,7 @@ export const MoreSheet: Component = (): JSX.Element => {
             <button
               type="button"
               onClick={() => { setOpen(false); navigate("/settings"); }}
-              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-input border border-border text-muted hover:text-text hover:bg-bg transition-colors text-sm font-medium"
+              class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-input border border-border text-muted hover:text-text hover:bg-bg transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             >
               <LogOut size={16} />
               <span>Settings</span>

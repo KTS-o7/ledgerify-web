@@ -37,7 +37,7 @@ export const AccountRow: Component<AccountRowProps> = (props) => {
   if (props.onClick) {
     return (
       <button type="button" onClick={props.onClick}
-        class="w-full text-left active:bg-surface-hover transition-colors rounded-[16px] cursor-pointer"
+        class="w-full text-left active:bg-surface-hover transition-colors rounded-[16px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         aria-label={`${props.name}, balance ${formatCurrency(props.balance, props.currency)}`}>
         {content()}
       </button>
