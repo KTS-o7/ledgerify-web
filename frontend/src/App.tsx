@@ -18,6 +18,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Import = lazy(() => import("./pages/Import"));
 const Export = lazy(() => import("./pages/Export"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/transactions" component={Transactions} />
+            <Route path="/activity" component={Transactions} />
             <Route path="/accounts" component={Accounts} />
             <Route path="/budgets" component={Budgets} />
             <Route path="/investments" component={Investments} />
@@ -40,6 +42,7 @@ export default function App() {
             <Route path="/import" component={Import} />
             <Route path="/export" component={Export} />
             <Route path="/settings" component={Settings} />
+            <Route path="/analytics" component={Analytics} />
           </Route>
         </Route>
       </Router>
