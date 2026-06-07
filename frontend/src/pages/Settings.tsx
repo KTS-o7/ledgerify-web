@@ -39,41 +39,49 @@ export default function Settings() {
   return (
     <>
       <PageHeader title="Settings" />
-      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
-        <BentoBlock size="md" class="col-span-1 md:col-span-8">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
-          <Row icon={Mail} label={user()?.email || "Email"} />
-          <Row icon={KeyRound} label="Change password" />
-          <Row icon={LogOut} label="Logout" danger onClick={() => { logout(); navigate("/login"); }} />
-        </BentoBlock>
-        <BentoBlock size="md" class="col-span-1 md:col-span-8">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>
-          <div class="flex items-center gap-3 h-14">
-            <Globe size={18} class="text-muted" />
-            <label for="settings-currency" class="flex-1 font-body text-base text-text">Currency</label>
-            <Select id="settings-currency" value={currency()} onChange={onCurrencyChange} class="w-32">
-              <option value="INR">INR (₹)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-            </Select>
-          </div>
-          <div class="flex items-center gap-3 h-14">
-            <Calendar size={18} class="text-muted" />
-            <label for="settings-date-format" class="flex-1 font-body text-base text-text">Date format</label>
-            <Select id="settings-date-format" class="w-32" value="MMM DD">
-              <option>MMM DD</option>
-              <option>DD/MM/YYYY</option>
-              <option>YYYY-MM-DD</option>
-            </Select>
-          </div>
-        </BentoBlock>
-        <BentoBlock size="md" class="col-span-1 md:col-span-4 md:row-span-2">
+      {/* Desktop: 2-col — left has account + prefs stacked, right has data */}
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+
+        {/* Left column */}
+        <div class="flex flex-col gap-3">
+          <BentoBlock>
+            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
+            <Row icon={Mail} label={user()?.email || "Email"} />
+            <Row icon={KeyRound} label="Change password" />
+            <Row icon={LogOut} label="Logout" danger onClick={() => { logout(); navigate("/login"); }} />
+          </BentoBlock>
+          <BentoBlock>
+            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>
+            <div class="flex items-center gap-3 h-14">
+              <Globe size={18} class="text-muted" />
+              <label for="settings-currency" class="flex-1 font-body text-base text-text">Currency</label>
+              <Select id="settings-currency" value={currency()} onChange={onCurrencyChange} class="w-32">
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+              </Select>
+            </div>
+            <div class="flex items-center gap-3 h-14">
+              <Calendar size={18} class="text-muted" />
+              <label for="settings-date-format" class="flex-1 font-body text-base text-text">Date format</label>
+              <Select id="settings-date-format" class="w-32" value="MMM DD">
+                <option>MMM DD</option>
+                <option>DD/MM/YYYY</option>
+                <option>YYYY-MM-DD</option>
+              </Select>
+            </div>
+          </BentoBlock>
+        </div>
+
+        {/* Right column */}
+        <BentoBlock>
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Data</span>
           <Row icon={FileDown} label="Export all data" onClick={() => navigate("/export")} />
           <Row icon={FileUp} label="Import" onClick={() => navigate("/import")} />
           <Row icon={Trash2} label="Delete account" danger />
         </BentoBlock>
+
       </div>
     </>
   );

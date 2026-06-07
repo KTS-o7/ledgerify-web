@@ -64,7 +64,7 @@ export default function Transactions() {
           placeholder="Search by merchant, category, account…"
         />
       </div>
-      <div class="p-4">
+      <div class="p-4 md:p-6 md:max-w-3xl md:mx-auto">
         <Show when={txns.loading}>
           <div class="flex flex-col">
             <For each={[0, 1, 2, 3, 4]}>{() => <SkeletonRow class="mb-1" />}</For>

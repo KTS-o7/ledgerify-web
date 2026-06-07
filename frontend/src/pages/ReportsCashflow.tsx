@@ -29,17 +29,17 @@ export default function ReportsCashflow() {
           {(s) => {
             const net = () => s().total_income - s().total_expenses;
             return (
-              <>
-                <BentoBlock size="md" class="col-span-1 md:col-span-6">
-                  <div class="grid grid-cols-2 gap-4">
-                    <Stat label="Income" value={formatCurrency(s().total_income)} tone="primary" size="lg" />
-                    <Stat label="Expenses" value={formatCurrency(s().total_expenses)} size="lg" />
-                  </div>
-                </BentoBlock>
-                <BentoBlock size="md" class="col-span-1 md:col-span-6">
-                  <Stat label="Net Cash Flow" value={formatCurrency(net())} tone={net() >= 0 ? "primary" : "accent"} size="xl" trend={{ dir: net() >= 0 ? "up" : "down", value: `${net() >= 0 ? "+" : ""}${formatCurrency(net())} this month` }} />
-                </BentoBlock>
-              </>
+                <>
+                  <BentoBlock class="col-span-1 md:col-span-7 flex flex-col justify-center gap-6">
+                    <div class="grid grid-cols-2 gap-6">
+                      <Stat label="Income" value={formatCurrency(s().total_income)} tone="primary" size="lg" />
+                      <Stat label="Expenses" value={formatCurrency(s().total_expenses)} size="lg" />
+                    </div>
+                  </BentoBlock>
+                  <BentoBlock class="col-span-1 md:col-span-5 flex flex-col justify-center">
+                    <Stat label="Net Cash Flow" value={formatCurrency(net())} tone={net() >= 0 ? "primary" : "accent"} size="xl" trend={{ dir: net() >= 0 ? "up" : "down", value: `${net() >= 0 ? "+" : ""}${formatCurrency(Math.abs(net()))}` }} />
+                  </BentoBlock>
+                </>
             );
           }}
         </Show>
