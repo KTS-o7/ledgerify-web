@@ -10,14 +10,8 @@ import { EmptyState } from "../components/ui/empty-state";
 
 interface Holding { id: string; ticker: string; name: string; quantity: number; current_price: number; market_value: number; history?: number[]; }
 
-const SAMPLE_HOLDINGS: Holding[] = [
-  { id: "1", ticker: "AAPL", name: "Apple Inc.", quantity: 10, current_price: 178, market_value: 1780, history: [170, 172, 168, 175, 178, 180, 178] },
-  { id: "2", ticker: "MSFT", name: "Microsoft", quantity: 5, current_price: 410, market_value: 2050, history: [400, 405, 410, 408, 412, 415, 410] },
-  { id: "3", ticker: "VOO", name: "Vanguard S&P 500 ETF", quantity: 12, current_price: 480, market_value: 5760, history: [470, 475, 478, 482, 485, 488, 480] },
-];
-
 export default function Investments() {
-  const [holdings] = createResource(() => api.get<Holding[]>("/v1/investments").catch(() => SAMPLE_HOLDINGS));
+  const [holdings] = createResource(() => api.get<Holding[]>("/v1/investments"));
 
   return (
     <>
@@ -32,7 +26,12 @@ export default function Investments() {
             <SkeletonBlock class="min-h-[120px]" />
             <SkeletonBlock class="min-h-[120px]" />
           </Show>
-          <Show when={!holdings.loading && (holdings() ?? []).length === 0}>
+          <Show when={holdings.error}>
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+              <p class="text-accent text-sm py-6 text-center">Failed to load investments.</p>
+            </div>
+          </Show>
+          <Show when={!holdings.loading && !holdings.error && (holdings() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState icon={TrendingUp} title="No investments yet" body="Track your portfolio across stocks, ETFs, and funds." action={{ label: "Add holding", onClick: () => {} }} />
             </div>

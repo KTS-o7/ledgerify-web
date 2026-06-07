@@ -1,5 +1,5 @@
-import { createResource, For, Show } from "solid-js";
-import { Plus, TrendingUp, TrendingDown, BarChart3 } from "lucide-solid";
+import { createResource, Show } from "solid-js";
+import { BarChart3 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -9,73 +9,62 @@ import { Sparkline } from "../components/ui/sparkline";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 
-interface NetWorthData { current: number; history: number[]; topMovers: Array<{ name: string; delta: number }>; }
+interface NetWorthData {
+  total_assets: number;
+  total_liabilities: number;
+  networth: number;
+}
 
-const SAMPLE: NetWorthData = {
-  current: 2450000,
-  history: [2200000, 2230000, 2280000, 2300000, 2350000, 2400000, 2420000, 2450000],
-  topMovers: [
-    { name: "Stocks Portfolio", delta: 35000 },
-    { name: "Home Value", delta: 12000 },
-    { name: "Credit Card Debt", delta: -8000 },
-  ],
-};
+interface SummaryData {
+  monthly_networth: Array<{ date: string; total_balance: number }>;
+}
 
 export default function NetWorth() {
-  const [data] = createResource(() => api.get<NetWorthData>("/v1/networth").catch(() => SAMPLE));
+  const [data] = createResource(() => api.get<NetWorthData>("/v1/networth"));
+  const [summary] = createResource(() => api.get<SummaryData>("/v1/summary"));
 
   return (
     <>
-      <PageHeader title="Net Worth" actions={
-        <button type="button" aria-label="Add snapshot" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
-          <Plus size={20} />
-        </button>
-      } />
+      <PageHeader title="Net Worth" />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
         <Show when={data.loading}>
           <SkeletonBlock class="col-span-1 md:col-span-12 min-h-[200px]" />
+        </Show>
+        <Show when={data.error && !data()}>
+          <EmptyState icon={BarChart3} title="Couldn't load net worth" body="Try again later." class="col-span-1 md:col-span-12" />
         </Show>
         <Show when={data()}>
           {(d) => (
             <>
               {/* Hero stat — full width */}
               <BentoBlock size="lg" class="col-span-1 md:col-span-12">
-                <Stat label="Net Worth" value={formatCurrency(d().current)} size="xl" tone={d().current >= 0 ? "primary" : "accent"} />
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:gap-12">
+                  <Stat label="Net Worth" value={formatCurrency(d().networth)} size="xl" tone={d().networth >= 0 ? "primary" : "accent"} />
+                  <Stat label="Total Assets" value={formatCurrency(d().total_assets)} size="lg" tone="primary" />
+                  <Stat label="Total Liabilities" value={formatCurrency(d().total_liabilities)} size="lg" tone="accent" />
+                </div>
               </BentoBlock>
-              {/* Sparkline — 8 cols on desktop */}
-              <BentoBlock size="md" class="col-span-1 md:col-span-8">
+              {/* Sparkline — from summary monthly_networth */}
+              <BentoBlock size="md" class="col-span-1 md:col-span-12">
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">12-month trend</span>
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">6-month trend</span>
                   <BarChart3 size={16} class="text-muted" />
                 </div>
-                <Show when={d().history && d().history.length > 1} fallback={<p class="text-muted text-sm py-4 text-center">Not enough data for a trend yet.</p>}>
-                  <Sparkline values={d().history} width={undefined} height={120} tone={d().current >= 0 ? "primary" : "accent"} class="w-full" />
+                <Show
+                  when={!summary.loading && (summary()?.monthly_networth ?? []).length > 1}
+                  fallback={<p class="text-muted text-sm py-4 text-center">Not enough data for a trend yet.</p>}
+                >
+                  <Sparkline
+                    values={(summary()?.monthly_networth ?? []).map((r) => r.total_balance)}
+                    width={undefined}
+                    height={120}
+                    tone={d().networth >= 0 ? "primary" : "accent"}
+                    class="w-full"
+                  />
                 </Show>
-              </BentoBlock>
-              {/* Top Movers — 4 cols on desktop */}
-              <BentoBlock size="md" class="col-span-1 md:col-span-4">
-                <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">Top Movers</span>
-                <ul class="flex flex-col">
-                  <For each={d().topMovers}>
-                    {(m) => (
-                      <li class="flex items-center justify-between py-3 border-b border-border last:border-0">
-                        <div class="flex items-center gap-2">
-                          {m.delta >= 0 ? <TrendingUp size={16} class="text-primary" /> : <TrendingDown size={16} class="text-accent" />}
-                          <span class="font-body text-sm text-text truncate">{m.name}</span>
-                        </div>
-                        <span class={`font-display font-semibold text-sm flex-shrink-0 ml-2 ${m.delta >= 0 ? "text-primary" : "text-accent"}`}>
-                          {m.delta >= 0 ? "+" : "−"}{formatCurrency(Math.abs(m.delta))}
-                        </span>
-                      </li>
-                    )}
-                  </For>
-                </ul>
               </BentoBlock>
             </>
           )}
-        </Show>
-        <Show when={data.error && !data()}>
-          <EmptyState icon={BarChart3} title="Couldn't load net worth" body="Try again later or add a snapshot manually." class="col-span-1 md:col-span-12" />
         </Show>
       </div>
     </>

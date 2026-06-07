@@ -10,13 +10,8 @@ import { EmptyState } from "../components/ui/empty-state";
 
 interface Loan { id: string; lender: string; type: string; principal: number; emi: number; next_due: string; }
 
-const SAMPLE_LOANS: Loan[] = [
-  { id: "1", lender: "HDFC Bank", type: "Home Loan", principal: 4500000, emi: 38500, next_due: "2026-07-05" },
-  { id: "2", lender: "Bajaj Finserv", type: "Personal Loan", principal: 250000, emi: 8900, next_due: "2026-07-12" },
-];
-
 export default function Loans() {
-  const [loans] = createResource(() => api.get<Loan[]>("/v1/loans").catch(() => SAMPLE_LOANS));
+  const [loans] = createResource(() => api.get<Loan[]>("/v1/loans"));
 
   return (
     <>
@@ -31,7 +26,12 @@ export default function Loans() {
             <SkeletonBlock class="min-h-[140px]" />
             <SkeletonBlock class="min-h-[140px]" />
           </Show>
-          <Show when={!loans.loading && (loans() ?? []).length === 0}>
+          <Show when={loans.error}>
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+              <p class="text-accent text-sm py-6 text-center">Failed to load loans.</p>
+            </div>
+          </Show>
+          <Show when={!loans.loading && !loans.error && (loans() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState icon={Landmark} title="No loans tracked" body="Track outstanding loans and EMI schedules." action={{ label: "Add loan", onClick: () => {} }} />
             </div>

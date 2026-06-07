@@ -1,21 +1,36 @@
-import { For } from "solid-js";
+import { createResource, For, Show } from "solid-js";
+import { Target } from "lucide-solid";
+import { api } from "../lib/api";
+import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { CategoryBar } from "../components/ui/category-bar";
-import { formatCurrency } from "../lib/format";
+import { EmptyState } from "../components/ui/empty-state";
+import { SkeletonBlock } from "../components/ui/skeleton";
 
-const BUDGETS = [
-  { name: "Groceries", spent: 4200, amount: 6000 },
-  { name: "Dining Out", spent: 2800, amount: 3000 },
-  { name: "Transport", spent: 1900, amount: 2000 },
-];
+interface BudgetItem { id: string; name: string; spent: number; amount: number; period: string; }
 
 export default function ReportsBudgetVsActual() {
+  const [budgets] = createResource(() => api.get<BudgetItem[]>("/v1/budgets"));
+
   return (
     <>
       <PageHeader title="Budget vs Actual" back />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <For each={BUDGETS}>
+        <Show when={budgets.loading}>
+          <SkeletonBlock class="min-h-[100px]" />
+          <SkeletonBlock class="min-h-[100px]" />
+          <SkeletonBlock class="min-h-[100px]" />
+        </Show>
+        <Show when={budgets.error}>
+          <p class="text-accent text-sm py-6 text-center col-span-1 md:col-span-2 lg:col-span-3">Failed to load budgets.</p>
+        </Show>
+        <Show when={!budgets.loading && !budgets.error && (budgets() ?? []).length === 0}>
+          <div class="col-span-1 md:col-span-2 lg:col-span-3">
+            <EmptyState icon={Target} title="No budgets yet" body="Create budgets to compare planned vs actual spending." />
+          </div>
+        </Show>
+        <For each={budgets() ?? []}>
           {(b) => {
             const pct = (b.spent / b.amount) * 100;
             const over = b.spent > b.amount;

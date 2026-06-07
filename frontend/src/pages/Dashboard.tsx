@@ -24,12 +24,9 @@ interface Summary {
   }>;
   account_balances: Array<{ name: string; balance: number }>;
   budget_status: Array<{ name: string; spent: number; amount: number }>;
+  monthly_networth: Array<{ date: string; total_balance: number }>;
+  category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
 }
-
-const SPARKLINE_PLACEHOLDER = [
-  12, 18, 15, 22, 19, 25, 28, 24, 30, 27, 32, 29, 35, 31, 38, 34, 40, 36,
-  42, 38, 45, 41, 47, 43, 50, 46, 52, 48, 55, 50,
-];
 
 function categoryIcon(category: string) {
   switch (category) {
@@ -100,7 +97,17 @@ export default function Dashboard() {
                 <BentoBlock size="sm" class="col-span-1 md:col-span-12">
                   <div class="flex flex-col gap-2">
                     <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">30-day spending</span>
-                    <Sparkline values={SPARKLINE_PLACEHOLDER} height={48} class="w-full" tone="primary" />
+                    <Show
+                      when={(s().monthly_networth || []).length > 1}
+                      fallback={<p class="text-muted text-sm py-2">No spending data yet.</p>}
+                    >
+                      <Sparkline
+                        values={(s().monthly_networth || []).map((r) => r.total_balance)}
+                        height={48}
+                        class="w-full"
+                        tone="primary"
+                      />
+                    </Show>
                   </div>
                 </BentoBlock>
                 {/* Recent transactions — full width */}

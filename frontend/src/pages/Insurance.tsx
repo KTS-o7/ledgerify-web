@@ -10,13 +10,8 @@ import { EmptyState } from "../components/ui/empty-state";
 
 interface Policy { id: string; provider: string; type: string; premium: number; renewal_date: string; status: "active" | "expiring" | "expired"; }
 
-const SAMPLE_POLICIES: Policy[] = [
-  { id: "1", provider: "HDFC Life", type: "Term Life", premium: 12000, renewal_date: "2026-09-15", status: "active" },
-  { id: "2", provider: "ICICI Lombard", type: "Health", premium: 8500, renewal_date: "2026-07-08", status: "expiring" },
-];
-
 export default function Insurance() {
-  const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance").catch(() => SAMPLE_POLICIES));
+  const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance"));
 
   return (
     <>
@@ -31,7 +26,12 @@ export default function Insurance() {
             <SkeletonBlock class="min-h-[140px]" />
             <SkeletonBlock class="min-h-[140px]" />
           </Show>
-          <Show when={!policies.loading && (policies() ?? []).length === 0}>
+          <Show when={policies.error}>
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+              <p class="text-accent text-sm py-6 text-center">Failed to load policies.</p>
+            </div>
+          </Show>
+          <Show when={!policies.loading && !policies.error && (policies() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState icon={ShieldCheck} title="No policies tracked" body="Track insurance policies and renewal dates." action={{ label: "Add policy", onClick: () => {} }} />
             </div>

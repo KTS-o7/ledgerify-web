@@ -10,16 +10,8 @@ import { EmptyState } from "../components/ui/empty-state";
 
 interface Budget { id: string; name: string; spent: number; amount: number; period: string; category_name: string; }
 
-const SAMPLE_BUDGETS: Budget[] = [
-  { id: "1", name: "Groceries", spent: 4200, amount: 6000, period: "monthly", category_name: "Groceries" },
-  { id: "2", name: "Dining Out", spent: 2800, amount: 3000, period: "monthly", category_name: "Dining" },
-  { id: "3", name: "Transport", spent: 1900, amount: 2000, period: "monthly", category_name: "Transport" },
-];
-
 export default function Budgets() {
-  const [budgets] = createResource(() =>
-    api.get<Budget[]>("/v1/budgets").catch(() => SAMPLE_BUDGETS)
-  );
+  const [budgets] = createResource(() => api.get<Budget[]>("/v1/budgets"));
 
   return (
     <>
@@ -41,7 +33,12 @@ export default function Budgets() {
             <SkeletonBlock class="min-h-[140px]" />
             <SkeletonBlock class="min-h-[140px]" />
           </Show>
-          <Show when={!budgets.loading && (budgets() ?? []).length === 0}>
+          <Show when={budgets.error}>
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+              <p class="text-accent text-sm py-6 text-center">Failed to load budgets.</p>
+            </div>
+          </Show>
+          <Show when={!budgets.loading && !budgets.error && (budgets() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState
                 icon={Target}
