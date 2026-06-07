@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { Plus, Landmark, Calendar, TrendingDown } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat } from "../lib/format";
@@ -7,6 +7,8 @@ import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Sheet } from "../components/ui/sheet";
+import { LoanForm } from "../components/forms/loan-form";
 
 interface Loan {
   id: string;
@@ -21,12 +23,23 @@ interface Loan {
 }
 
 export default function Loans() {
-  const [loans] = createResource(() => api.get<Loan[]>("/v1/loans"));
+  const [loans, { refetch }] = createResource(() => api.get<Loan[]>("/v1/loans"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  function handleSuccess() {
+    setSheetOpen(false);
+    refetch();
+  }
 
   return (
     <>
       <PageHeader title="Loans" actions={
-        <button type="button" aria-label="Add loan" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
+        <button
+          type="button"
+          aria-label="Add loan"
+          onClick={() => setSheetOpen(true)}
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+        >
           <Plus size={20} />
         </button>
       } />
@@ -43,7 +56,12 @@ export default function Loans() {
           </Show>
           <Show when={!loans.loading && !loans.error && (loans() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <EmptyState icon={Landmark} title="No loans tracked" body="Track outstanding loans and EMI schedules." action={{ label: "Add loan", onClick: () => {} }} />
+              <EmptyState
+                icon={Landmark}
+                title="No loans tracked"
+                body="Track outstanding loans and EMI schedules."
+                action={{ label: "Add loan", onClick: () => setSheetOpen(true) }}
+              />
             </div>
           </Show>
           <For each={loans() ?? []}>
@@ -79,6 +97,10 @@ export default function Loans() {
           </For>
         </div>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Loan">
+        <LoanForm onSuccess={handleSuccess} onClose={() => setSheetOpen(false)} />
+      </Sheet>
     </>
   );
 }

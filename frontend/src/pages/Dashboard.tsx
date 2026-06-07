@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { A } from "@solidjs/router";
 import { Plus, ShoppingCart, Coffee, Bus, Banknote, Receipt, TrendingUp, TrendingDown } from "lucide-solid";
 import { api } from "../lib/api";
@@ -9,6 +9,8 @@ import { Stat } from "../components/ui/stat";
 import { Sparkline } from "../components/ui/sparkline";
 import { TransactionRow } from "../components/ui/transaction-row";
 import { SkeletonBlock } from "../components/ui/skeleton";
+import { Sheet } from "../components/ui/sheet";
+import { TransactionForm } from "../components/forms/transaction-form";
 
 interface Summary {
   total_income: number;
@@ -38,7 +40,8 @@ function categoryIcon(category: string) {
 }
 
 export default function Dashboard() {
-  const [summary] = createResource(() => api.get<Summary>("/v1/summary"));
+  const [summary, { refetch }] = createResource(() => api.get<Summary>("/v1/summary"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
 
   return (
     <>
@@ -46,6 +49,7 @@ export default function Dashboard() {
         title="Dashboard"
         actions={
           <button type="button" aria-label="Add transaction"
+            onClick={() => setSheetOpen(true)}
             class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
             <Plus size={20} />
           </button>
@@ -53,7 +57,6 @@ export default function Dashboard() {
       />
 
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
-
         {/* Loading */}
         <Show when={summary.loading}>
           <SkeletonBlock class="col-span-1 md:col-span-8 min-h-[180px]" />
@@ -140,6 +143,13 @@ export default function Dashboard() {
           }}
         </Show>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Transaction">
+        <TransactionForm
+          onSuccess={() => { setSheetOpen(false); refetch(); }}
+          onClose={() => setSheetOpen(false)}
+        />
+      </Sheet>
     </>
   );
 }

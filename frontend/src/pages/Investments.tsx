@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { Plus, TrendingUp } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat } from "../lib/format";
@@ -6,6 +6,8 @@ import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Sheet } from "../components/ui/sheet";
+import { InvestmentForm } from "../components/forms/investment-form";
 
 interface Holding {
   id: string;
@@ -18,12 +20,23 @@ interface Holding {
 }
 
 export default function Investments() {
-  const [holdings] = createResource(() => api.get<Holding[]>("/v1/investments"));
+  const [holdings, { refetch }] = createResource(() => api.get<Holding[]>("/v1/investments"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  function handleSuccess() {
+    setSheetOpen(false);
+    refetch();
+  }
 
   return (
     <>
       <PageHeader title="Investments" actions={
-        <button type="button" aria-label="Add investment" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
+        <button
+          type="button"
+          aria-label="Add investment"
+          onClick={() => setSheetOpen(true)}
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+        >
           <Plus size={20} />
         </button>
       } />
@@ -40,7 +53,12 @@ export default function Investments() {
           </Show>
           <Show when={!holdings.loading && !holdings.error && (holdings() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <EmptyState icon={TrendingUp} title="No investments yet" body="Track your portfolio across stocks, ETFs, and funds." action={{ label: "Add holding", onClick: () => {} }} />
+              <EmptyState
+                icon={TrendingUp}
+                title="No investments yet"
+                body="Track your portfolio across stocks, ETFs, and funds."
+                action={{ label: "Add holding", onClick: () => setSheetOpen(true) }}
+              />
             </div>
           </Show>
           <For each={holdings() ?? []}>
@@ -76,6 +94,10 @@ export default function Investments() {
           </For>
         </div>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Investment">
+        <InvestmentForm onSuccess={handleSuccess} onClose={() => setSheetOpen(false)} />
+      </Sheet>
     </>
   );
 }

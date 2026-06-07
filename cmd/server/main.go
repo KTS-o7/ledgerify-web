@@ -148,6 +148,7 @@ func main() {
 			r.Post("/logout", authHandler.Logout)
 			r.Get("/me", authHandler.Me)
 			r.Put("/me", authHandler.UpdateProfile)
+			r.Post("/change-password", authHandler.ChangePassword)
 		})
 	})
 

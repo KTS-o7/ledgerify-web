@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { Plus, ShieldCheck, Calendar } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat, pgTextToString, pgDateToString } from "../lib/format";
@@ -7,6 +7,8 @@ import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Sheet } from "../components/ui/sheet";
+import { InsuranceForm } from "../components/forms/insurance-form";
 
 interface Policy {
   id: string;
@@ -30,12 +32,23 @@ function renewalStatus(policy: Policy): "active" | "expiring" | "expired" {
 }
 
 export default function Insurance() {
-  const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance"));
+  const [policies, { refetch }] = createResource(() => api.get<Policy[]>("/v1/insurance"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  function handleSuccess() {
+    setSheetOpen(false);
+    refetch();
+  }
 
   return (
     <>
       <PageHeader title="Insurance" actions={
-        <button type="button" aria-label="Add policy" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
+        <button
+          type="button"
+          aria-label="Add policy"
+          onClick={() => setSheetOpen(true)}
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+        >
           <Plus size={20} />
         </button>
       } />
@@ -52,7 +65,12 @@ export default function Insurance() {
           </Show>
           <Show when={!policies.loading && !policies.error && (policies() ?? []).length === 0}>
             <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <EmptyState icon={ShieldCheck} title="No policies tracked" body="Track insurance policies and renewal dates." action={{ label: "Add policy", onClick: () => {} }} />
+              <EmptyState
+                icon={ShieldCheck}
+                title="No policies tracked"
+                body="Track insurance policies and renewal dates."
+                action={{ label: "Add policy", onClick: () => setSheetOpen(true) }}
+              />
             </div>
           </Show>
           <For each={policies() ?? []}>
@@ -96,6 +114,10 @@ export default function Insurance() {
           </For>
         </div>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Policy">
+        <InsuranceForm onSuccess={handleSuccess} onClose={() => setSheetOpen(false)} />
+      </Sheet>
     </>
   );
 }

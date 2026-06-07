@@ -1,12 +1,14 @@
 import { createResource, createSignal, For, Show, createMemo } from "solid-js";
 import { api } from "../lib/api";
-import { ShoppingCart, Coffee, Bus, Banknote, Receipt } from "lucide-solid";
+import { ShoppingCart, Coffee, Bus, Banknote, Receipt, Plus } from "lucide-solid";
 import { formatDateGroup } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { SearchBar } from "../components/ui/search-bar";
 import { TransactionRow } from "../components/ui/transaction-row";
 import { SkeletonRow } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Sheet } from "../components/ui/sheet";
+import { TransactionForm } from "../components/forms/transaction-form";
 
 interface Tx {
   id: string;
@@ -39,7 +41,8 @@ function groupByDate(items: Tx[]) {
 
 export default function Transactions() {
   const [search, setSearch] = createSignal("");
-  const [txns] = createResource(() => api.get<Tx[]>("/v1/transactions"));
+  const [txns, { refetch }] = createResource(() => api.get<Tx[]>("/v1/transactions"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
 
   const filtered = createMemo(() => {
     const list = txns() ?? [];
@@ -56,7 +59,17 @@ export default function Transactions() {
 
   return (
     <>
-      <PageHeader title="Transactions" back />
+      <PageHeader
+        title="Transactions"
+        back
+        actions={
+          <button type="button" aria-label="Add transaction"
+            onClick={() => setSheetOpen(true)}
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
+            <Plus size={20} />
+          </button>
+        }
+      />
       <div class="sticky top-14 md:top-16 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-4 py-3">
         <SearchBar
           value={search()}
@@ -106,6 +119,13 @@ export default function Transactions() {
           )}
         </For>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Transaction">
+        <TransactionForm
+          onSuccess={() => { setSheetOpen(false); refetch(); }}
+          onClose={() => setSheetOpen(false)}
+        />
+      </Sheet>
     </>
   );
 }

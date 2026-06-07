@@ -1,4 +1,4 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { Plus, Target } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat, pgTextToString } from "../lib/format";
@@ -7,6 +7,8 @@ import { BentoBlock } from "../components/ui/bento-block";
 import { CategoryBar } from "../components/ui/category-bar";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Sheet } from "../components/ui/sheet";
+import { BudgetForm } from "../components/forms/budget-form";
 
 interface Budget {
   id: string;
@@ -21,7 +23,12 @@ interface Budget {
 }
 
 export default function Budgets() {
-  const [budgets] = createResource(() => api.get<Budget[]>("/v1/budgets"));
+  const [budgets, { refetch }] = createResource(() => api.get<Budget[]>("/v1/budgets"));
+  const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  function openSheet() { setSheetOpen(true); }
+  function closeSheet() { setSheetOpen(false); }
+  function handleSuccess() { closeSheet(); refetch(); }
 
   return (
     <>
@@ -31,6 +38,7 @@ export default function Budgets() {
           <button
             type="button"
             aria-label="Add budget"
+            onClick={openSheet}
             class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           >
             <Plus size={20} />
@@ -54,7 +62,7 @@ export default function Budgets() {
                 icon={Target}
                 title="No budgets yet"
                 body="Set spending limits to stay on track."
-                action={{ label: "Create your first budget", onClick: () => {} }}
+                action={{ label: "Create your first budget", onClick: openSheet }}
               />
             </div>
           </Show>
@@ -98,6 +106,7 @@ export default function Budgets() {
           >
             <button
               type="button"
+              onClick={openSheet}
               class="flex flex-col items-center gap-1 text-muted hover:text-text transition-colors"
             >
               <Target size={20} />
@@ -106,6 +115,10 @@ export default function Budgets() {
           </BentoBlock>
         </div>
       </div>
+
+      <Sheet open={sheetOpen()} onClose={closeSheet} title="Create Budget">
+        <BudgetForm onSuccess={handleSuccess} onClose={closeSheet} />
+      </Sheet>
     </>
   );
 }

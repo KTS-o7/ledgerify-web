@@ -229,6 +229,63 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, userToResponse(user))
 }
 
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+// POST /api/v1/auth/change-password
+func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	var req changePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.BadRequest(w, "invalid request body")
+		return
+	}
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		utils.BadRequest(w, "current_password and new_password are required")
+		return
+	}
+	if len(req.NewPassword) < 8 {
+		utils.BadRequest(w, "new password must be at least 8 characters")
+		return
+	}
+
+	userUUID := stringToUUID(claims.UserID)
+	user, err := h.q.GetUserByID(r.Context(), userUUID)
+	if err != nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		utils.BadRequest(w, "current password is incorrect")
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	_, err = h.pool.Exec(r.Context(),
+		"UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2",
+		string(hash), userUUID,
+	)
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	utils.OK(w, map[string]string{"message": "password updated"})
+}
+
 type updateProfileRequest struct {
 	Name            string `json:"name"`
 	DefaultCurrency string `json:"default_currency"`

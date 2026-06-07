@@ -20,9 +20,11 @@ const ReportsCategoryBreakdown = lazy(() => import("./pages/ReportsCategoryBreak
 const ReportsBudgetVsActual = lazy(() => import("./pages/ReportsBudgetVsActual"));
 const ReportsNetworth = lazy(() => import("./pages/ReportsNetworth"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Savings = lazy(() => import("./pages/Savings"));
 const Import = lazy(() => import("./pages/Import"));
 const Export = lazy(() => import("./pages/Export"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Categories = lazy(() => import("./pages/Categories"));
 
 export default function App() {
   return (
@@ -50,7 +52,9 @@ export default function App() {
             <Route path="/import" component={Import} />
             <Route path="/export" component={Export} />
             <Route path="/settings" component={Settings} />
+            <Route path="/savings" component={Savings} />
             <Route path="/analytics" component={Analytics} />
+            <Route path="/categories" component={Categories} />
           </Route>
         </Route>
       </Router>
