@@ -15,6 +15,10 @@ const Loans = lazy(() => import("./pages/Loans"));
 const Insurance = lazy(() => import("./pages/Insurance"));
 const NetWorth = lazy(() => import("./pages/NetWorth"));
 const Reports = lazy(() => import("./pages/Reports"));
+const ReportsCashflow = lazy(() => import("./pages/ReportsCashflow"));
+const ReportsCategoryBreakdown = lazy(() => import("./pages/ReportsCategoryBreakdown"));
+const ReportsBudgetVsActual = lazy(() => import("./pages/ReportsBudgetVsActual"));
+const ReportsNetworth = lazy(() => import("./pages/ReportsNetworth"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Import = lazy(() => import("./pages/Import"));
 const Export = lazy(() => import("./pages/Export"));
@@ -39,6 +43,10 @@ export default function App() {
             <Route path="/insurance" component={Insurance} />
             <Route path="/networth" component={NetWorth} />
             <Route path="/reports" component={Reports} />
+            <Route path="/reports/cashflow" component={ReportsCashflow} />
+            <Route path="/reports/category-breakdown" component={ReportsCategoryBreakdown} />
+            <Route path="/reports/budget-vs-actual" component={ReportsBudgetVsActual} />
+            <Route path="/reports/networth" component={ReportsNetworth} />
             <Route path="/import" component={Import} />
             <Route path="/export" component={Export} />
             <Route path="/settings" component={Settings} />
