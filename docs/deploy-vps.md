@@ -15,6 +15,8 @@ The VPS runs two stacks in `/opt/ledgerify/`:
 
 The build produces the image `ghcr.io/kts-o7/ledgerify-web:latest` — but it's **built locally on the VPS**, not pushed to ghcr. The `:latest` tag is purely a label used by `docker-compose.prod.yml` to reference the in-VPS image.
 
+Builds use the `ledgerify` buildx builder (created from the `docker-container` driver), which persists BuildKit's cache across runs. The Dockerfile has `--mount=type=cache` directives on `bun install`, `go mod download`, and `go build` so the warm-cache redeploy is 3–10s instead of 5–6 min. First-time setup of the builder is below.
+
 Port mapping: `127.0.0.1:8080:8080` on the host → app container. nginx + Cloudflare sit in front of `:443` and proxy public traffic to it.
 
 ## First-time setup (one-time, per VPS)
@@ -45,25 +47,43 @@ EOF"
 # 3. Copy docker-compose.prod.yml from the repo
 ssh personal "cp /opt/ledgerify/src/docker-compose.prod.yml /opt/ledgerify/"
 
-# 4. Bring it up
+# 4. Install buildx (Ubuntu's docker package doesn't include it) and create
+#    a persistent BuildKit builder. One-time per VPS.
+ssh personal "mkdir -p /usr/libexec/docker/cli-plugins
+  curl -sSL https://github.com/docker/buildx/releases/download/v0.18.0/buildx-v0.18.0.linux-amd64 \
+    -o /usr/libexec/docker/cli-plugins/docker-buildx
+  chmod +x /usr/libexec/docker/cli-plugins/docker-buildx
+  docker buildx create --name ledgerify --driver docker-container --use
+  docker buildx inspect ledgerify --bootstrap"
+
+# 5. Bring it up
 ssh personal "cd /opt/ledgerify && docker compose -f docker-compose.prod.yml up -d"
 
-# 5. Apply schema (only the first time, or after schema/ changes)
+# 6. Apply schema (only the first time, or after schema/ changes)
 ssh personal "docker exec -i ledgerify-postgres-1 psql -U ledgerify -d ledgerify < /opt/ledgerify/src/schema/001_schema.sql"
 ```
 
 ## Deploy (the daily workflow)
 
 ```bash
-# Pull latest main, build image, restart containers
+# Pull latest main, build image with BuildKit cache, restart containers
 ssh personal "set -e
   cd /opt/ledgerify/src && git pull origin main
-  docker build -t ghcr.io/kts-o7/ledgerify-web:latest .
+  docker buildx build --builder ledgerify -t ghcr.io/kts-o7/ledgerify-web:latest --load .
   cd /opt/ledgerify && docker compose -f docker-compose.prod.yml up -d
   sleep 4 && docker logs --tail 5 ledgerify-app-1"
 ```
 
 That's it. Compose reuses the local image (no registry round-trip), recreates only the containers whose config changed, and `docker logs` confirms it started.
+
+**Build times with the `ledgerify` buildx builder** (uses BuildKit cache mounts for bun modules and Go module/build caches):
+
+| Scenario | Time |
+|---|---|
+| Cold cache (first build, or after `docker buildx prune`) | ~5–6 min |
+| Warm cache (typical `git pull` deploy) | 3–10 seconds |
+
+The warm-cache speedup comes from `--mount=type=cache` directives in the Dockerfile for `bun install`, `go mod download`, and `go build`. Without BuildKit these would re-download everything on every build (because `git pull` updates file mtimes, invalidating the COPY layer cache).
 
 ## Verify
 
