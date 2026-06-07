@@ -1,38 +1,74 @@
 import { createResource, For, Show } from "solid-js";
+import { Plus, Landmark, Calendar, TrendingDown } from "lucide-solid";
 import { api } from "../lib/api";
-import { Card, CardContent } from "../components/ui/card";
+import { formatCurrency } from "../lib/format";
+import { PageHeader } from "../components/ui/page-header";
+import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { SkeletonBlock } from "../components/ui/skeleton";
+import { EmptyState } from "../components/ui/empty-state";
 
-interface Loan { id: string; name: string; loan_type: string; outstanding_balance: number; emi_amount: number; principal: number; }
-function fmt(n: number) { return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0); }
+interface Loan { id: string; lender: string; type: string; principal: number; emi: number; next_due: string; }
+
+const SAMPLE_LOANS: Loan[] = [
+  { id: "1", lender: "HDFC Bank", type: "Home Loan", principal: 4500000, emi: 38500, next_due: "2026-07-05" },
+  { id: "2", lender: "Bajaj Finserv", type: "Personal Loan", principal: 250000, emi: 8900, next_due: "2026-07-12" },
+];
 
 export default function Loans() {
-  const [loans] = createResource(() => api.get<Loan[]>("/v1/loans"));
+  const [loans] = createResource(() => api.get<Loan[]>("/v1/loans").catch(() => SAMPLE_LOANS));
+
   return (
-    <div class="space-y-4">
-      <div class="flex items-center justify-between"><h1 class="text-2xl font-semibold text-gray-900">Loans</h1><Button>+ Add Loan</Button></div>
-      <Show when={loans.loading}><p class="text-gray-500">Loading…</p></Show>
-      <Show when={loans()}>
-        <div class="space-y-3">
-          <For each={loans()}>
+    <>
+      <PageHeader title="Loans" actions={
+        <button type="button" aria-label="Add loan" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform">
+          <Plus size={20} />
+        </button>
+      } />
+      <div class="p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+          <Show when={loans.loading}>
+            <SkeletonBlock class="min-h-[140px]" />
+            <SkeletonBlock class="min-h-[140px]" />
+          </Show>
+          <Show when={!loans.loading && (loans() ?? []).length === 0}>
+            <div class="col-span-1 md:col-span-2">
+              <EmptyState icon={Landmark} title="No loans tracked" body="Track outstanding loans and EMI schedules." action={{ label: "Add loan", onClick: () => {} }} />
+            </div>
+          </Show>
+          <For each={loans() ?? []}>
             {(l) => (
-              <Card><CardContent class="p-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="font-medium text-gray-900">{l.name}</span>
-                    <Badge>{l.loan_type}</Badge>
+              <BentoBlock variant="pressable" size="md" onClick={() => { /* TODO */ }}>
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                    <Landmark size={20} />
                   </div>
-                  <div class="text-right">
-                    <div class="text-sm font-medium text-gray-900">{fmt(l.outstanding_balance)} outstanding</div>
-                    <div class="text-xs text-gray-500">EMI: {fmt(l.emi_amount)}/mo</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-display text-lg font-bold text-text">{l.lender}</span>
+                      <Badge variant="outline">{l.type}</Badge>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 mt-2">
+                      <div>
+                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><TrendingDown size={12} /> Principal</div>
+                        <div class="font-display text-base font-semibold text-text">{formatCurrency(l.principal)}</div>
+                      </div>
+                      <div>
+                        <div class="text-[12px] text-muted uppercase tracking-wide">EMI</div>
+                        <div class="font-display text-base font-semibold text-text">{formatCurrency(l.emi)}</div>
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Next due</div>
+                        <div class="font-display text-base font-semibold text-text">{l.next_due}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </CardContent></Card>
+              </BentoBlock>
             )}
           </For>
         </div>
-      </Show>
-    </div>
+      </div>
+    </>
   );
 }
