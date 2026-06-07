@@ -74,9 +74,14 @@ Smoke-test the live server from your Mac:
 curl -sS https://money.shenthar.me/health
 
 # 2. Login + bearer-protected endpoint
-TOKEN=$(curl -sS -X POST https://money.shenthar.me/api/v1/auth/login \
+#    Use a real test account you control; do not bake credentials into
+#    any committed file. Common options:
+#      - read creds from a local 1Password/Bitwarden entry
+#      - read from an env var: $EMAIL and $PASSWORD
+#      - hit /mcp-connect in a browser and paste the JWT it returns
+TOKEN=$(EMAIL="$EMAIL" PASSWORD="$PASSWORD" curl -sS -X POST https://money.shenthar.me/api/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"mcp-test@example.com","password":"TestPass1234!"}' \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" \
   | python3 -c 'import json,sys;print(json.load(sys.stdin)["token"])')
 curl -sS https://money.shenthar.me/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
 
