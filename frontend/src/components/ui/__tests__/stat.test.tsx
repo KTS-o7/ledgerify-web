@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@solidjs/testing-library";
 import { Stat } from "../stat";
+import { formatCurrency } from "../../../lib/format";
 
 describe("Stat", () => {
   it("renders label and value", () => {
@@ -20,5 +21,9 @@ describe("Stat", () => {
   it("renders inline layout", () => {
     const { container } = render(() => <Stat label="x" value="y" layout="inline" />);
     expect(container.firstChild as HTMLElement).toHaveClass("flex-row");
+  });
+  it("formats numeric value as currency when format=\"currency\"", () => {
+    render(() => <Stat label="Balance" value={12450} format="currency" />);
+    expect(screen.getByText(formatCurrency(12450))).toBeInTheDocument();
   });
 });
