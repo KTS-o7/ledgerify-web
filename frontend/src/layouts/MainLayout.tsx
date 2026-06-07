@@ -14,7 +14,14 @@ export const MainLayout: Component<RouteSectionProps> = (props): JSX.Element => 
     onCleanup(() => mq.removeEventListener("change", update));
   });
 
-  const isFocusedView = () => location.pathname === "/activity" || location.pathname === "/transactions";
+  const isFocusedView = () => {
+    const p = location.pathname;
+    return (
+      p === "/activity" ||
+      p === "/transactions" ||
+      p.startsWith("/reports/")
+    );
+  };
 
   return (
     <div class="min-h-screen bg-bg text-text">
@@ -22,7 +29,7 @@ export const MainLayout: Component<RouteSectionProps> = (props): JSX.Element => 
         Skip to main content
       </a>
       <Show when={isDesktop()}><Sidebar /></Show>
-      <main id="main" class={isDesktop() ? "md:ml-60" : ""} tabindex="-1">
+      <main id="main" class={isDesktop() ? "ml-60" : ""} tabindex="-1">
         <div class={isFocusedView() ? "" : "pb-20 md:pb-0"}>{props.children}</div>
       </main>
       <Show when={!isDesktop()}><BottomNav /></Show>
