@@ -41,8 +41,23 @@ function groupByDate(items: Tx[]) {
 
 export default function Transactions() {
   const [search, setSearch] = createSignal("");
-  const [txns, { refetch }] = createResource(() => api.get<Tx[]>("/v1/transactions"));
+  const [limit, setLimit] = createSignal(50);
+  const [loadingMore, setLoadingMore] = createSignal(false);
+  const [txns, { refetch }] = createResource(limit, (lim) => api.get<Tx[]>(`/v1/transactions?limit=${lim}`));
   const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    setLimit((l) => l + 50);
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (!txns.loading) resolve();
+        else setTimeout(check, 50);
+      };
+      check();
+    });
+    setLoadingMore(false);
+  }
 
   const filtered = createMemo(() => {
     const list = txns() ?? [];
@@ -78,6 +93,12 @@ export default function Transactions() {
         />
       </div>
       <div class="p-4 md:p-6 md:max-w-3xl md:mx-auto">
+        <Show when={!txns.loading && (txns()?.length ?? 0) > 0}>
+          <p class="text-[13px] text-muted mb-3">
+            Showing {filtered().length} of {txns()?.length ?? 0} transactions
+            {search() ? " matching your search" : ""}
+          </p>
+        </Show>
         <Show when={txns.loading}>
           <div class="flex flex-col">
             <For each={[0, 1, 2, 3, 4]}>{() => <SkeletonRow class="mb-1" />}</For>
@@ -118,6 +139,19 @@ export default function Transactions() {
             </div>
           )}
         </For>
+        {/* Load more */}
+        <Show when={!txns.loading && (txns()?.length ?? 0) >= limit()}>
+          <div class="flex justify-center pt-4 pb-2">
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore()}
+              class="px-6 py-2.5 rounded-input border border-border text-muted hover:text-text hover:border-border-strong transition-colors text-sm font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            >
+              {loadingMore() ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        </Show>
       </div>
 
       <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Transaction">

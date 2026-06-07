@@ -23,6 +23,17 @@ type TxType = "expense" | "income" | "transfer";
 type TransactionFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    type: "expense" | "income" | "transfer";
+    amount: string;
+    currency: string;
+    date: string;
+    category_id?: string;
+    title?: string;
+    note?: string;
+    account_id: string;
+  };
 };
 
 function todayISO(): string {
@@ -33,14 +44,14 @@ export function TransactionForm(props: TransactionFormProps) {
   const [accounts] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [categories] = createResource(() => api.get<Category[]>("/v1/categories"));
 
-  const [txType, setTxType] = createSignal<TxType>("expense");
-  const [amount, setAmount] = createSignal("");
-  const [accountId, setAccountId] = createSignal("");
-  const [categoryId, setCategoryId] = createSignal("");
-  const [title, setTitle] = createSignal("");
-  const [date, setDate] = createSignal(todayISO());
-  const [note, setNote] = createSignal("");
-  const [currency] = createSignal("INR");
+  const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? "expense");
+  const [amount, setAmount] = createSignal(props.existing?.amount ?? "");
+  const [accountId, setAccountId] = createSignal(props.existing?.account_id ?? "");
+  const [categoryId, setCategoryId] = createSignal(props.existing?.category_id ?? "");
+  const [title, setTitle] = createSignal(props.existing?.title ?? "");
+  const [date, setDate] = createSignal(props.existing?.date ?? todayISO());
+  const [note, setNote] = createSignal(props.existing?.note ?? "");
+  const [currency] = createSignal(props.existing?.currency ?? "INR");
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -74,7 +85,7 @@ export function TransactionForm(props: TransactionFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/transactions", {
+      const body = {
         account_id: accountId(),
         type: txType(),
         amount: amt,
@@ -83,10 +94,15 @@ export function TransactionForm(props: TransactionFormProps) {
         ...(categoryId() ? { category_id: categoryId() } : {}),
         ...(title() ? { title: title() } : {}),
         ...(note() ? { note: note() } : {}),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/transactions/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/transactions", body);
+      }
       props.onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add transaction.");
+      setError(err instanceof Error ? err.message : "Failed to save transaction.");
     } finally {
       setSubmitting(false);
     }
@@ -202,7 +218,7 @@ export function TransactionForm(props: TransactionFormProps) {
 
       {/* Submit */}
       <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Adding…" : "Add Transaction"}
+        {submitting() ? (props.existing ? "Saving…" : "Adding…") : (props.existing ? "Save Changes" : "Add Transaction")}
       </Button>
     </form>
   );

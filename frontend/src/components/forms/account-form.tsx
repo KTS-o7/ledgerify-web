@@ -8,12 +8,18 @@ import { Show } from "solid-js";
 type AccountFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    type: string;
+    currency: string;
+  };
 };
 
 export function AccountForm(props: AccountFormProps) {
-  const [name, setName] = createSignal("");
-  const [type, setType] = createSignal("bank");
-  const [currency, setCurrency] = createSignal("INR");
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [type, setType] = createSignal(props.existing?.type ?? "bank");
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
   const [openingBalance, setOpeningBalance] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -29,16 +35,24 @@ export function AccountForm(props: AccountFormProps) {
 
     setSubmitting(true);
     try {
-      const body: Record<string, unknown> = {
-        name: name().trim(),
-        type: type(),
-        currency: currency(),
-      };
-      const bal = openingBalance().trim();
-      if (bal !== "") {
-        body.opening_balance = parseFloat(bal);
+      if (props.existing) {
+        await api.put(`/v1/accounts/${props.existing.id}`, {
+          name: name().trim(),
+          type: type(),
+          currency: currency(),
+        });
+      } else {
+        const body: Record<string, unknown> = {
+          name: name().trim(),
+          type: type(),
+          currency: currency(),
+        };
+        const bal = openingBalance().trim();
+        if (bal !== "") {
+          body.opening_balance = parseFloat(bal);
+        }
+        await api.post("/v1/accounts", body);
       }
-      await api.post("/v1/accounts", body);
       props.onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -97,27 +111,29 @@ export function AccountForm(props: AccountFormProps) {
         </Select>
       </div>
 
-      <div>
-        <label for="account-opening-balance" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
-          Opening Balance
-        </label>
-        <Input
-          id="account-opening-balance"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0"
-          value={openingBalance()}
-          onInput={(e) => setOpeningBalance(e.currentTarget.value)}
-        />
-      </div>
+      <Show when={!props.existing}>
+        <div>
+          <label for="account-opening-balance" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Opening Balance
+          </label>
+          <Input
+            id="account-opening-balance"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0"
+            value={openingBalance()}
+            onInput={(e) => setOpeningBalance(e.currentTarget.value)}
+          />
+        </div>
+      </Show>
 
       <Show when={error()}>
         <p class="text-accent text-sm">{error()}</p>
       </Show>
 
       <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, Landmark, Wallet, Banknote, PiggyBank, CreditCard, TrendingUp, Link2 } from "lucide-solid";
+import { Plus, Landmark, Wallet, Banknote, PiggyBank, CreditCard, TrendingUp, Link2, Pencil, Trash2 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -32,10 +32,22 @@ const typeLabel: Record<string, string> = {
 export default function Accounts() {
   const [accounts, { refetch }] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
+  const [editAccount, setEditAccount] = createSignal<Account | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = createSignal(false);
 
   function openSheet() { setSheetOpen(true); }
   function closeSheet() { setSheetOpen(false); }
   function handleSuccess() { closeSheet(); refetch(); }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? All transactions linked to this account will be affected.`)) return;
+    try {
+      await api.delete(`/v1/accounts/${id}`);
+      refetch();
+    } catch {
+      alert("Failed to delete account.");
+    }
+  }
 
   return (
     <>
@@ -56,17 +68,40 @@ export default function Accounts() {
             </div>
           </Show>
           <For each={accounts() ?? []}>
-            {(a) => (
-              <BentoBlock variant="default">
-                <AccountRow
-                  icon={accountIcon(a.type)}
-                  name={a.name}
-                  sublabel={typeLabel[a.type] || a.type}
-                  balance={a.balance}
-                  currency={a.currency}
-                />
-              </BentoBlock>
-            )}
+            {(a) => {
+              const accountId = typeof a.id === 'string' ? a.id : (a.id as any)?.String ?? '';
+              return (
+                <div class="group relative">
+                  <BentoBlock variant="default">
+                    <AccountRow
+                      icon={accountIcon(a.type)}
+                      name={a.name}
+                      sublabel={typeLabel[a.type] || a.type}
+                      balance={a.balance}
+                      currency={a.currency}
+                    />
+                  </BentoBlock>
+                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => { setEditAccount(a); setEditSheetOpen(true); }}
+                      aria-label={`Edit ${a.name}`}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(accountId, a.name)}
+                      aria-label={`Delete ${a.name}`}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            }}
           </For>
           <BentoBlock variant="dashed" class="flex items-center justify-center">
             <button type="button" class="flex flex-col items-center gap-1 text-muted hover:text-text transition-colors">
@@ -79,6 +114,21 @@ export default function Accounts() {
 
       <Sheet open={sheetOpen()} onClose={closeSheet} title="Add Account">
         <AccountForm onSuccess={handleSuccess} onClose={closeSheet} />
+      </Sheet>
+
+      <Sheet open={editSheetOpen()} onClose={() => { setEditSheetOpen(false); setEditAccount(null); }} title="Edit Account">
+        <Show when={editAccount()}>
+          {(acct) => {
+            const accountId = typeof acct().id === 'string' ? acct().id : (acct().id as any)?.String ?? '';
+            return (
+              <AccountForm
+                existing={{ id: accountId, name: acct().name, type: acct().type, currency: acct().currency }}
+                onSuccess={() => { setEditSheetOpen(false); setEditAccount(null); refetch(); }}
+                onClose={() => { setEditSheetOpen(false); setEditAccount(null); }}
+              />
+            );
+          }}
+        </Show>
       </Sheet>
     </>
   );
