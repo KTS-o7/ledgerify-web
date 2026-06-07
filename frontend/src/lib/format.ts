@@ -1,5 +1,45 @@
 const CURRENCY_KEY = "ledgerify.currency";
 
+// ---------------------------------------------------------------------------
+// pgtype helpers — Go's pgx serialises pgtype.Numeric, pgtype.Text, and
+// pgtype.Date as wrapped objects.  These helpers unwrap them safely so pages
+// don't need copy-pasted converters.
+// ---------------------------------------------------------------------------
+
+/** Unwrap a pgtype.Numeric (or plain number/string) to a JS number. */
+export function numericToFloat(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v) || 0;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if ("Int" in o && "Exp" in o) {
+      if (!o["Valid"]) return 0;
+      return (o["Int"] as number) * Math.pow(10, o["Exp"] as number);
+    }
+  }
+  return 0;
+}
+
+/** Unwrap a pgtype.Text (or plain string) to a JS string. */
+export function pgTextToString(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object") {
+    const o = v as { String: string; Valid: boolean };
+    return o.Valid ? o.String : "";
+  }
+  return "";
+}
+
+/** Unwrap a pgtype.Date (or plain string) to a YYYY-MM-DD string. */
+export function pgDateToString(v: unknown): string {
+  if (typeof v === "string") return v.slice(0, 10);
+  if (v && typeof v === "object") {
+    const o = v as { Time: string; Valid: boolean };
+    return o.Valid ? o.Time.slice(0, 10) : "";
+  }
+  return "";
+}
+
 export function getCurrency(): string {
   if (typeof localStorage !== "undefined") {
     const stored = localStorage.getItem(CURRENCY_KEY);

@@ -83,7 +83,7 @@ export default function Analytics() {
                   segments={segments()}
                   centerLabel={mode() === "expense" ? "Total Spent" : "Total Income"}
                   centerValue={formatCurrency(mode() === "expense" ? (summary()?.total_expenses ?? 0) : (summary()?.total_income ?? 0))}
-                  centerTrend={{ dir: "up", value: "+12%" }}
+                  centerTrend={undefined}
                   highlightIndex={highlight()}
                   onSegmentHover={setHighlight}
                   size={300}

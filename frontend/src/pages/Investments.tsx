@@ -1,25 +1,11 @@
 import { createResource, For, Show } from "solid-js";
 import { Plus, TrendingUp } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, numericToFloat } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { Sparkline } from "../components/ui/sparkline";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
-
-// pgtype.Numeric serialises as { Int, Exp, NaN, Valid } or a plain number
-// depending on driver version — parse defensively
-function numericToFloat(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return parseFloat(v) || 0;
-  if (v && typeof v === "object" && "Int" in (v as any)) {
-    const o = v as { Int: number; Exp: number; Valid: boolean };
-    if (!o.Valid) return 0;
-    return o.Int * Math.pow(10, o.Exp);
-  }
-  return 0;
-}
 
 interface Holding {
   id: string;

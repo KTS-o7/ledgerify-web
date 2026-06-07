@@ -1,32 +1,12 @@
 import { createResource, For, Show } from "solid-js";
 import { Plus, Target } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, numericToFloat, pgTextToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { CategoryBar } from "../components/ui/category-bar";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
-
-function numericToFloat(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return parseFloat(v) || 0;
-  if (v && typeof v === "object" && "Int" in (v as any)) {
-    const o = v as { Int: number; Exp: number; Valid: boolean };
-    if (!o.Valid) return 0;
-    return o.Int * Math.pow(10, o.Exp);
-  }
-  return 0;
-}
-
-function pgTextToString(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object" && "String" in (v as any)) {
-    const o = v as { String: string; Valid: boolean };
-    return o.Valid ? o.String : "";
-  }
-  return "";
-}
 
 interface Budget {
   id: string;

@@ -50,7 +50,7 @@ export default function Accounts() {
           </Show>
           <For each={accounts() ?? []}>
             {(a) => (
-              <BentoBlock variant="pressable" size="sm" onClick={() => { /* TODO: navigate to /accounts/:id */ }}>
+              <BentoBlock variant="default" size="sm">
                 <AccountRow
                   icon={accountIcon(a.type)}
                   name={a.name}

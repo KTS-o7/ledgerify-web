@@ -1,41 +1,12 @@
 import { createResource, For, Show } from "solid-js";
 import { Plus, ShieldCheck, Calendar } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, numericToFloat, pgTextToString, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
-
-function numericToFloat(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return parseFloat(v) || 0;
-  if (v && typeof v === "object" && "Int" in (v as any)) {
-    const o = v as { Int: number; Exp: number; Valid: boolean };
-    if (!o.Valid) return 0;
-    return o.Int * Math.pow(10, o.Exp);
-  }
-  return 0;
-}
-
-function pgTextToString(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object" && "String" in (v as any)) {
-    const o = v as { String: string; Valid: boolean };
-    return o.Valid ? o.String : "";
-  }
-  return "";
-}
-
-function pgDateToString(v: unknown): string {
-  if (typeof v === "string") return v.slice(0, 10);
-  if (v && typeof v === "object" && "Time" in (v as any)) {
-    const o = v as { Time: string; Valid: boolean };
-    return o.Valid ? o.Time.slice(0, 10) : "—";
-  }
-  return "—";
-}
 
 interface Policy {
   id: string;

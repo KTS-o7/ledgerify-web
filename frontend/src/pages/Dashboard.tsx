@@ -83,7 +83,7 @@ export default function Dashboard() {
                     label="Total Balance"
                     value={formatCurrency(balance())}
                     size="xl"
-                    trend={{ dir: balance() >= 0 ? "up" : "down", value: "+2.4% this month" }}
+                    trend={{ dir: balance() >= 0 ? "up" : "down", value: `${balance() >= 0 ? "+" : ""}${formatCurrency(balance())}` }}
                   />
                 </BentoBlock>
                 {/* Income / Expenses — equal halves */}

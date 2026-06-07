@@ -1,11 +1,11 @@
-import { createSignal, For, Show } from "solid-js";
-import { Download, FileText } from "lucide-solid";
+import { createSignal, For } from "solid-js";
+import { Download } from "lucide-solid";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { SegmentedControl } from "../components/ui/segmented-control";
 import { Button } from "../components/ui/button";
 
-type Range = "1m" | "3m" | "ytd" | "all" | "custom";
+type Range = "1m" | "3m" | "ytd" | "all";
 
 const FIELDS = [
   { key: "date", label: "Date" },
@@ -16,14 +16,24 @@ const FIELDS = [
   { key: "note", label: "Note" },
 ];
 
-const RECENT = [
-  { id: "1", name: "transactions-2026-06.csv", date: "2026-06-15" },
-  { id: "2", name: "transactions-2026-05.csv", date: "2026-05-12" },
-];
+function rangeToParams(range: Range): { from_date: string; to_date: string } {
+  const to = new Date();
+  const from = new Date();
+  if (range === "1m") from.setMonth(from.getMonth() - 1);
+  else if (range === "3m") from.setMonth(from.getMonth() - 3);
+  else if (range === "ytd") from.setMonth(0, 1);
+  else from.setFullYear(from.getFullYear() - 10); // "all" — go back 10 years
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  return { from_date: fmt(from), to_date: fmt(to) };
+}
 
 export default function Export() {
   const [range, setRange] = createSignal<Range>("3m");
-  const [selected, setSelected] = createSignal<Set<string>>(new Set(["date", "merchant", "amount", "category", "account"]));
+  const [selected, setSelected] = createSignal<Set<string>>(
+    new Set(["date", "merchant", "amount", "category", "account"])
+  );
+  const [downloading, setDownloading] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
   const toggle = (key: string) => {
     setSelected((s) => {
@@ -32,6 +42,30 @@ export default function Export() {
       else next.add(key);
       return next;
     });
+  };
+
+  const download = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      const { from_date, to_date } = rangeToParams(range());
+      const token = localStorage.getItem("jwt_token");
+      const res = await fetch(`/api/export?from_date=${from_date}&to_date=${to_date}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ledgerify_${from_date}_${to_date}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -48,7 +82,6 @@ export default function Export() {
                   { value: "3m", label: "3M" },
                   { value: "ytd", label: "YTD" },
                   { value: "all", label: "ALL" },
-                  { value: "custom", label: "Custom" },
                 ]}
                 value={range()}
                 onChange={setRange}
@@ -75,33 +108,20 @@ export default function Export() {
                 </For>
               </ul>
             </div>
-            <Button class="w-full" size="lg" disabled={selected().size === 0}>
+            {error() && <p class="text-accent text-sm">{error()}</p>}
+            <Button class="w-full" size="lg" disabled={selected().size === 0 || downloading()} onClick={download}>
               <Download size={18} />
-              <span>Download CSV</span>
+              <span>{downloading() ? "Preparing…" : "Download CSV"}</span>
             </Button>
           </div>
         </BentoBlock>
-
         <BentoBlock size="md" class="col-span-1 md:col-span-5">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">Recent exports</span>
-          <Show when={RECENT.length > 0} fallback={<p class="text-sm text-muted py-2">No exports yet.</p>}>
-            <ul class="flex flex-col">
-              <For each={RECENT}>
-                {(e) => (
-                  <li class="flex items-center gap-3 py-3 border-b border-border last:border-0">
-                    <FileText size={20} class="text-muted" />
-                    <div class="flex-1 min-w-0">
-                      <div class="font-body text-base text-text truncate">{e.name}</div>
-                      <div class="text-[13px] text-muted">{e.date}</div>
-                    </div>
-                    <button type="button" aria-label={`Download ${e.name}`} class="w-10 h-10 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
-                      <Download size={18} />
-                    </button>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </Show>
+          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">How it works</span>
+          <ul class="flex flex-col gap-3 text-sm text-muted">
+            <li class="flex items-start gap-2"><span class="text-primary font-bold">1.</span> Choose a date range and the fields you want included.</li>
+            <li class="flex items-start gap-2"><span class="text-primary font-bold">2.</span> Click Download CSV — your browser will save the file immediately.</li>
+            <li class="flex items-start gap-2"><span class="text-primary font-bold">3.</span> Open the CSV in Excel, Google Sheets, or any accounting tool.</li>
+          </ul>
         </BentoBlock>
       </div>
     </>

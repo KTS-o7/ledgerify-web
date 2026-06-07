@@ -1,7 +1,7 @@
 import { createResource, For, Show } from "solid-js";
 import { Target } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, numericToFloat } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { CategoryBar } from "../components/ui/category-bar";
@@ -9,17 +9,6 @@ import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonBlock } from "../components/ui/skeleton";
 
 interface BudgetItem { id: string; name: string; spent: number; amount: unknown; currency: string; }
-
-function numericToFloat(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") return parseFloat(v) || 0;
-  if (v && typeof v === "object" && "Int" in (v as any)) {
-    const o = v as { Int: number; Exp: number; Valid: boolean };
-    if (!o.Valid) return 0;
-    return o.Int * Math.pow(10, o.Exp);
-  }
-  return 0;
-}
 
 export default function ReportsBudgetVsActual() {
   const [budgets] = createResource(() => api.get<BudgetItem[]>("/v1/budgets"));
