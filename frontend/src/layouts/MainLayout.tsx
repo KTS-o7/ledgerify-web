@@ -1,38 +1,35 @@
 import { type RouteSectionProps, useLocation } from "@solidjs/router";
-import { createSignal, onCleanup, onMount, Show, type Component, type JSX } from "solid-js";
+import { type Component, type JSX } from "solid-js";
 import { BottomNav, Sidebar, MoreSheet } from "../components/ui/nav";
 
 export const MainLayout: Component<RouteSectionProps> = (props): JSX.Element => {
-  const [isDesktop, setIsDesktop] = createSignal(false);
   const location = useLocation();
-
-  onMount(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    onCleanup(() => mq.removeEventListener("change", update));
-  });
 
   const isFocusedView = () => {
     const p = location.pathname;
-    return (
-      p === "/activity" ||
-      p === "/transactions" ||
-      p.startsWith("/reports/")
-    );
+    return p === "/activity" || p === "/transactions" || p.startsWith("/reports/");
   };
 
   return (
-    <div class="min-h-screen bg-bg text-text">
+    <div class="min-h-screen bg-bg">
       <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-primary focus:text-bg focus:px-3 focus:py-1.5 focus:rounded-input">
         Skip to main content
       </a>
-      <Show when={isDesktop()}><Sidebar /></Show>
-      <main id="main" class={isDesktop() ? "ml-60" : ""} tabindex="-1">
-        <div class={isFocusedView() ? "" : "pb-20 md:pb-0"}>{props.children}</div>
+
+      {/* Always in DOM — CSS hides on mobile (hidden md:flex is on the aside itself) */}
+      <Sidebar />
+
+      {/* Offset by sidebar on desktop, full width on mobile */}
+      <main
+        id="main"
+        class={`md:pl-60 text-text${isFocusedView() ? "" : " pb-16 md:pb-0"}`}
+        tabindex="-1"
+      >
+        {props.children}
       </main>
-      <Show when={!isDesktop()}><BottomNav /></Show>
+
+      {/* Always in DOM — CSS hides on desktop (md:hidden is on the nav itself) */}
+      <BottomNav />
       <MoreSheet />
     </div>
   );

@@ -70,7 +70,7 @@ export default function Investments() {
               const gain = price - buyPrice;
               const gainPct = buyPrice > 0 ? ((gain / buyPrice) * 100) : 0;
               return (
-                <BentoBlock variant="pressable" size="sm">
+                <BentoBlock variant="pressable">
                   <div class="flex items-start gap-3">
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center justify-between">

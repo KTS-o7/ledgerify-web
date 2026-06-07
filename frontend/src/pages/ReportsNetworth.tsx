@@ -28,10 +28,10 @@ export default function ReportsNetworth() {
         <Show when={data()}>
           {(d) => (
             <>
-              <BentoBlock size="lg" class="col-span-1 md:col-span-4">
+              <BentoBlock class="col-span-1 md:col-span-4">
                 <Stat label="Net Worth" value={formatCurrency(d().networth)} size="xl" tone={d().networth >= 0 ? "primary" : "accent"} />
               </BentoBlock>
-              <BentoBlock size="md" class="col-span-1 md:col-span-8">
+              <BentoBlock class="col-span-1 md:col-span-8 min-h-[200px]">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">6-month trend</span>
                   <BarChart3 size={16} class="text-muted" />

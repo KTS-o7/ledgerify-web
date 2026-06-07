@@ -58,7 +58,7 @@ export default function Import() {
       <PageHeader title="Import" />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
         {/* Drop zone */}
-        <BentoBlock variant="dashed" size="lg" class="col-span-1 md:col-span-12 flex flex-col items-center justify-center text-center py-12">
+        <BentoBlock variant="dashed" class="col-span-1 md:col-span-12 flex flex-col items-center justify-center text-center py-12">
           <FileUp size={48} class="text-muted mb-3" />
           <h2 class="font-display text-xl font-bold text-text mb-1">Drop a CSV here or click to browse</h2>
           <p class="text-sm text-muted mb-4">We'll match the columns to your accounts and categories.</p>
@@ -77,7 +77,7 @@ export default function Import() {
         <Show when={file()}>
           {(f) => (
             <>
-              <BentoBlock size="md" class="col-span-1 md:col-span-6">
+              <BentoBlock class="col-span-1 md:col-span-6">
                 <div class="flex items-center gap-3">
                   <FileCheck size={24} class="text-primary" />
                   <div class="flex-1 min-w-0">
@@ -86,7 +86,7 @@ export default function Import() {
                   </div>
                 </div>
               </BentoBlock>
-              <BentoBlock size="md" class="col-span-1 md:col-span-6 flex flex-col justify-between gap-3">
+              <BentoBlock class="col-span-1 md:col-span-6 flex flex-col justify-between gap-3">
                 <div class="text-sm text-muted space-y-1">
                   <p>Expected columns: <span class="font-mono text-text">date, title, amount, type, category, account</span></p>
                   <p>Duplicates are skipped automatically.</p>
@@ -105,7 +105,7 @@ export default function Import() {
         {/* Result */}
         <Show when={result()}>
           {(r) => (
-            <BentoBlock size="md" class="col-span-1 md:col-span-12">
+            <BentoBlock class="col-span-1 md:col-span-12">
               <div class="flex items-start gap-3">
                 <CheckCircle size={24} class="text-primary flex-shrink-0 mt-0.5" />
                 <div class="flex-1">

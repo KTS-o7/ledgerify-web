@@ -22,7 +22,7 @@ export default function Reports() {
               const Icon = r.icon;
               return (
                 <A href={r.path} class="block">
-                  <BentoBlock variant="pressable" size="md" class="h-full">
+                  <BentoBlock variant="pressable" class="h-full">
                     <div class="flex items-center gap-3">
                       <div class="w-12 h-12 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
                         <Icon size={24} />

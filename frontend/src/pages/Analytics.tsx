@@ -73,7 +73,7 @@ export default function Analytics() {
           <p class="text-accent text-sm py-6 text-center col-span-1 md:col-span-12">Failed to load analytics data.</p>
         </Show>
         <Show when={!summary.loading && summary()}>
-          <BentoBlock size="lg" class="col-span-1 md:col-span-5 flex flex-col items-center justify-center min-h-[400px]">
+          <BentoBlock class="col-span-1 md:col-span-5 flex flex-col items-center justify-center min-h-[360px]">
             <Show
               when={segments().length > 0}
               fallback={<EmptyState icon={MoreHorizontal} title="No spending data" body="Add transactions to see category breakdown." />}
@@ -90,7 +90,7 @@ export default function Analytics() {
               />
             </Show>
           </BentoBlock>
-          <BentoBlock class="col-span-1 md:col-span-7 min-h-[400px] flex flex-col">
+          <BentoBlock class="col-span-1 md:col-span-7 flex flex-col">
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-4 block">By Category</span>
             <Show
               when={segments().length > 0}

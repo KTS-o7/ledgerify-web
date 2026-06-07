@@ -82,7 +82,7 @@ export default function Dashboard() {
             return (
               <>
                 {/* Hero balance — left 8 cols desktop */}
-                <BentoBlock size="lg" class="col-span-1 md:col-span-8 flex flex-col justify-between gap-6">
+                <BentoBlock class="col-span-1 md:col-span-8 flex flex-col gap-4 p-5">
                   <Stat
                     label="Total Balance"
                     value={formatCurrency(balance())}
@@ -97,14 +97,14 @@ export default function Dashboard() {
 
                 {/* Quick stats — right 4 cols desktop */}
                 <div class="col-span-1 md:col-span-4 flex flex-col gap-3">
-                  <BentoBlock size="md" class="flex-1 flex flex-col justify-center">
+                  <BentoBlock class="flex-1 flex flex-col justify-center">
                     <div class="flex items-center gap-2 mb-1">
                       <TrendingUp size={16} class="text-primary" />
                       <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Income</span>
                     </div>
                     <span class="font-display font-bold text-2xl text-primary">{formatCurrency(s().total_income)}</span>
                   </BentoBlock>
-                  <BentoBlock size="md" class="flex-1 flex flex-col justify-center">
+                  <BentoBlock class="flex-1 flex flex-col justify-center">
                     <div class="flex items-center gap-2 mb-1">
                       <TrendingDown size={16} class="text-muted" />
                       <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Expenses</span>

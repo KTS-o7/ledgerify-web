@@ -57,7 +57,7 @@ export default function Accounts() {
           </Show>
           <For each={accounts() ?? []}>
             {(a) => (
-              <BentoBlock variant="default" size="sm">
+              <BentoBlock variant="default">
                 <AccountRow
                   icon={accountIcon(a.type)}
                   name={a.name}
@@ -68,7 +68,7 @@ export default function Accounts() {
               </BentoBlock>
             )}
           </For>
-          <BentoBlock variant="dashed" size="sm" class="flex items-center justify-center">
+          <BentoBlock variant="dashed" class="flex items-center justify-center">
             <button type="button" class="flex flex-col items-center gap-1 text-muted hover:text-text transition-colors">
               <Link2 size={20} />
               <span class="text-sm font-medium">Connect Institution</span>

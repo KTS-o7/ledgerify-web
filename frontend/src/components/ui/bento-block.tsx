@@ -9,7 +9,7 @@ type BentoBlockProps = JSX.HTMLAttributes<HTMLDivElement> & {
   onClick?: JSX.EventHandlerUnion<HTMLDivElement, MouseEvent>;
 };
 
-const sizeMap = { sm: "min-h-[120px]", md: "min-h-[160px]", lg: "min-h-[220px]" };
+const sizeMap = { sm: "", md: "", lg: "" };
 const spanMap = { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3" };
 
 export const BentoBlock: Component<BentoBlockProps> = (props) => {

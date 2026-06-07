@@ -36,7 +36,7 @@ export default function ReportsBudgetVsActual() {
             const pct = amount > 0 ? (b.spent / amount) * 100 : 0;
             const over = b.spent > amount;
             return (
-              <BentoBlock size="sm">
+              <BentoBlock>
                 <div class="flex items-center justify-between mb-2">
                   <span class="font-display text-lg font-bold text-text">{b.name}</span>
                   <span class="text-sm text-muted">{formatCurrency(b.spent, b.currency)} / {formatCurrency(amount, b.currency)}</span>

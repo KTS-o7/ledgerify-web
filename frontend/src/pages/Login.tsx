@@ -31,7 +31,7 @@ export default function Login() {
 
   return (
     <div class="min-h-screen flex items-center justify-center bg-bg p-4">
-      <BentoBlock size="md" class="w-full max-w-[360px]">
+      <BentoBlock class="w-full max-w-sm">
         <div class="flex flex-col items-center text-center mb-6">
           <div class="w-12 h-12 rounded-input bg-primary flex items-center justify-center text-bg font-display font-bold text-2xl mb-3">L</div>
           <h1 class="font-display text-2xl font-bold text-text">Ledgerify</h1>

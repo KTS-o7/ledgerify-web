@@ -66,7 +66,7 @@ export default function Loans() {
           </Show>
           <For each={loans() ?? []}>
             {(l) => (
-              <BentoBlock variant="pressable" size="md">
+              <BentoBlock variant="pressable">
                 <div class="flex items-start gap-3">
                   <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
                     <Landmark size={20} />

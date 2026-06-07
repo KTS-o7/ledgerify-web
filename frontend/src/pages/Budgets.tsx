@@ -73,7 +73,7 @@ export default function Budgets() {
               const over = () => b.spent > amount;
               const catName = pgTextToString(b.category_name);
               return (
-                <BentoBlock variant="pressable" size="md">
+                <BentoBlock variant="pressable">
                   <div class="flex flex-col gap-2">
                     <div class="flex items-baseline justify-between">
                       <span class="font-display text-xl font-bold text-text">{b.name}</span>
@@ -101,7 +101,6 @@ export default function Budgets() {
           </For>
           <BentoBlock
             variant="dashed"
-            size="md"
             class="flex items-center justify-center"
           >
             <button

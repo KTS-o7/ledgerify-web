@@ -40,7 +40,7 @@ export default function NetWorth() {
             return (
               <>
                 {/* Left: headline figure + asset/liability breakdown */}
-                <BentoBlock size="lg" class="col-span-1 md:col-span-5 flex flex-col justify-between gap-6">
+                <BentoBlock class="col-span-1 md:col-span-5 flex flex-col justify-between gap-6">
                   <Stat
                     label="Net Worth"
                     value={formatCurrency(d().networth)}
@@ -73,7 +73,7 @@ export default function NetWorth() {
                 </BentoBlock>
 
                 {/* Right: sparkline trend */}
-                <BentoBlock size="lg" class="col-span-1 md:col-span-7 flex flex-col">
+                <BentoBlock class="col-span-1 md:col-span-7 flex flex-col min-h-[200px]">
                   <div class="flex items-center justify-between mb-4">
                     <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">6-month trend</span>
                     <BarChart3 size={16} class="text-muted" />

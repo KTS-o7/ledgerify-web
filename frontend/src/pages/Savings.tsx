@@ -143,7 +143,7 @@ export default function Savings() {
                   ? "var(--color-primary)"
                   : "var(--color-primary)";
               return (
-                <BentoBlock variant="pressable" size="md">
+                <BentoBlock variant="pressable">
                   <div class="flex flex-col gap-2">
                     <div class="flex items-start justify-between gap-2">
                       <span class="font-display text-lg font-bold text-text leading-tight">{g.name}</span>

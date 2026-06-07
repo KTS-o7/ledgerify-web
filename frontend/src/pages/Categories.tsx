@@ -42,7 +42,7 @@ export default function Categories() {
         }
       />
       <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <Show when={categories.loading}>
             <SkeletonBlock class="min-h-[80px]" />
             <SkeletonBlock class="min-h-[80px]" />
@@ -50,7 +50,7 @@ export default function Categories() {
             <SkeletonBlock class="min-h-[80px]" />
           </Show>
           <Show when={!categories.loading && userCategories().length === 0}>
-            <div class="col-span-1 md:col-span-2">
+            <div class="col-span-1 md:col-span-2 lg:col-span-4">
               <EmptyState
                 icon={Tag}
                 title="No categories yet"
@@ -61,7 +61,7 @@ export default function Categories() {
           </Show>
           <For each={userCategories()}>
             {(cat) => (
-              <BentoBlock variant="default" size="sm">
+              <BentoBlock variant="default">
                 <div class="flex items-center gap-3">
                   <span
                     class="w-3 h-3 rounded-full flex-shrink-0"

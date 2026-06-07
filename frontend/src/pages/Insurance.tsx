@@ -79,7 +79,7 @@ export default function Insurance() {
               const provider = pgTextToString(p.provider);
               const renewalDate = pgDateToString(p.renewal_date || p.end_date);
               return (
-                <BentoBlock variant="pressable" size="md">
+                <BentoBlock variant="pressable">
                   <div class="flex items-start gap-3">
                     <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
                       <ShieldCheck size={20} />
