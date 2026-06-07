@@ -8,7 +8,55 @@ import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 
-interface Policy { id: string; provider: string; type: string; premium: number; renewal_date: string; status: "active" | "expiring" | "expired"; }
+function numericToFloat(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v) || 0;
+  if (v && typeof v === "object" && "Int" in (v as any)) {
+    const o = v as { Int: number; Exp: number; Valid: boolean };
+    if (!o.Valid) return 0;
+    return o.Int * Math.pow(10, o.Exp);
+  }
+  return 0;
+}
+
+function pgTextToString(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "String" in (v as any)) {
+    const o = v as { String: string; Valid: boolean };
+    return o.Valid ? o.String : "";
+  }
+  return "";
+}
+
+function pgDateToString(v: unknown): string {
+  if (typeof v === "string") return v.slice(0, 10);
+  if (v && typeof v === "object" && "Time" in (v as any)) {
+    const o = v as { Time: string; Valid: boolean };
+    return o.Valid ? o.Time.slice(0, 10) : "—";
+  }
+  return "—";
+}
+
+interface Policy {
+  id: string;
+  name: string;
+  provider: unknown;        // pgtype.Text
+  policy_type: string;
+  premium_amount: unknown;  // pgtype.Numeric
+  premium_frequency: string;
+  currency: string;
+  renewal_date: unknown;    // pgtype.Date
+  end_date: unknown;        // pgtype.Date
+}
+
+function renewalStatus(policy: Policy): "active" | "expiring" | "expired" {
+  const renewal = pgDateToString(policy.end_date || policy.renewal_date);
+  if (!renewal || renewal === "—") return "active";
+  const days = (new Date(renewal).getTime() - Date.now()) / 86400000;
+  if (days < 0) return "expired";
+  if (days < 30) return "expiring";
+  return "active";
+}
 
 export default function Insurance() {
   const [policies] = createResource(() => api.get<Policy[]>("/v1/insurance"));
@@ -37,34 +85,43 @@ export default function Insurance() {
             </div>
           </Show>
           <For each={policies() ?? []}>
-            {(p) => (
-              <BentoBlock variant="pressable" size="md" onClick={() => { /* TODO */ }}>
-                <div class="flex items-start gap-3">
-                  <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1 flex-wrap">
-                      <span class="font-display text-lg font-bold text-text">{p.provider}</span>
-                      <Badge variant="outline">{p.type}</Badge>
-                      <Badge variant={p.status === "active" ? "success" : "destructive"}>
-                        {p.status === "active" ? "Active" : p.status === "expiring" ? "Expiring soon" : "Expired"}
-                      </Badge>
+            {(p) => {
+              const status = renewalStatus(p);
+              const provider = pgTextToString(p.provider);
+              const renewalDate = pgDateToString(p.renewal_date || p.end_date);
+              return (
+                <BentoBlock variant="pressable" size="md">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                      <ShieldCheck size={20} />
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mt-2">
-                      <div>
-                        <div class="text-[12px] text-muted uppercase tracking-wide">Premium</div>
-                        <div class="font-display text-base font-semibold text-text">{formatCurrency(p.premium)}/yr</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1 flex-wrap">
+                        <span class="font-display text-lg font-bold text-text">{p.name}</span>
+                        <Show when={provider}>
+                          <Badge variant="outline">{provider}</Badge>
+                        </Show>
+                        <Badge variant={status === "active" ? "success" : "destructive"}>
+                          {status === "active" ? "Active" : status === "expiring" ? "Expiring soon" : "Expired"}
+                        </Badge>
                       </div>
-                      <div>
-                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Renews</div>
-                        <div class="font-display text-base font-semibold text-text">{p.renewal_date}</div>
+                      <div class="grid grid-cols-2 gap-3 mt-2">
+                        <div>
+                          <div class="text-[12px] text-muted uppercase tracking-wide">Premium</div>
+                          <div class="font-display text-base font-semibold text-text">
+                            {formatCurrency(numericToFloat(p.premium_amount), p.currency)}/{p.premium_frequency.slice(0, 2)}
+                          </div>
+                        </div>
+                        <div>
+                          <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Renews</div>
+                          <div class="font-display text-base font-semibold text-text">{renewalDate}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </BentoBlock>
-            )}
+                </BentoBlock>
+              );
+            }}
           </For>
         </div>
       </div>

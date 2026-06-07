@@ -8,7 +8,37 @@ import { CategoryBar } from "../components/ui/category-bar";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 
-interface Budget { id: string; name: string; spent: number; amount: number; period: string; category_name: string; }
+function numericToFloat(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v) || 0;
+  if (v && typeof v === "object" && "Int" in (v as any)) {
+    const o = v as { Int: number; Exp: number; Valid: boolean };
+    if (!o.Valid) return 0;
+    return o.Int * Math.pow(10, o.Exp);
+  }
+  return 0;
+}
+
+function pgTextToString(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "String" in (v as any)) {
+    const o = v as { String: string; Valid: boolean };
+    return o.Valid ? o.String : "";
+  }
+  return "";
+}
+
+interface Budget {
+  id: string;
+  name: string;
+  amount: unknown;       // pgtype.Numeric
+  currency: string;
+  period_type: string;
+  category_name: unknown; // pgtype.Text
+  spent: number;         // computed float by handler
+  remaining: number;
+  spent_pct: number;
+}
 
 export default function Budgets() {
   const [budgets] = createResource(() => api.get<Budget[]>("/v1/budgets"));
@@ -50,31 +80,25 @@ export default function Budgets() {
           </Show>
           <For each={budgets() ?? []}>
             {(b) => {
-              const pct = () => Math.min((b.spent / b.amount) * 100, 100);
-              const over = () => b.spent > b.amount;
+              const amount = numericToFloat(b.amount);
+              const pct = () => Math.min(amount > 0 ? (b.spent / amount) * 100 : 0, 100);
+              const over = () => b.spent > amount;
+              const catName = pgTextToString(b.category_name);
               return (
-                <BentoBlock
-                  variant="pressable"
-                  size="md"
-                  onClick={() => { /* TODO: edit sheet */ }}
-                >
+                <BentoBlock variant="pressable" size="md">
                   <div class="flex flex-col gap-2">
                     <div class="flex items-baseline justify-between">
                       <span class="font-display text-xl font-bold text-text">{b.name}</span>
-                      <span
-                        class={`text-[13px] font-medium ${
-                          over() ? "text-accent" : "text-muted"
-                        }`}
-                      >
+                      <span class={`text-[13px] font-medium ${over() ? "text-accent" : "text-muted"}`}>
                         {pct().toFixed(0)}% used
                       </span>
                     </div>
                     <div class="flex items-baseline justify-between">
                       <span class="text-sm text-muted">
-                        {formatCurrency(b.spent)} of {formatCurrency(b.amount)}
+                        {formatCurrency(b.spent, b.currency)} of {formatCurrency(amount, b.currency)}
                       </span>
                       <span class="text-[12px] font-body uppercase tracking-wide text-muted">
-                        {b.period}
+                        {b.period_type}{catName ? ` · ${catName}` : ""}
                       </span>
                     </div>
                     <CategoryBar

@@ -8,7 +8,37 @@ import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 
-interface Loan { id: string; lender: string; type: string; principal: number; emi: number; next_due: string; }
+function numericToFloat(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v) || 0;
+  if (v && typeof v === "object" && "Int" in (v as any)) {
+    const o = v as { Int: number; Exp: number; Valid: boolean };
+    if (!o.Valid) return 0;
+    return o.Int * Math.pow(10, o.Exp);
+  }
+  return 0;
+}
+
+function pgTextToString(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "String" in (v as any)) {
+    const o = v as { String: string; Valid: boolean };
+    return o.Valid ? o.String : "";
+  }
+  return "";
+}
+
+interface Loan {
+  id: string;
+  name: string;
+  loan_type: string;
+  principal: unknown;           // pgtype.Numeric
+  emi_amount: unknown;          // pgtype.Numeric
+  outstanding_balance: unknown; // pgtype.Numeric
+  currency: string;
+  start_date: unknown;          // pgtype.Date
+  tenure_months: number;
+}
 
 export default function Loans() {
   const [loans] = createResource(() => api.get<Loan[]>("/v1/loans"));
@@ -38,28 +68,28 @@ export default function Loans() {
           </Show>
           <For each={loans() ?? []}>
             {(l) => (
-              <BentoBlock variant="pressable" size="md" onClick={() => { /* TODO */ }}>
+              <BentoBlock variant="pressable" size="md">
                 <div class="flex items-start gap-3">
                   <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
                     <Landmark size={20} />
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="font-display text-lg font-bold text-text">{l.lender}</span>
-                      <Badge variant="outline">{l.type}</Badge>
+                      <span class="font-display text-lg font-bold text-text truncate">{l.name}</span>
+                      <Badge variant="outline">{l.loan_type.replace("_", " ")}</Badge>
                     </div>
-                    <div class="grid grid-cols-3 gap-3 mt-2">
+                    <div class="grid grid-cols-3 gap-2 mt-2">
                       <div>
                         <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><TrendingDown size={12} /> Principal</div>
-                        <div class="font-display text-base font-semibold text-text">{formatCurrency(l.principal)}</div>
+                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.principal), l.currency)}</div>
                       </div>
                       <div>
                         <div class="text-[12px] text-muted uppercase tracking-wide">EMI</div>
-                        <div class="font-display text-base font-semibold text-text">{formatCurrency(l.emi)}</div>
+                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.emi_amount), l.currency)}</div>
                       </div>
                       <div>
-                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Next due</div>
-                        <div class="font-display text-base font-semibold text-text">{l.next_due}</div>
+                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Outstanding</div>
+                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.outstanding_balance), l.currency)}</div>
                       </div>
                     </div>
                   </div>

@@ -8,7 +8,28 @@ import { Sparkline } from "../components/ui/sparkline";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 
-interface Holding { id: string; ticker: string; name: string; quantity: number; current_price: number; market_value: number; history?: number[]; }
+// pgtype.Numeric serialises as { Int, Exp, NaN, Valid } or a plain number
+// depending on driver version — parse defensively
+function numericToFloat(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return parseFloat(v) || 0;
+  if (v && typeof v === "object" && "Int" in (v as any)) {
+    const o = v as { Int: number; Exp: number; Valid: boolean };
+    if (!o.Valid) return 0;
+    return o.Int * Math.pow(10, o.Exp);
+  }
+  return 0;
+}
+
+interface Holding {
+  id: string;
+  name: string;
+  asset_type: string;
+  currency: string;
+  quantity: unknown;       // pgtype.Numeric
+  buy_price: unknown;      // pgtype.Numeric
+  current_price: unknown;  // pgtype.Numeric
+}
 
 export default function Investments() {
   const [holdings] = createResource(() => api.get<Holding[]>("/v1/investments"));
@@ -37,21 +58,35 @@ export default function Investments() {
             </div>
           </Show>
           <For each={holdings() ?? []}>
-            {(h) => (
-              <BentoBlock variant="pressable" size="sm" onClick={() => { /* TODO */ }}>
-                <div class="flex items-center gap-3">
-                  <div class="flex-1 min-w-0">
-                    <div class="font-mono text-lg font-semibold text-text">{h.ticker}</div>
-                    <div class="text-sm text-muted truncate">{h.name}</div>
-                    <div class="font-mono text-sm text-muted mt-1">{h.quantity} × {formatCurrency(h.current_price)}</div>
-                    <div class="font-display text-lg font-bold text-text mt-1">{formatCurrency(h.market_value)}</div>
+            {(h) => {
+              const qty = numericToFloat(h.quantity);
+              const price = numericToFloat(h.current_price);
+              const buyPrice = numericToFloat(h.buy_price);
+              const marketValue = qty * price;
+              const gain = price - buyPrice;
+              const gainPct = buyPrice > 0 ? ((gain / buyPrice) * 100) : 0;
+              return (
+                <BentoBlock variant="pressable" size="sm">
+                  <div class="flex items-start gap-3">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="font-display text-lg font-bold text-text truncate">{h.name}</span>
+                        <span class="font-mono text-xs text-muted uppercase ml-2 flex-shrink-0">{h.asset_type}</span>
+                      </div>
+                      <div class="font-mono text-sm text-muted mt-0.5">{qty} units @ {formatCurrency(price, h.currency)}</div>
+                      <div class="flex items-center justify-between mt-2">
+                        <span class="font-display text-lg font-bold text-text">{formatCurrency(marketValue, h.currency)}</span>
+                        <Show when={buyPrice > 0}>
+                          <span class={`text-sm font-medium ${gainPct >= 0 ? "text-primary" : "text-accent"}`}>
+                            {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
+                          </span>
+                        </Show>
+                      </div>
+                    </div>
                   </div>
-                  <Show when={h.history && h.history.length > 1}>
-                    <Sparkline values={h.history!} width={120} height={40} tone="primary" />
-                  </Show>
-                </div>
-              </BentoBlock>
-            )}
+                </BentoBlock>
+              );
+            }}
           </For>
         </div>
       </div>
