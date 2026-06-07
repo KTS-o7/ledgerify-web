@@ -27,13 +27,13 @@ export default function Investments() {
         </button>
       } />
       <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <Show when={holdings.loading}>
             <SkeletonBlock class="min-h-[120px]" />
             <SkeletonBlock class="min-h-[120px]" />
           </Show>
           <Show when={!holdings.loading && (holdings() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2">
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState icon={TrendingUp} title="No investments yet" body="Track your portfolio across stocks, ETFs, and funds." action={{ label: "Add holding", onClick: () => {} }} />
             </div>
           </Show>

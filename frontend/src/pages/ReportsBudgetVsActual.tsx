@@ -14,7 +14,7 @@ export default function ReportsBudgetVsActual() {
   return (
     <>
       <PageHeader title="Budget vs Actual" back />
-      <div class="p-4 md:p-6 space-y-3 max-w-3xl">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <For each={BUDGETS}>
           {(b) => {
             const pct = (b.spent / b.amount) * 100;

@@ -36,13 +36,13 @@ export default function Budgets() {
         }
       />
       <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <Show when={budgets.loading}>
             <SkeletonBlock class="min-h-[140px]" />
             <SkeletonBlock class="min-h-[140px]" />
           </Show>
           <Show when={!budgets.loading && (budgets() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2">
+            <div class="col-span-1 md:col-span-2 lg:col-span-3">
               <EmptyState
                 icon={Target}
                 title="No budgets yet"

@@ -39,14 +39,14 @@ export default function Settings() {
   return (
     <>
       <PageHeader title="Settings" />
-      <div class="p-4 md:p-6 space-y-3 max-w-3xl">
-        <BentoBlock size="md">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+        <BentoBlock size="md" class="col-span-1 md:col-span-8">
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
           <Row icon={Mail} label={user()?.email || "Email"} />
           <Row icon={KeyRound} label="Change password" />
           <Row icon={LogOut} label="Logout" danger onClick={() => { logout(); navigate("/login"); }} />
         </BentoBlock>
-        <BentoBlock size="md">
+        <BentoBlock size="md" class="col-span-1 md:col-span-8">
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>
           <div class="flex items-center gap-3 h-14">
             <Globe size={18} class="text-muted" />
@@ -68,7 +68,7 @@ export default function Settings() {
             </Select>
           </div>
         </BentoBlock>
-        <BentoBlock size="md">
+        <BentoBlock size="md" class="col-span-1 md:col-span-4 md:row-span-2">
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Data</span>
           <Row icon={FileDown} label="Export all data" onClick={() => navigate("/export")} />
           <Row icon={FileUp} label="Import" onClick={() => navigate("/import")} />

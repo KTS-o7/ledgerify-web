@@ -11,11 +11,11 @@ export default function ReportsNetworth() {
   return (
     <>
       <PageHeader title="Net Worth Report" back />
-      <div class="p-4 md:p-6 space-y-3 max-w-4xl">
-        <BentoBlock size="lg">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+        <BentoBlock size="lg" class="col-span-1 md:col-span-4">
           <Stat label="Net Worth" value={formatCurrency(CURRENT)} size="xl" tone="primary" />
         </BentoBlock>
-        <BentoBlock size="md">
+        <BentoBlock size="md" class="col-span-1 md:col-span-8">
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">Trend</span>
           <Sparkline values={HISTORY} width={undefined} height={120} tone="primary" class="w-full" />
         </BentoBlock>

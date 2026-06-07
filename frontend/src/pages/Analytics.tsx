@@ -34,8 +34,8 @@ export default function Analytics() {
           onChange={setMode}
           ariaLabel="Analytics mode"
         />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <BentoBlock size="lg" class="md:col-span-1 flex flex-col items-center justify-center min-h-[320px]">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <BentoBlock size="lg" class="col-span-1 md:col-span-5 flex flex-col items-center justify-center min-h-[360px]">
             <DonutChart
               segments={SAMPLE_SEGMENTS}
               centerLabel={mode() === "expense" ? "Total Spent" : "Total Income"}
@@ -43,11 +43,11 @@ export default function Analytics() {
               centerTrend={{ dir: "up", value: "+12%" }}
               highlightIndex={highlight()}
               onSegmentHover={setHighlight}
-              size={260}
-              thickness={32}
+              size={300}
+              thickness={36}
             />
           </BentoBlock>
-          <BentoBlock size="md" class="md:col-span-1">
+          <BentoBlock size="md" class="col-span-1 md:col-span-7">
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">By Category</span>
             <ul class="flex flex-col gap-3">
               <For each={SAMPLE_SEGMENTS}>

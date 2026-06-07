@@ -37,8 +37,8 @@ export default function Export() {
   return (
     <>
       <PageHeader title="Export" />
-      <div class="p-4 md:p-6 space-y-3 max-w-3xl">
-        <BentoBlock size="md">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+        <BentoBlock size="md" class="col-span-1 md:col-span-7">
           <div class="space-y-4">
             <div>
               <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Date range</span>
@@ -82,7 +82,7 @@ export default function Export() {
           </div>
         </BentoBlock>
 
-        <BentoBlock size="md">
+        <BentoBlock size="md" class="col-span-1 md:col-span-5">
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">Recent exports</span>
           <Show when={RECENT.length > 0} fallback={<p class="text-sm text-muted py-2">No exports yet.</p>}>
             <ul class="flex flex-col">

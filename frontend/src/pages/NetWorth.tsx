@@ -31,17 +31,19 @@ export default function NetWorth() {
           <Plus size={20} />
         </button>
       } />
-      <div class="p-4 md:p-6 space-y-3 max-w-5xl">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
         <Show when={data.loading}>
-          <SkeletonBlock class="min-h-[200px]" />
+          <SkeletonBlock class="col-span-1 md:col-span-12 min-h-[200px]" />
         </Show>
         <Show when={data()}>
           {(d) => (
             <>
-              <BentoBlock size="lg">
+              {/* Hero stat — full width */}
+              <BentoBlock size="lg" class="col-span-1 md:col-span-12">
                 <Stat label="Net Worth" value={formatCurrency(d().current)} size="xl" tone={d().current >= 0 ? "primary" : "accent"} />
               </BentoBlock>
-              <BentoBlock size="md">
+              {/* Sparkline — 8 cols on desktop */}
+              <BentoBlock size="md" class="col-span-1 md:col-span-8">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">12-month trend</span>
                   <BarChart3 size={16} class="text-muted" />
@@ -50,7 +52,8 @@ export default function NetWorth() {
                   <Sparkline values={d().history} width={undefined} height={120} tone={d().current >= 0 ? "primary" : "accent"} class="w-full" />
                 </Show>
               </BentoBlock>
-              <BentoBlock size="md">
+              {/* Top Movers — 4 cols on desktop */}
+              <BentoBlock size="md" class="col-span-1 md:col-span-4">
                 <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-3 block">Top Movers</span>
                 <ul class="flex flex-col">
                   <For each={d().topMovers}>
@@ -58,9 +61,9 @@ export default function NetWorth() {
                       <li class="flex items-center justify-between py-3 border-b border-border last:border-0">
                         <div class="flex items-center gap-2">
                           {m.delta >= 0 ? <TrendingUp size={16} class="text-primary" /> : <TrendingDown size={16} class="text-accent" />}
-                          <span class="font-body text-base text-text">{m.name}</span>
+                          <span class="font-body text-sm text-text truncate">{m.name}</span>
                         </div>
-                        <span class={`font-display font-semibold text-base ${m.delta >= 0 ? "text-primary" : "text-accent"}`}>
+                        <span class={`font-display font-semibold text-sm flex-shrink-0 ml-2 ${m.delta >= 0 ? "text-primary" : "text-accent"}`}>
                           {m.delta >= 0 ? "+" : "−"}{formatCurrency(Math.abs(m.delta))}
                         </span>
                       </li>
@@ -72,7 +75,7 @@ export default function NetWorth() {
           )}
         </Show>
         <Show when={data.error && !data()}>
-          <EmptyState icon={BarChart3} title="Couldn't load net worth" body="Try again later or add a snapshot manually." />
+          <EmptyState icon={BarChart3} title="Couldn't load net worth" body="Try again later or add a snapshot manually." class="col-span-1 md:col-span-12" />
         </Show>
       </div>
     </>

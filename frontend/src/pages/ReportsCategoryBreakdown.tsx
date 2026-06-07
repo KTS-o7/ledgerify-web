@@ -16,9 +16,9 @@ export default function ReportsCategoryBreakdown() {
   return (
     <>
       <PageHeader title="Category Breakdown" back />
-      <div class="p-4 md:p-6 max-w-3xl">
+      <div class="p-4 md:p-6">
         <BentoBlock size="lg" class="flex items-center justify-center min-h-[340px]">
-          <DonutChart segments={SEGMENTS} centerLabel="Total Spent" centerValue={formatCurrency(total)} size={280} thickness={32} />
+          <DonutChart segments={SEGMENTS} centerLabel="Total Spent" centerValue={formatCurrency(total)} size={300} thickness={36} />
         </BentoBlock>
       </div>
     </>

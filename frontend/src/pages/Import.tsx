@@ -10,8 +10,8 @@ export default function Import() {
   return (
     <>
       <PageHeader title="Import" />
-      <div class="p-4 md:p-6 space-y-3 max-w-3xl">
-        <BentoBlock variant="dashed" size="lg" class="flex flex-col items-center justify-center text-center py-12">
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+        <BentoBlock variant="dashed" size="lg" class="col-span-1 md:col-span-12 flex flex-col items-center justify-center text-center py-12">
           <FileUp size={48} class="text-muted mb-3" />
           <h2 class="font-display text-xl font-bold text-text mb-1">Drop a CSV here or click to browse</h2>
           <p class="text-sm text-muted mb-4">We'll match the columns to your accounts and categories.</p>
@@ -29,7 +29,7 @@ export default function Import() {
         <Show when={file()}>
           {(f) => (
             <>
-              <BentoBlock size="md">
+              <BentoBlock size="md" class="col-span-1 md:col-span-6">
                 <div class="flex items-center gap-3">
                   <FileCheck size={24} class="text-primary" />
                   <div class="flex-1 min-w-0">
@@ -38,7 +38,7 @@ export default function Import() {
                   </div>
                 </div>
               </BentoBlock>
-              <BentoBlock size="md">
+              <BentoBlock size="md" class="col-span-1 md:col-span-6">
                 <details class="group">
                   <summary class="flex items-center justify-between cursor-pointer list-none">
                     <span class="font-display text-lg font-bold text-text">Column Mapping</span>
@@ -55,7 +55,9 @@ export default function Import() {
                   </div>
                 </details>
               </BentoBlock>
-              <Button class="w-full" size="lg">Import {f().name}</Button>
+              <div class="col-span-1 md:col-span-12">
+                <Button class="w-full" size="lg">Import {f().name}</Button>
+              </div>
             </>
           )}
         </Show>

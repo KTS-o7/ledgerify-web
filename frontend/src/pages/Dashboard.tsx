@@ -63,14 +63,15 @@ export default function Dashboard() {
           </button>
         }
       />
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 p-4 md:p-6">
+      {/* Mobile: single column. Desktop: 12-column grid for flexible bento spanning */}
+      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
         <Show when={summary.loading}>
-          <SkeletonBlock class="col-span-1 md:col-span-3 min-h-[200px]" />
-          <SkeletonBlock class="col-span-1 min-h-[160px]" />
-          <SkeletonBlock class="col-span-1 min-h-[160px]" />
+          <SkeletonBlock class="col-span-1 md:col-span-12 min-h-[200px]" />
+          <SkeletonBlock class="col-span-1 md:col-span-6 min-h-[160px]" />
+          <SkeletonBlock class="col-span-1 md:col-span-6 min-h-[160px]" />
         </Show>
         <Show when={summary.error}>
-          <BentoBlock span={3} class="min-h-[200px] flex items-center justify-center">
+          <BentoBlock class="col-span-1 md:col-span-12 min-h-[200px] flex items-center justify-center">
             <p class="text-accent">Failed to load summary.</p>
           </BentoBlock>
         </Show>
@@ -79,7 +80,8 @@ export default function Dashboard() {
             const balance = () => s().total_income - s().total_expenses;
             return (
               <>
-                <BentoBlock span={2} size="lg" class="md:col-span-3">
+                {/* Hero — full width */}
+                <BentoBlock size="lg" class="col-span-1 md:col-span-12">
                   <Stat
                     label="Total Balance"
                     value={formatCurrency(balance())}
@@ -87,19 +89,22 @@ export default function Dashboard() {
                     trend={{ dir: balance() >= 0 ? "up" : "down", value: "+2.4% this month" }}
                   />
                 </BentoBlock>
-                <BentoBlock size="md" class="col-span-1">
+                {/* Income / Expenses — equal halves */}
+                <BentoBlock size="md" class="col-span-1 md:col-span-6">
                   <Stat label="Income" value={formatCurrency(s().total_income)} tone="primary" size="lg" />
                 </BentoBlock>
-                <BentoBlock size="md" class="col-span-1">
+                <BentoBlock size="md" class="col-span-1 md:col-span-6">
                   <Stat label="Expenses" value={formatCurrency(s().total_expenses)} size="lg" />
                 </BentoBlock>
-                <BentoBlock span={2} size="sm" class="md:col-span-3">
+                {/* Sparkline — full width */}
+                <BentoBlock size="sm" class="col-span-1 md:col-span-12">
                   <div class="flex flex-col gap-2">
                     <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">30-day spending</span>
                     <Sparkline values={SPARKLINE_PLACEHOLDER} height={48} class="w-full" tone="primary" />
                   </div>
                 </BentoBlock>
-                <BentoBlock span={2} size="md" class="md:col-span-3">
+                {/* Recent transactions — full width */}
+                <BentoBlock size="md" class="col-span-1 md:col-span-12">
                   <div class="flex items-center justify-between mb-3">
                     <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Recent</span>
                     <A href="/activity" class="text-sm text-primary hover:underline">View all →</A>
