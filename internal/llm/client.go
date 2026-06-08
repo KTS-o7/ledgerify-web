@@ -86,14 +86,23 @@ Rules:
 Available categories: [%s]
 
 Examples:
-Input: "Swiggy biryani"
+Input: "restaurant meal"
 Output: {"category": "Food & Dining"}
 
-Input: "BESCOM electricity bill"
+Input: "morning coffee"
+Output: {"category": "Food & Dining"}
+
+Input: "electricity bill"
 Output: {"category": "Utilities"}
 
-Input: "Amazon order"
-Output: {"category": "Shopping"}`, categoryNames)
+Input: "online shopping"
+Output: {"category": "Shopping"}
+
+Input: "cab ride"
+Output: {"category": "Transport"}
+
+Input: "monthly salary"
+Output: {"category": "Salary"}`, categoryNames)
 
 	// Output anchor: primes the model to continue with valid JSON (proven +3.4pp technique)
 	userPrompt := fmt.Sprintf("Title: \"%s\"\n\nJSON response: {\"", title)
