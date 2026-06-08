@@ -1,4 +1,5 @@
 import { A, useLocation, useNavigate } from "@solidjs/router";
+import { Dynamic } from "solid-js/web";
 import { For, Show, createEffect, createSignal, onCleanup, type Component, type JSX } from "solid-js";
 import { Portal } from "solid-js/web";
 import { LogOut, Grid3x3, ChevronDown, X } from "lucide-solid";
@@ -27,7 +28,7 @@ export const BottomNav: Component = (): JSX.Element => {
                 class="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted active:text-text transition-colors"
                 activeClass="text-text"
               >
-                <item.icon size={22} />
+                <Dynamic component={item.icon} size={22} />
                 <span class="text-[11px] font-medium">{item.label}</span>
               </A>
             </li>
@@ -77,7 +78,7 @@ export const Sidebar: Component = (): JSX.Element => {
                   class="flex items-center gap-3 px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors"
                   activeClass="bg-surface text-text"
                 >
-                  <item.icon size={20} />
+                  <Dynamic component={item.icon} size={20} />
                   <span class="text-sm font-medium">{item.label}</span>
                 </A>
               </li>
@@ -107,7 +108,7 @@ export const Sidebar: Component = (): JSX.Element => {
                     class="flex items-center gap-3 px-3 py-1.5 rounded-input text-muted hover:text-text hover:bg-surface transition-colors text-sm"
                     activeClass="bg-surface text-text"
                   >
-                    <item.icon size={16} />
+                    <Dynamic component={item.icon} size={16} />
                     <span>{item.label}</span>
                   </A>
                 </li>
@@ -216,7 +217,7 @@ export const MoreSheet: Component = (): JSX.Element => {
                       onClick={() => onSelect(item)}
                       class="w-full aspect-square flex flex-col items-center justify-center gap-1.5 rounded-input bg-bg text-muted hover:text-text hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                     >
-                      <item.icon size={24} />
+                      <Dynamic component={item.icon} size={24} />
                       <span class="text-[12px] font-medium">{item.label}</span>
                     </button>
                   </li>
