@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -121,15 +122,22 @@ Available categories:
 		return "", fmt.Errorf("no choices in response")
 	}
 
-	content := chatResp.Choices[0].Message.Content
+	content := strings.TrimSpace(chatResp.Choices[0].Message.Content)
+
+	// Model may return a plain string or a JSON object {"category": "..."}.
+	// Try JSON first, fall back to treating the whole content as the category name.
+	var category string
 	var catResp categoryResponse
-	if err := json.Unmarshal([]byte(content), &catResp); err != nil {
-		return "", fmt.Errorf("parse category json: %w (content: %s)", err, content)
+	if err := json.Unmarshal([]byte(content), &catResp); err == nil {
+		category = strings.TrimSpace(catResp.Category)
+	} else {
+		// Strip surrounding quotes if the model returned a quoted string
+		category = strings.Trim(content, `"`)
 	}
 
-	if catResp.Category == "Uncategorized" || catResp.Category == "" {
+	if category == "Uncategorized" || category == "" {
 		return "", nil
 	}
 
-	return catResp.Category, nil
+	return category, nil
 }
