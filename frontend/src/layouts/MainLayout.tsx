@@ -22,7 +22,7 @@ export const MainLayout: Component<RouteSectionProps> = (props): JSX.Element => 
       {/* Offset by sidebar on desktop, full width on mobile */}
       <main
         id="main"
-        class={`md:pl-60 text-text${isFocusedView() ? "" : " pb-16 md:pb-0"}`}
+        class={`md:pl-60 text-text min-h-screen${isFocusedView() ? "" : " pb-16 md:pb-0"}`}
         tabindex="-1"
       >
         {props.children}

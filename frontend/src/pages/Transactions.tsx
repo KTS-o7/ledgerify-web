@@ -92,7 +92,7 @@ export default function Transactions() {
           placeholder="Search by merchant, category, account…"
         />
       </div>
-      <div class="p-4 md:p-6 md:max-w-3xl md:mx-auto">
+      <div class="p-4 md:p-6">
         <Show when={!txns.loading && (txns()?.length ?? 0) > 0}>
           <p class="text-[13px] text-muted mb-3">
             Showing {filtered().length} of {txns()?.length ?? 0} transactions

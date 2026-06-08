@@ -97,14 +97,14 @@ export default function Dashboard() {
 
                 {/* Quick stats — right 4 cols desktop */}
                 <div class="col-span-1 md:col-span-4 flex flex-col gap-3">
-                  <BentoBlock class="flex-1 flex flex-col justify-center">
+                  <BentoBlock class="flex flex-col justify-center py-5">
                     <div class="flex items-center gap-2 mb-1">
                       <TrendingUp size={16} class="text-primary" />
                       <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Income</span>
                     </div>
                     <span class="font-display font-bold text-2xl text-primary">{formatCurrency(s().total_income)}</span>
                   </BentoBlock>
-                  <BentoBlock class="flex-1 flex flex-col justify-center">
+                  <BentoBlock class="flex flex-col justify-center py-5">
                     <div class="flex items-center gap-2 mb-1">
                       <TrendingDown size={16} class="text-muted" />
                       <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Expenses</span>

@@ -90,7 +90,7 @@ export default function Analytics() {
               />
             </Show>
           </BentoBlock>
-          <BentoBlock class="col-span-1 md:col-span-7 flex flex-col">
+          <BentoBlock class="col-span-1 md:col-span-7 flex flex-col min-h-[360px]">
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-4 block">By Category</span>
             <Show
               when={segments().length > 0}
