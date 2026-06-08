@@ -21,6 +21,18 @@ interface Tx {
   account_name: string;
 }
 
+interface FullTx {
+  id: string;
+  account_id: string;
+  type: "income" | "expense" | "transfer";
+  amount: string;
+  currency: string;
+  date: string;
+  category_id: string | null;
+  title: string;
+  note: string;
+}
+
 function categoryIcon(category: string) {
   switch (category) {
     case "Groceries": return ShoppingCart;
@@ -53,6 +65,28 @@ export default function Transactions() {
     ({ lim, accountId }) => api.get<Tx[]>(`/v1/transactions?limit=${lim}${accountId ? `&account_id=${accountId}` : ""}`)
   );
   const [sheetOpen, setSheetOpen] = createSignal(false);
+  const [editTx, setEditTx] = createSignal<FullTx | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = createSignal(false);
+
+  async function openEdit(id: string) {
+    try {
+      const full = await api.get<FullTx>(`/v1/transactions/${id}`);
+      setEditTx(full);
+      setEditSheetOpen(true);
+    } catch {
+      alert("Failed to load transaction.");
+    }
+  }
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Delete "${title || "this transaction"}"?`)) return;
+    try {
+      await api.delete(`/v1/transactions/${id}`);
+      refetch();
+    } catch {
+      alert("Failed to delete transaction.");
+    }
+  }
 
   async function loadMore() {
     setLoadingMore(true);
@@ -156,6 +190,8 @@ export default function Transactions() {
                       amount={parseFloat(tx.amount)}
                       type={tx.type}
                       date={tx.date}
+                      onEdit={() => openEdit(tx.id)}
+                      onDelete={() => handleDelete(tx.id, tx.title)}
                     />
                   )}
                 </For>
@@ -183,6 +219,28 @@ export default function Transactions() {
           onSuccess={() => { setSheetOpen(false); refetch(); }}
           onClose={() => setSheetOpen(false)}
         />
+      </Sheet>
+
+      <Sheet open={editSheetOpen()} onClose={() => { setEditSheetOpen(false); setEditTx(null); }} title="Edit Transaction">
+        <Show when={editTx()}>
+          {(tx) => (
+            <TransactionForm
+              existing={{
+                id: tx().id,
+                type: tx().type,
+                amount: tx().amount,
+                currency: tx().currency,
+                date: tx().date,
+                account_id: tx().account_id,
+                category_id: tx().category_id ?? undefined,
+                title: tx().title,
+                note: tx().note,
+              }}
+              onSuccess={() => { setEditSheetOpen(false); setEditTx(null); refetch(); }}
+              onClose={() => { setEditSheetOpen(false); setEditTx(null); }}
+            />
+          )}
+        </Show>
       </Sheet>
     </>
   );

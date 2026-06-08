@@ -1,5 +1,6 @@
 import { createSignal, createMemo, createEffect, Show } from "solid-js";
 import { api } from "../../lib/api";
+import { numericToFloat, pgDateToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -7,18 +8,40 @@ import { Button } from "../ui/button";
 type LoanFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    loan_type: string;
+    currency: string;
+    principal: unknown;
+    interest_rate: unknown;
+    term_months: number;
+    emi_amount: unknown;
+    outstanding_balance: unknown;
+    start_date: unknown;
+  };
 };
 
 export function LoanForm(props: LoanFormProps) {
-  const [name, setName] = createSignal("");
-  const [loanType, setLoanType] = createSignal("home");
-  const [currency, setCurrency] = createSignal("INR");
-  const [principal, setPrincipal] = createSignal("");
-  const [interestRate, setInterestRate] = createSignal("");
-  const [termMonths, setTermMonths] = createSignal("12");
-  const [emiAmount, setEmiAmount] = createSignal("");
-  const [outstandingBalance, setOutstandingBalance] = createSignal("");
-  const [startDate, setStartDate] = createSignal("");
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [loanType, setLoanType] = createSignal(props.existing?.loan_type ?? "home");
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
+  const [principal, setPrincipal] = createSignal(
+    numericToFloat(props.existing?.principal)?.toString() ?? ""
+  );
+  const [interestRate, setInterestRate] = createSignal(
+    numericToFloat(props.existing?.interest_rate)?.toString() ?? ""
+  );
+  const [termMonths, setTermMonths] = createSignal(
+    props.existing?.term_months?.toString() ?? "12"
+  );
+  const [emiAmount, setEmiAmount] = createSignal(
+    numericToFloat(props.existing?.emi_amount)?.toString() ?? ""
+  );
+  const [outstandingBalance, setOutstandingBalance] = createSignal(
+    numericToFloat(props.existing?.outstanding_balance)?.toString() ?? ""
+  );
+  const [startDate, setStartDate] = createSignal(pgDateToString(props.existing?.start_date) ?? "");
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -34,9 +57,14 @@ export function LoanForm(props: LoanFormProps) {
     return ((P * r * pow) / (pow - 1)).toFixed(2);
   });
 
+  // On first run with an existing loan, leave emi_amount at the user-supplied
+  // value; only recompute it on subsequent user-driven changes.
+  let firstRun = true;
   createEffect(() => {
     const v = computedEmi();
-    if (v) setEmiAmount(v);
+    if (!v) return;
+    if (firstRun) { firstRun = false; return; }
+    setEmiAmount(v);
   });
 
   async function handleSubmit(e: Event) {
@@ -58,7 +86,7 @@ export function LoanForm(props: LoanFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/loans", {
+      const body = {
         name: name().trim(),
         loan_type: loanType(),
         currency: currency(),
@@ -66,12 +94,17 @@ export function LoanForm(props: LoanFormProps) {
         ...(principal() !== "" ? { principal: principalVal } : {}),
         ...(interestRate() !== "" ? { interest_rate: parseFloat(interestRate()) } : {}),
         ...(emiAmount() !== "" ? { emi_amount: parseFloat(emiAmount()) } : {}),
-        ...(principalVal > 0 ? { outstanding_balance: principalVal } : {}),
+        ...(outstandingBalance() !== "" ? { outstanding_balance: parseFloat(outstandingBalance()) } : {}),
         ...(startDate() ? { start_date: startDate() } : {}),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/loans/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/loans", body);
+      }
       props.onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add loan.");
+      setError(err instanceof Error ? err.message : "Failed to save loan.");
     } finally {
       setSubmitting(false);
     }
@@ -229,7 +262,7 @@ export function LoanForm(props: LoanFormProps) {
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

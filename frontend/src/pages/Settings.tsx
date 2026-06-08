@@ -1,6 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2 } from "lucide-solid";
+import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug } from "lucide-solid";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -214,6 +214,7 @@ export default function Settings() {
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Data</span>
           <Row icon={FileDown} label="Export all data" onClick={() => navigate("/export")} />
           <Row icon={FileUp} label="Import" onClick={() => navigate("/import")} />
+          <Row icon={Plug} label="MCP Connect" onClick={() => navigate("/mcp")} />
           <Row
             icon={Sparkles}
             label={

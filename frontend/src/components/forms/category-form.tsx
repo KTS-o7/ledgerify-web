@@ -7,12 +7,18 @@ import { SegmentedControl } from "../ui/segmented-control";
 type CategoryFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    type: "income" | "expense";
+    color: string;
+  };
 };
 
 export function CategoryForm(props: CategoryFormProps) {
-  const [name, setName] = createSignal("");
-  const [type, setType] = createSignal<"income" | "expense">("expense");
-  const [color, setColor] = createSignal("#CCFF00");
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [type, setType] = createSignal<"income" | "expense">(props.existing?.type ?? "expense");
+  const [color, setColor] = createSignal(props.existing?.color ?? "#CCFF00");
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -27,11 +33,16 @@ export function CategoryForm(props: CategoryFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/categories", {
+      const body = {
         name: name().trim(),
         type: type(),
         color: color(),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/categories/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/categories", body);
+      }
       props.onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -89,7 +100,7 @@ export function CategoryForm(props: CategoryFormProps) {
       </Show>
 
       <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

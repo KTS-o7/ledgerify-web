@@ -1,5 +1,6 @@
 import { createSignal, createMemo, Show } from "solid-js";
 import { api } from "../../lib/api";
+import { numericToFloat, pgDateToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -7,18 +8,47 @@ import { Button } from "../ui/button";
 type InvestmentFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    asset_type: string;
+    currency: string;
+    quantity: unknown;
+    buy_price: unknown;
+    current_price: unknown;
+    interest_rate: unknown;
+    compounding_frequency: { CompoundingFrequency: string; Valid: boolean } | undefined;
+    maturity_date: unknown;
+  };
 };
 
+function compoundingFromApi(cf: { CompoundingFrequency: string; Valid: boolean } | undefined): string {
+  if (!cf || !cf.Valid) return "quarterly";
+  return cf.CompoundingFrequency;
+}
+
 export function InvestmentForm(props: InvestmentFormProps) {
-  const [name, setName] = createSignal("");
-  const [assetType, setAssetType] = createSignal("stock");
-  const [currency, setCurrency] = createSignal("INR");
-  const [quantity, setQuantity] = createSignal("");
-  const [buyPrice, setBuyPrice] = createSignal("");
-  const [currentPrice, setCurrentPrice] = createSignal("");
-  const [interestRate, setInterestRate] = createSignal("");
-  const [compounding, setCompounding] = createSignal("quarterly");
-  const [maturityDate, setMaturityDate] = createSignal("");
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [assetType, setAssetType] = createSignal(props.existing?.asset_type ?? "stock");
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
+  const [quantity, setQuantity] = createSignal(
+    numericToFloat(props.existing?.quantity)?.toString() ?? ""
+  );
+  const [buyPrice, setBuyPrice] = createSignal(
+    numericToFloat(props.existing?.buy_price)?.toString() ?? ""
+  );
+  const [currentPrice, setCurrentPrice] = createSignal(
+    numericToFloat(props.existing?.current_price)?.toString() ?? ""
+  );
+  const [interestRate, setInterestRate] = createSignal(
+    numericToFloat(props.existing?.interest_rate)?.toString() ?? ""
+  );
+  const [compounding, setCompounding] = createSignal(
+    compoundingFromApi(props.existing?.compounding_frequency)
+  );
+  const [maturityDate, setMaturityDate] = createSignal(
+    pgDateToString(props.existing?.maturity_date) ?? ""
+  );
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -44,7 +74,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/investments", {
+      const body = {
         name: name().trim(),
         asset_type: assetType(),
         currency: currency(),
@@ -54,10 +84,15 @@ export function InvestmentForm(props: InvestmentFormProps) {
         ...(interestRate() !== "" ? { interest_rate: parseFloat(interestRate()) } : {}),
         ...(compounding() && assetType() === "fd" ? { compounding_frequency: compounding() } : {}),
         ...(maturityDate() ? { maturity_date: maturityDate() } : {}),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/investments/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/investments", body);
+      }
       props.onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add investment.");
+      setError(err instanceof Error ? err.message : "Failed to save investment.");
     } finally {
       setSubmitting(false);
     }
@@ -225,7 +260,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

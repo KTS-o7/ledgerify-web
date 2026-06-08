@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { PiggyBank, Plus } from "lucide-solid";
+import { PiggyBank, Plus, Pencil, Trash2 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -9,10 +9,7 @@ import { CategoryBar } from "../components/ui/category-bar";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
-import { Input } from "../components/ui/input";
-import { Select } from "../components/ui/select";
-import { SegmentedControl } from "../components/ui/segmented-control";
-import { Button } from "../components/ui/button";
+import { SavingsForm } from "../components/forms/savings-form";
 
 interface SavingsGoal {
   id: string;
@@ -25,68 +22,27 @@ interface SavingsGoal {
   status: "active" | "achieved" | "abandoned";
 }
 
-const STATUS_OPTIONS = [
-  { value: "active" as const, label: "Active" },
-  { value: "achieved" as const, label: "Achieved" },
-  { value: "abandoned" as const, label: "Abandoned" },
-];
-
-const CURRENCY_OPTIONS = ["INR", "USD", "EUR", "GBP"];
-
 export default function Savings() {
   const [sheetOpen, setSheetOpen] = createSignal(false);
-  const [submitting, setSubmitting] = createSignal(false);
-  const [formError, setFormError] = createSignal("");
-
-  // Form fields
-  const [name, setName] = createSignal("");
-  const [targetAmount, setTargetAmount] = createSignal("");
-  const [currentAmount, setCurrentAmount] = createSignal("");
-  const [currency, setCurrency] = createSignal("INR");
-  const [deadline, setDeadline] = createSignal("");
-  const [status, setStatus] = createSignal<"active" | "achieved" | "abandoned">("active");
+  const [editGoal, setEditGoal] = createSignal<SavingsGoal | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = createSignal(false);
 
   const [goals, { refetch }] = createResource(() => api.get<SavingsGoal[]>("/v1/savings"));
 
-  function resetForm() {
-    setName("");
-    setTargetAmount("");
-    setCurrentAmount("");
-    setCurrency("INR");
-    setDeadline("");
-    setStatus("active");
-    setFormError("");
-  }
+  function openSheet() { setSheetOpen(true); }
+  function closeSheet() { setSheetOpen(false); }
+  function handleSuccess() { closeSheet(); refetch(); }
 
-  function openSheet() {
-    resetForm();
-    setSheetOpen(true);
-  }
+  function closeEdit() { setEditSheetOpen(false); setEditGoal(null); }
+  function handleEditSuccess() { closeEdit(); refetch(); }
 
-  async function handleSubmit(e: SubmitEvent) {
-    e.preventDefault();
-    if (!name().trim()) {
-      setFormError("Goal name is required.");
-      return;
-    }
-    setFormError("");
-    setSubmitting(true);
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"?`)) return;
     try {
-      const body: Record<string, unknown> = {
-        name: name().trim(),
-        currency: currency(),
-        status: status(),
-      };
-      if (targetAmount()) body.target_amount = parseFloat(targetAmount());
-      if (currentAmount()) body.current_amount = parseFloat(currentAmount());
-      if (deadline()) body.deadline = deadline();
-      await api.post("/v1/savings", body);
-      setSheetOpen(false);
+      await api.delete(`/v1/savings/${id}`);
       refetch();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to create goal.");
-    } finally {
-      setSubmitting(false);
+    } catch {
+      alert("Failed to delete savings goal.");
     }
   }
 
@@ -143,119 +99,80 @@ export default function Savings() {
                   ? "var(--color-primary)"
                   : "var(--color-primary)";
               return (
-                <BentoBlock variant="pressable">
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-start justify-between gap-2">
-                      <span class="font-display text-lg font-bold text-text leading-tight">{g.name}</span>
-                      <Badge variant={statusBadgeVariant(g.status)} class="shrink-0 capitalize">
-                        {g.status}
-                      </Badge>
+                <div class="group relative">
+                  <BentoBlock variant="pressable">
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="font-display text-lg font-bold text-text leading-tight">{g.name}</span>
+                        <Badge variant={statusBadgeVariant(g.status)} class="shrink-0 capitalize">
+                          {g.status}
+                        </Badge>
+                      </div>
+                      <div class="flex items-baseline justify-between text-sm">
+                        <span class="text-muted">
+                          {formatCurrency(current(), g.currency)}
+                          {" / "}
+                          {formatCurrency(target(), g.currency)}
+                        </span>
+                        <span class="text-muted">{(progress() * 100).toFixed(0)}%</span>
+                      </div>
+                      <CategoryBar
+                        value={progress()}
+                        color={barColor()}
+                        trackColor="bg-bg"
+                      />
+                      <Show when={deadlineStr()}>
+                        <span class="text-[12px] text-muted font-body">Due {deadlineStr()}</span>
+                      </Show>
                     </div>
-                    <div class="flex items-baseline justify-between text-sm">
-                      <span class="text-muted">
-                        {formatCurrency(current(), g.currency)}
-                        {" / "}
-                        {formatCurrency(target(), g.currency)}
-                      </span>
-                      <span class="text-muted">{(progress() * 100).toFixed(0)}%</span>
-                    </div>
-                    <CategoryBar
-                      value={progress()}
-                      color={barColor()}
-                      trackColor="bg-bg"
-                    />
-                    <Show when={deadlineStr()}>
-                      <span class="text-[12px] text-muted font-body">Due {deadlineStr()}</span>
-                    </Show>
+                  </BentoBlock>
+                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditGoal(g); setEditSheetOpen(true); }}
+                      aria-label={`Edit ${g.name}`}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(g.id, g.name); }}
+                      aria-label={`Delete ${g.name}`}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                </BentoBlock>
+                </div>
               );
             }}
           </For>
         </div>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="New Savings Goal">
-        <form onSubmit={handleSubmit} class="flex flex-col gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="sg-name">Goal Name</label>
-            <Input
-              id="sg-name"
-              type="text"
-              placeholder="e.g. Emergency Fund"
-              required
-              value={name()}
-              onInput={(e) => setName(e.currentTarget.value)}
+      <Sheet open={sheetOpen()} onClose={closeSheet} title="New Savings Goal">
+        <SavingsForm onSuccess={handleSuccess} onClose={closeSheet} />
+      </Sheet>
+
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Savings Goal">
+        <Show when={editGoal()}>
+          {(g) => (
+            <SavingsForm
+              existing={{
+                id: g().id,
+                name: g().name,
+                target_amount: g().target_amount,
+                current_amount: g().current_amount,
+                currency: g().currency,
+                deadline: g().deadline,
+                status: g().status,
+              }}
+              onSuccess={handleEditSuccess}
+              onClose={closeEdit}
             />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="sg-target">Target Amount</label>
-            <Input
-              id="sg-target"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={targetAmount()}
-              onInput={(e) => setTargetAmount(e.currentTarget.value)}
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="sg-current">Current Amount</label>
-            <Input
-              id="sg-current"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={currentAmount()}
-              onInput={(e) => setCurrentAmount(e.currentTarget.value)}
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="sg-currency">Currency</label>
-            <Select
-              id="sg-currency"
-              value={currency()}
-              onChange={(e) => setCurrency((e.currentTarget as HTMLSelectElement).value)}
-            >
-              <For each={CURRENCY_OPTIONS}>
-                {(c) => <option value={c}>{c}</option>}
-              </For>
-            </Select>
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="sg-deadline">Deadline</label>
-            <Input
-              id="sg-deadline"
-              type="date"
-              value={deadline()}
-              onInput={(e) => setDeadline(e.currentTarget.value)}
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted">Status</label>
-            <SegmentedControl
-              options={STATUS_OPTIONS}
-              value={status()}
-              onChange={setStatus}
-              ariaLabel="Goal status"
-            />
-          </div>
-
-          <Show when={formError()}>
-            <p class="text-accent text-sm">{formError()}</p>
-          </Show>
-
-          <Button type="submit" disabled={submitting()} class="w-full mt-2">
-            {submitting() ? "Saving…" : "Create Goal"}
-          </Button>
-        </form>
+          )}
+        </Show>
       </Sheet>
     </>
   );

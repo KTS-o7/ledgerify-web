@@ -1,5 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { api } from "../../lib/api";
+import { numericToFloat, pgTextToString, pgDateToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -10,6 +11,17 @@ type PremiumFrequency = "monthly" | "quarterly" | "annual";
 type InsuranceFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    policy_type: string;
+    provider: unknown;
+    premium_frequency: string;
+    premium_amount: unknown;
+    coverage_amount: unknown;
+    currency: string;
+    renewal_date: unknown;
+  };
 };
 
 const frequencyOptions: { value: PremiumFrequency; label: string }[] = [
@@ -19,14 +31,20 @@ const frequencyOptions: { value: PremiumFrequency; label: string }[] = [
 ];
 
 export function InsuranceForm(props: InsuranceFormProps) {
-  const [policyName, setPolicyName] = createSignal("");
-  const [policyType, setPolicyType] = createSignal("life");
-  const [provider, setProvider] = createSignal("");
-  const [premiumFrequency, setPremiumFrequency] = createSignal<PremiumFrequency>("annual");
-  const [premiumAmount, setPremiumAmount] = createSignal("");
-  const [coverageAmount, setCoverageAmount] = createSignal("");
-  const [currency, setCurrency] = createSignal("INR");
-  const [renewalDate, setRenewalDate] = createSignal("");
+  const [policyName, setPolicyName] = createSignal(props.existing?.name ?? "");
+  const [policyType, setPolicyType] = createSignal(props.existing?.policy_type ?? "life");
+  const [provider, setProvider] = createSignal(pgTextToString(props.existing?.provider) ?? "");
+  const [premiumFrequency, setPremiumFrequency] = createSignal<PremiumFrequency>(
+    (props.existing?.premium_frequency as PremiumFrequency) ?? "annual"
+  );
+  const [premiumAmount, setPremiumAmount] = createSignal(
+    numericToFloat(props.existing?.premium_amount)?.toString() ?? ""
+  );
+  const [coverageAmount, setCoverageAmount] = createSignal(
+    numericToFloat(props.existing?.coverage_amount)?.toString() ?? ""
+  );
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
+  const [renewalDate, setRenewalDate] = createSignal(pgDateToString(props.existing?.renewal_date) ?? "");
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -42,7 +60,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/insurance", {
+      const body = {
         name: policyName().trim(),
         policy_type: policyType(),
         currency: currency(),
@@ -51,10 +69,15 @@ export function InsuranceForm(props: InsuranceFormProps) {
         ...(premiumAmount() !== "" ? { premium_amount: parseFloat(premiumAmount()) } : {}),
         ...(coverageAmount() !== "" ? { coverage_amount: parseFloat(coverageAmount()) } : {}),
         ...(renewalDate() ? { renewal_date: renewalDate() } : {}),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/insurance/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/insurance", body);
+      }
       props.onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add insurance policy.");
+      setError(err instanceof Error ? err.message : "Failed to save insurance policy.");
     } finally {
       setSubmitting(false);
     }
@@ -192,7 +215,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

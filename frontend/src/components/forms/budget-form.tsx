@@ -1,5 +1,6 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { api } from "../../lib/api";
+import { numericToFloat } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -15,15 +16,28 @@ type Category = {
 type BudgetFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    amount: unknown;
+    currency: string;
+    period_type: string;
+    category_id: string | null;
+    rollover: boolean;
+  };
 };
 
 export function BudgetForm(props: BudgetFormProps) {
-  const [name, setName] = createSignal("");
-  const [amount, setAmount] = createSignal("");
-  const [currency, setCurrency] = createSignal("INR");
-  const [periodType, setPeriodType] = createSignal<"monthly" | "weekly" | "yearly">("monthly");
-  const [categoryId, setCategoryId] = createSignal("");
-  const [rollover, setRollover] = createSignal(false);
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [amount, setAmount] = createSignal(
+    numericToFloat(props.existing?.amount)?.toString() ?? ""
+  );
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
+  const [periodType, setPeriodType] = createSignal<"monthly" | "weekly" | "yearly">(
+    (props.existing?.period_type as "monthly" | "weekly" | "yearly") ?? "monthly"
+  );
+  const [categoryId, setCategoryId] = createSignal(props.existing?.category_id ?? "");
+  const [rollover, setRollover] = createSignal(props.existing?.rollover ?? false);
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -54,7 +68,11 @@ export function BudgetForm(props: BudgetFormProps) {
       if (categoryId()) {
         body.category_id = categoryId();
       }
-      await api.post("/v1/budgets", body);
+      if (props.existing) {
+        await api.put(`/v1/budgets/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/budgets", body);
+      }
       props.onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -159,7 +177,7 @@ export function BudgetForm(props: BudgetFormProps) {
       </Show>
 
       <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );

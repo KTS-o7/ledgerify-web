@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, Tag, Trash2 } from "lucide-solid";
+import { Plus, Tag, Trash2, Pencil } from "lucide-solid";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
@@ -31,6 +31,8 @@ export default function Categories() {
     api.get<Keyword[]>("/v1/keywords")
   );
   const [sheetOpen, setSheetOpen] = createSignal(false);
+  const [editCategory, setEditCategory] = createSignal<Category | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = createSignal(false);
 
   // Add keyword form state
   const [newKeyword, setNewKeyword] = createSignal("");
@@ -40,6 +42,9 @@ export default function Categories() {
   function openSheet() { setSheetOpen(true); }
   function closeSheet() { setSheetOpen(false); }
   function handleSuccess() { closeSheet(); refetch(); }
+
+  function closeEdit() { setEditSheetOpen(false); setEditCategory(null); }
+  function handleEditSuccess() { closeEdit(); refetch(); }
 
   const userCategories = () => (categories() ?? []).filter((c) => c.user_id !== null);
 
@@ -68,6 +73,16 @@ export default function Categories() {
       refetchKeywords();
     } catch {
       // swallow
+    }
+  }
+
+  async function handleDeleteCategory(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? Transactions in this category will lose their category.`)) return;
+    try {
+      await api.delete(`/v1/categories/${id}`);
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete category.");
     }
   }
 
@@ -107,18 +122,38 @@ export default function Categories() {
           </Show>
           <For each={userCategories()}>
             {(cat) => (
-              <BentoBlock variant="default">
-                <div class="flex items-center gap-3">
-                  <span
-                    class="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ "background-color": cat.color }}
-                  />
-                  <span class="font-display font-semibold text-text flex-1">{cat.name}</span>
-                  <span class="text-[12px] font-body uppercase tracking-wide text-muted">
-                    {cat.type}
-                  </span>
+              <div class="group relative">
+                <BentoBlock variant="default">
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ "background-color": cat.color }}
+                    />
+                    <span class="font-display font-semibold text-text flex-1">{cat.name}</span>
+                    <span class="text-[12px] font-body uppercase tracking-wide text-muted">
+                      {cat.type}
+                    </span>
+                  </div>
+                </BentoBlock>
+                <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setEditCategory(cat); setEditSheetOpen(true); }}
+                    aria-label={`Edit ${cat.name}`}
+                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
+                    aria-label={`Delete ${cat.name}`}
+                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              </BentoBlock>
+              </div>
             )}
           </For>
         </div>
@@ -201,6 +236,23 @@ export default function Categories() {
 
       <Sheet open={sheetOpen()} onClose={closeSheet} title="Add Category">
         <CategoryForm onSuccess={handleSuccess} onClose={closeSheet} />
+      </Sheet>
+
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Category">
+        <Show when={editCategory()}>
+          {(cat) => (
+            <CategoryForm
+              existing={{
+                id: cat().id,
+                name: cat().name,
+                type: cat().type as "income" | "expense",
+                color: cat().color,
+              }}
+              onSuccess={handleEditSuccess}
+              onClose={closeEdit}
+            />
+          )}
+        </Show>
       </Sheet>
     </>
   );

@@ -6,8 +6,8 @@ describe("nav-items", () => {
   it("has 4 primary items", () => {
     expect(primaryNavItems).toHaveLength(4);
   });
-  it("has 9 secondary items", () => {
-    expect(secondaryNavItems).toHaveLength(9);
+  it("has 13 secondary items", () => {
+    expect(secondaryNavItems).toHaveLength(13);
   });
   it("every primary item has path, label, icon, section=primary", () => {
     for (const item of primaryNavItems) {

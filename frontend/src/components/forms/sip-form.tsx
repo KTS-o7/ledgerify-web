@@ -1,5 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { api } from "../../lib/api";
+import { numericToFloat, pgDateToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -7,17 +8,36 @@ import { Button } from "../ui/button";
 type SipFormProps = {
   onSuccess: () => void;
   onClose: () => void;
+  existing?: {
+    id: string;
+    name: string;
+    sip_type: string;
+    currency: string;
+    monthly_amount: unknown;
+    start_date: unknown;
+    expected_return_rate: unknown;
+    current_nav: unknown;
+    units_accumulated: unknown;
+  };
 };
 
 export function SipForm(props: SipFormProps) {
-  const [name, setName] = createSignal("");
-  const [sipType, setSipType] = createSignal("equity");
-  const [currency, setCurrency] = createSignal("INR");
-  const [monthlyAmount, setMonthlyAmount] = createSignal("");
-  const [startDate, setStartDate] = createSignal("");
-  const [expectedReturn, setExpectedReturn] = createSignal("");
-  const [currentNav, setCurrentNav] = createSignal("");
-  const [unitsAccumulated, setUnitsAccumulated] = createSignal("");
+  const [name, setName] = createSignal(props.existing?.name ?? "");
+  const [sipType, setSipType] = createSignal(props.existing?.sip_type ?? "equity");
+  const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
+  const [monthlyAmount, setMonthlyAmount] = createSignal(
+    numericToFloat(props.existing?.monthly_amount)?.toString() ?? ""
+  );
+  const [startDate, setStartDate] = createSignal(pgDateToString(props.existing?.start_date) ?? "");
+  const [expectedReturn, setExpectedReturn] = createSignal(
+    numericToFloat(props.existing?.expected_return_rate)?.toString() ?? ""
+  );
+  const [currentNav, setCurrentNav] = createSignal(
+    numericToFloat(props.existing?.current_nav)?.toString() ?? ""
+  );
+  const [unitsAccumulated, setUnitsAccumulated] = createSignal(
+    numericToFloat(props.existing?.units_accumulated)?.toString() ?? ""
+  );
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -41,7 +61,7 @@ export function SipForm(props: SipFormProps) {
 
     setSubmitting(true);
     try {
-      await api.post("/v1/sips", {
+      const body = {
         name: name().trim(),
         sip_type: sipType(),
         currency: currency(),
@@ -50,10 +70,15 @@ export function SipForm(props: SipFormProps) {
         ...(expectedReturn() !== "" ? { expected_return_rate: parseFloat(expectedReturn()) } : {}),
         ...(currentNav() !== "" ? { current_nav: parseFloat(currentNav()) } : {}),
         ...(unitsAccumulated() !== "" ? { units_accumulated: parseFloat(unitsAccumulated()) } : {}),
-      });
+      };
+      if (props.existing) {
+        await api.put(`/v1/sips/${props.existing.id}`, body);
+      } else {
+        await api.post("/v1/sips", body);
+      }
       props.onSuccess();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add SIP.");
+      setError(err instanceof Error ? err.message : "Failed to save SIP.");
     } finally {
       setSubmitting(false);
     }
@@ -189,7 +214,7 @@ export function SipForm(props: SipFormProps) {
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>
-        {submitting() ? "Saving…" : "Save"}
+        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
       </Button>
     </form>
   );
