@@ -110,6 +110,9 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: exportTransactionsTool(), Handler: exportTransactionsHandler(deps)},
 		{Tool: importTransactionsTool(), Handler: importTransactionsHandler(deps)},
 		{Tool: categoriseTransactionsTool(), Handler: categoriseTransactionsHandler(deps)},
+		{Tool: listKeywordsTool(), Handler: listKeywordsHandler(deps)},
+		{Tool: addKeywordTool(), Handler: addKeywordHandler(deps)},
+		{Tool: deleteKeywordTool(), Handler: deleteKeywordHandler(deps)},
 	}
 	s.AddTools(tools...)
 }
@@ -4167,4 +4170,130 @@ func derefStr(p *string) string {
 // Postgres representation. 4 decimal places, no exponent.
 func formatDecimal(f float64) string {
 	return strconv.FormatFloat(f, 'f', 4, 64)
+}
+
+// ── Keyword rules ────────────────────────────────────────────────────────────
+
+func listKeywordsTool() mcp.Tool {
+	return mcp.NewTool("list_keywords",
+		mcp.WithDescription("List all auto-categorization keyword rules for the current user. Keywords are matched against transaction titles before LLM categorization."),
+		readOnlyAnnotation(),
+	)
+}
+
+func listKeywordsHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT ck.id, ck.keyword, ck.category_id, c.name as category_name
+			 FROM category_keywords ck
+			 JOIN categories c ON c.id = ck.category_id
+			 WHERE ck.user_id = $1
+			 ORDER BY ck.keyword`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, keyword, categoryID, categoryName string
+			if err := rows.Scan(&id, &keyword, &categoryID, &categoryName); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+			results = append(results, map[string]any{
+				"id":            id,
+				"keyword":       keyword,
+				"category_id":   categoryID,
+				"category_name": categoryName,
+			})
+		}
+
+		jsonData, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
+	}
+}
+
+func addKeywordTool() mcp.Tool {
+	return mcp.NewTool("add_keyword",
+		mcp.WithDescription("Add a keyword rule that maps a transaction title substring to a category. Case-insensitive. Run list_categories first to get valid category IDs."),
+		mcp.WithString("keyword", mcp.Required(), mcp.Description("Substring to match in transaction titles (case-insensitive)")),
+		mcp.WithString("category_id", mcp.Required(), mcp.Description("UUID of the category to assign when keyword matches")),
+	)
+}
+
+func addKeywordHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		keyword := req.GetString("keyword", "")
+		categoryID := req.GetString("category_id", "")
+		if keyword == "" || categoryID == "" {
+			return mcp.NewToolResultError("keyword and category_id are required"), nil
+		}
+
+		var id string
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO category_keywords (user_id, keyword, category_id)
+			 VALUES ($1, $2, $3::uuid)
+			 RETURNING id`,
+			userID, strings.ToLower(strings.TrimSpace(keyword)), categoryID,
+		).Scan(&id)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("insert failed: %v", err)), nil
+		}
+
+		data, _ := json.Marshal(map[string]string{
+			"id":          id,
+			"keyword":     keyword,
+			"category_id": categoryID,
+		})
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteKeywordTool() mcp.Tool {
+	return mcp.NewTool("delete_keyword",
+		mcp.WithDescription("Delete a keyword rule by its ID. Run list_keywords first to get the ID."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("UUID of the keyword rule to delete")),
+	)
+}
+
+func deleteKeywordHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+
+		tag, err := deps.Pool.Exec(ctx,
+			`DELETE FROM category_keywords WHERE id = $1::uuid AND user_id = $2`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError("keyword not found or not owned by you"), nil
+		}
+
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
 }
