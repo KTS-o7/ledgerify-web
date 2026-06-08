@@ -46,21 +46,25 @@ The visual language is a dark-mode-only "Minimalist Bento" aesthetic — high-co
 
 ## Pages
 
-14 pages, all rebuilt to bento:
+19 routes, all rebuilt to bento:
 1. Dashboard (`/dashboard`)
 2. Activity (`/activity`, aliased to `/transactions`)
 3. Accounts (`/accounts`)
 4. Analytics (`/analytics`)
 5. Budgets (`/budgets`)
-6. Investments (`/investments`)
-7. Loans (`/loans`)
-8. Insurance (`/insurance`)
-9. Net Worth (`/networth`)
-10. Reports (`/reports`, hub for sub-routes)
-11. Import (`/import`)
-12. Export (`/export`)
-13. Settings (`/settings`)
-14. Login / Register (`/login`, `/register`)
+6. Categories (`/categories`)
+7. Investments (`/investments`)
+8. Loans (`/loans`)
+9. SIPs (`/sips`)
+10. Insurance (`/insurance`)
+11. Savings (`/savings`)
+12. Net Worth (`/networth`)
+13. Reports (`/reports`, hub for sub-routes)
+14. Import (`/import`)
+15. Export (`/export`)
+16. Settings (`/settings`)
+17. MCP Connect (`/mcp`)
+18. Login / Register (`/login`, `/register`)
 
 ## Known Gaps
 
