@@ -273,8 +273,12 @@ func main() {
 		r.Handle("/api/v1/mcp/stream", streamableServer)
 	})
 
-	// SPA catch-all: serve SolidJS frontend
-		r.Get("/mcp-connect", mcpConnectHandler)
+		// Legacy URL: redirect to the new SolidJS MCP page
+		r.Get("/mcp-connect", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/mcp", http.StatusMovedPermanently)
+		})
+
+		// SPA catch-all: serve SolidJS frontend
 		r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))
 
 	srv := &http.Server{
