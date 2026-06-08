@@ -75,8 +75,8 @@ export const Sidebar: Component = (): JSX.Element => {
                 <A
                   href={item.path}
                   end={item.path === "/dashboard"}
-                  class="flex items-center gap-3 px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors"
-                  activeClass="bg-surface text-text"
+                  class="flex items-center gap-3 px-3 py-2 rounded-input text-text/70 hover:text-text hover:bg-surface transition-colors"
+                  activeClass="bg-surface text-text font-semibold"
                 >
                   <Dynamic component={item.icon} size={20} />
                   <span class="text-sm font-medium">{item.label}</span>
@@ -89,7 +89,7 @@ export const Sidebar: Component = (): JSX.Element => {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          class="w-full flex items-center justify-between px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-input text-text/70 hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
           aria-expanded={expanded()}
         >
           <span class="flex items-center gap-3">
@@ -105,8 +105,8 @@ export const Sidebar: Component = (): JSX.Element => {
                 <li>
                   <A
                     href={item.path}
-                    class="flex items-center gap-3 px-3 py-1.5 rounded-input text-muted hover:text-text hover:bg-surface transition-colors text-sm"
-                    activeClass="bg-surface text-text"
+                    class="flex items-center gap-3 px-3 py-1.5 rounded-input text-text/70 hover:text-text hover:bg-surface transition-colors text-sm"
+                    activeClass="bg-surface text-text font-semibold"
                   >
                     <Dynamic component={item.icon} size={16} />
                     <span>{item.label}</span>
@@ -121,7 +121,7 @@ export const Sidebar: Component = (): JSX.Element => {
         <button
           type="button"
           onClick={() => { logout(); navigate("/login"); }}
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-input text-muted hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          class="w-full flex items-center gap-3 px-3 py-2 rounded-input text-text/70 hover:text-text hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <LogOut size={18} />
           <span class="text-sm font-medium">Logout</span>
