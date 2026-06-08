@@ -1,5 +1,6 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { Plus, Landmark, Wallet, Banknote, PiggyBank, CreditCard, TrendingUp, Link2, Pencil, Trash2 } from "lucide-solid";
+import { useNavigate } from "@solidjs/router";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -30,6 +31,7 @@ const typeLabel: Record<string, string> = {
 };
 
 export default function Accounts() {
+  const navigate = useNavigate();
   const [accounts, { refetch }] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editAccount, setEditAccount] = createSignal<Account | null>(null);
@@ -72,7 +74,10 @@ export default function Accounts() {
               const accountId = typeof a.id === 'string' ? a.id : (a.id as any)?.String ?? '';
               return (
                 <div class="group relative">
-                  <BentoBlock variant="default">
+                  <BentoBlock
+                    variant="pressable"
+                    onClick={() => navigate(`/activity?account_id=${accountId}&account_name=${encodeURIComponent(a.name)}`)}
+                  >
                     <AccountRow
                       icon={accountIcon(a.type)}
                       name={a.name}
@@ -84,7 +89,7 @@ export default function Accounts() {
                   <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
-                      onClick={() => { setEditAccount(a); setEditSheetOpen(true); }}
+                      onClick={(e) => { e.stopPropagation(); setEditAccount(a); setEditSheetOpen(true); }}
                       aria-label={`Edit ${a.name}`}
                       class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                     >
@@ -92,7 +97,7 @@ export default function Accounts() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(accountId, a.name)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(accountId, a.name); }}
                       aria-label={`Delete ${a.name}`}
                       class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                     >

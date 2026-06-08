@@ -10,6 +10,7 @@ import { CategoryBar } from "../components/ui/category-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { cn } from "../lib/utils";
+import { MonthPicker } from "../components/ui/month-picker";
 
 type Mode = "expense" | "income";
 
@@ -33,11 +34,17 @@ function categoryIcon(name: string) {
   return MoreHorizontal;
 }
 
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function Analytics() {
   const [mode, setMode] = createSignal<Mode>("expense");
   const [highlight, setHighlight] = createSignal<number | null>(null);
+  const [month, setMonth] = createSignal(currentMonth());
 
-  const [summary] = createResource(() => api.get<SummaryData>("/v1/summary"));
+  const [summary] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
 
   const segments = createMemo((): Array<DonutSegment & { icon: ReturnType<typeof categoryIcon> }> => {
     const data = summary();
@@ -55,7 +62,7 @@ export default function Analytics() {
 
   return (
     <>
-      <PageHeader title="Analytics" />
+      <PageHeader title="Analytics" actions={<MonthPicker value={month()} onChange={setMonth} />} />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
         <div class="col-span-1 md:col-span-12">
           <SegmentedControl<Mode>

@@ -1,4 +1,5 @@
 const CURRENCY_KEY = "ledgerify.currency";
+const DATE_FORMAT_KEY = "ledgerify.dateFormat";
 
 // ---------------------------------------------------------------------------
 // pgtype helpers — Go's pgx serialises pgtype.Numeric, pgtype.Text, and
@@ -46,6 +47,14 @@ export function getCurrency(): string {
     if (stored) return stored;
   }
   return "INR";
+}
+
+export function getDateFormat(): string {
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(DATE_FORMAT_KEY);
+    if (stored) return stored;
+  }
+  return "MMM DD";
 }
 
 export function formatCurrency(n: number, currency?: string): string {

@@ -120,6 +120,7 @@ func main() {
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
 	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
+	keywordHandler := handlers.NewKeywordHandler(pool, q)
 	_, sseServer, streamableServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandler(q)
 
@@ -245,6 +246,12 @@ func main() {
 
 		r.Get("/api/v1/exchange-rates", rateHandler.List)
 		r.Post("/api/v1/exchange-rates", rateHandler.Upsert)
+
+		r.Route("/api/v1/keywords", func(r chi.Router) {
+			r.Get("/", keywordHandler.List)
+			r.Post("/", keywordHandler.Create)
+			r.Delete("/{id}", keywordHandler.Delete)
+		})
 
 		r.Post("/api/v1/transactions/categorise", importExportHandler.Categorise)
 		r.Post("/api/import", importExportHandler.Import)

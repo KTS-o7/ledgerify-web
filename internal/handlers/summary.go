@@ -34,13 +34,13 @@ type BudgetStatusItem struct {
 }
 
 type SummaryResponse struct {
-	TotalIncome       float64                          `json:"total_income"`
-	TotalExpenses     float64                          `json:"total_expenses"`
-	CategorySpending  []db.CategorySpendingRow         `json:"category_spending"`
-	MonthlyNetworth   []db.MonthlyNetworthRow          `json:"monthly_networth"`
+	TotalIncome        float64                         `json:"total_income"`
+	TotalExpenses      float64                         `json:"total_expenses"`
+	CategorySpending   []db.CategorySpendingRow        `json:"category_spending"`
+	MonthlyNetworth    []db.MonthlyNetworthRow         `json:"monthly_networth"`
 	RecentTransactions []db.ListTransactionsByUserRow  `json:"recent_transactions"`
-	AccountBalances   []db.UserAccountBalance          `json:"account_balances"`
-	BudgetStatus      []BudgetStatusItem               `json:"budget_status"`
+	AccountBalances    []db.UserAccountBalance         `json:"account_balances"`
+	BudgetStatus       []BudgetStatusItem              `json:"budget_status"`
 }
 
 // GET /api/v1/summary
@@ -53,11 +53,26 @@ func (h *SummaryHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 
 	userID := claims.UserID
 	userUUID := stringToUUID(userID)
-	now := time.Now()
 
-	// This month date range
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	monthEnd := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Add(-time.Nanosecond)
+	// Parse optional ?month=YYYY-MM param
+	monthParam := r.URL.Query().Get("month")
+	var monthStart, monthEnd time.Time
+	if monthParam != "" {
+		parsed, err := time.Parse("2006-01", monthParam)
+		if err == nil {
+			monthStart = time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, time.UTC)
+			monthEnd = time.Date(parsed.Year(), parsed.Month()+1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Nanosecond)
+		} else {
+			// fall back to current month
+			now := time.Now()
+			monthStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			monthEnd = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Add(-time.Nanosecond)
+		}
+	} else {
+		now := time.Now()
+		monthStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		monthEnd = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Add(-time.Nanosecond)
+	}
 
 	// Networth over last 6 months
 	sixMonthsAgo := monthStart.AddDate(0, -5, 0)

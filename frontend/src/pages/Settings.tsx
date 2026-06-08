@@ -1,6 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles } from "lucide-solid";
+import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2 } from "lucide-solid";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -9,7 +9,7 @@ import { Select } from "../components/ui/select";
 import { Sheet } from "../components/ui/sheet";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { getCurrency } from "../lib/format";
+import { getCurrency, getDateFormat } from "../lib/format";
 
 function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () => void; trailing?: any }) {
   const Icon = props.icon;
@@ -28,9 +28,10 @@ function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () =
 }
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [currency, setCurrency] = createSignal(getCurrency());
+  const [dateFormat, setDateFormat] = createSignal(getDateFormat());
 
   // Change password sheet state
   const [pwSheetOpen, setPwSheetOpen] = createSignal(false);
@@ -40,6 +41,12 @@ export default function Settings() {
   const [pwError, setPwError] = createSignal("");
   const [pwSuccess, setPwSuccess] = createSignal(false);
   const [pwSubmitting, setPwSubmitting] = createSignal(false);
+
+  // Edit name sheet state
+  const [nameSheetOpen, setNameSheetOpen] = createSignal(false);
+  const [nameValue, setNameValue] = createSignal("");
+  const [nameError, setNameError] = createSignal("");
+  const [nameSubmitting, setNameSubmitting] = createSignal(false);
 
   // Categorization state
   type CatState = { mode: "fix" | "all" | null; total: number; done: number; categorised: number };
@@ -84,7 +91,10 @@ export default function Settings() {
     await runCategorization("all");
   }
 
-  onMount(() => setCurrency(getCurrency()));
+  onMount(() => {
+    setCurrency(getCurrency());
+    setDateFormat(getDateFormat());
+  });
 
   const onCurrencyChange = (e: Event) => {
     const v = (e.currentTarget as HTMLSelectElement).value;
@@ -133,6 +143,29 @@ export default function Settings() {
     }
   }
 
+  async function handleUpdateName(e: SubmitEvent) {
+    e.preventDefault();
+    setNameError("");
+    if (!nameValue().trim()) {
+      setNameError("Name cannot be empty.");
+      return;
+    }
+    setNameSubmitting(true);
+    try {
+      await api.put("/v1/auth/me", {
+        name: nameValue().trim(),
+        default_currency: user()?.default_currency || "INR",
+        timezone: user()?.timezone || "UTC",
+      });
+      updateUser({ name: nameValue().trim() });
+      setNameSheetOpen(false);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : "Failed to update name.");
+    } finally {
+      setNameSubmitting(false);
+    }
+  }
+
   return (
     <>
       <PageHeader title="Settings" />
@@ -143,6 +176,7 @@ export default function Settings() {
         <div class="flex flex-col gap-3">
           <BentoBlock>
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
+            <Row icon={User2} label={user()?.name || "Set your name"} onClick={() => { setNameValue(user()?.name || ""); setNameSheetOpen(true); }} />
             <Row icon={Mail} label={user()?.email || "Email"} />
             <Row icon={KeyRound} label="Change password" onClick={openPwSheet} />
             <Row icon={LogOut} label="Logout" danger onClick={() => { logout(); navigate("/login"); }} />
@@ -162,10 +196,14 @@ export default function Settings() {
             <div class="flex items-center gap-3 h-14">
               <Calendar size={18} class="text-muted" />
               <label for="settings-date-format" class="flex-1 font-body text-base text-text">Date format</label>
-              <Select id="settings-date-format" class="w-32" value="MMM DD">
-                <option>MMM DD</option>
-                <option>DD/MM/YYYY</option>
-                <option>YYYY-MM-DD</option>
+              <Select id="settings-date-format" class="w-32" value={dateFormat()} onChange={(e) => {
+                const v = (e.currentTarget as HTMLSelectElement).value;
+                setDateFormat(v);
+                if (typeof localStorage !== "undefined") localStorage.setItem("ledgerify.dateformat", v);
+              }}>
+                <option value="MMM DD">MMM DD</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
               </Select>
             </div>
           </BentoBlock>
@@ -250,6 +288,29 @@ export default function Settings() {
 
           <Button type="submit" disabled={pwSubmitting()} class="w-full mt-2">
             {pwSubmitting() ? "Updating…" : "Update Password"}
+          </Button>
+        </form>
+      </Sheet>
+
+      {/* Edit Name Sheet */}
+      <Sheet open={nameSheetOpen()} onClose={() => setNameSheetOpen(false)} title="Edit Name">
+        <form onSubmit={handleUpdateName} class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-muted" for="name-input">Display Name</label>
+            <Input
+              id="name-input"
+              type="text"
+              required
+              value={nameValue()}
+              onInput={(e) => setNameValue(e.currentTarget.value)}
+              autocomplete="name"
+            />
+          </div>
+          <Show when={nameError()}>
+            <p class="text-accent text-sm">{nameError()}</p>
+          </Show>
+          <Button type="submit" disabled={nameSubmitting()} class="w-full mt-2">
+            {nameSubmitting() ? "Saving…" : "Save Name"}
           </Button>
         </form>
       </Sheet>

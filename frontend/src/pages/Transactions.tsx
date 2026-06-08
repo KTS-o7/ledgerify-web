@@ -1,6 +1,7 @@
 import { createResource, createSignal, For, Show, createMemo } from "solid-js";
+import { useSearchParams } from "@solidjs/router";
 import { api } from "../lib/api";
-import { ShoppingCart, Coffee, Bus, Banknote, Receipt, Plus } from "lucide-solid";
+import { ShoppingCart, Coffee, Bus, Banknote, Receipt, Plus, X } from "lucide-solid";
 import { formatDateGroup } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { SearchBar } from "../components/ui/search-bar";
@@ -40,10 +41,17 @@ function groupByDate(items: Tx[]) {
 }
 
 export default function Transactions() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const accountIdFilter = () => { const v = searchParams.account_id; return Array.isArray(v) ? (v[0] ?? "") : (v ?? ""); };
+  const accountNameFilter = () => { const v = searchParams.account_name; const raw = Array.isArray(v) ? (v[0] ?? "") : (v ?? ""); return raw ? decodeURIComponent(raw) : ""; };
+
   const [search, setSearch] = createSignal("");
   const [limit, setLimit] = createSignal(50);
   const [loadingMore, setLoadingMore] = createSignal(false);
-  const [txns, { refetch }] = createResource(limit, (lim) => api.get<Tx[]>(`/v1/transactions?limit=${lim}`));
+  const [txns, { refetch }] = createResource(
+    () => ({ lim: limit(), accountId: accountIdFilter() }),
+    ({ lim, accountId }) => api.get<Tx[]>(`/v1/transactions?limit=${lim}${accountId ? `&account_id=${accountId}` : ""}`)
+  );
   const [sheetOpen, setSheetOpen] = createSignal(false);
 
   async function loadMore() {
@@ -86,6 +94,22 @@ export default function Transactions() {
         }
       />
       <div class="sticky top-14 md:top-16 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-4 py-3">
+        <Show when={accountNameFilter()}>
+          <div class="pb-2 flex items-center gap-2">
+            <span class="text-[13px] text-muted">Filtered by account:</span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface text-sm font-medium text-text border border-border">
+              {accountNameFilter()}
+              <button
+                type="button"
+                onClick={() => setSearchParams({ account_id: undefined, account_name: undefined })}
+                aria-label="Clear account filter"
+                class="text-muted hover:text-text transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          </div>
+        </Show>
         <SearchBar
           value={search()}
           onChange={setSearch}

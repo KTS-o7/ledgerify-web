@@ -4,6 +4,8 @@ interface User {
   id: string;
   email: string;
   name: string;
+  default_currency?: string;
+  timezone?: string;
 }
 
 interface AuthContextType {
@@ -11,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: () => boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType>();
@@ -35,8 +38,17 @@ export function AuthProvider(props: { children: JSX.Element }) {
     setUser(null);
   };
 
+  const updateUser = (patch: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, updateUser }}>
       {props.children}
     </AuthContext.Provider>
   );

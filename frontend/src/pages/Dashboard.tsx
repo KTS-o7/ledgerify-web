@@ -11,6 +11,7 @@ import { TransactionRow } from "../components/ui/transaction-row";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { Sheet } from "../components/ui/sheet";
 import { TransactionForm } from "../components/forms/transaction-form";
+import { MonthPicker } from "../components/ui/month-picker";
 
 interface Summary {
   total_income: number;
@@ -39,8 +40,14 @@ function categoryIcon(category: string) {
   return Receipt;
 }
 
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function Dashboard() {
-  const [summary, { refetch }] = createResource(() => api.get<Summary>("/v1/summary"));
+  const [month, setMonth] = createSignal(currentMonth());
+  const [summary, { refetch }] = createResource(month, (m) => api.get<Summary>(`/v1/summary?month=${m}`));
   const [sheetOpen, setSheetOpen] = createSignal(false);
 
   return (
@@ -48,11 +55,14 @@ export default function Dashboard() {
       <PageHeader
         title="Dashboard"
         actions={
-          <button type="button" aria-label="Add transaction"
-            onClick={() => setSheetOpen(true)}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
-            <Plus size={20} />
-          </button>
+          <div class="flex items-center gap-2">
+            <MonthPicker value={month()} onChange={setMonth} />
+            <button type="button" aria-label="Add transaction"
+              onClick={() => setSheetOpen(true)}
+              class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
+              <Plus size={20} />
+            </button>
+          </div>
         }
       />
 
