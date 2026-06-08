@@ -81,9 +81,8 @@ func (h *SummaryHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Recent transactions (last 5)
-	var limitRows pgtype.Int4
-	_ = limitRows.Scan(5)
-	limitRows.Valid = true
+	// NOTE: pgtype.Int4.Scan(int) does NOT populate Int32; use struct literal instead.
+	limitRows := pgtype.Int4{Int32: 5, Valid: true}
 
 	recentTxs, err := h.q.ListTransactionsByUser(r.Context(), db.ListTransactionsByUserParams{
 		UserID:    userUUID,
