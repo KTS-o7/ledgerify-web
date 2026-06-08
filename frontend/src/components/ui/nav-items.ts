@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, PieChart, Receipt, Target, TrendingUp, Landmark, ShieldCheck, BarChart3, FileText, FileUp, FileDown, Settings, Tag, PiggyBank } from "lucide-solid";
+import { LayoutDashboard, Wallet, PieChart, Receipt, Target, TrendingUp, Landmark, ShieldCheck, BarChart3, FileText, FileUp, FileDown, Settings, Tag, PiggyBank, Coins } from "lucide-solid";
 import type { Component } from "solid-js";
 
 export type NavItem = {
@@ -21,6 +21,7 @@ export const secondaryNavItems: NavItem[] = [
   { path: "/categories", label: "Categories", icon: Tag, section: "secondary" },
   { path: "/investments", label: "Investments", icon: TrendingUp, section: "secondary" },
   { path: "/loans", label: "Loans", icon: Landmark, section: "secondary" },
+  { path: "/sips", label: "SIPs", icon: Coins, section: "secondary" },
   { path: "/insurance", label: "Insurance", icon: ShieldCheck, section: "secondary" },
   { path: "/networth", label: "Net Worth", icon: BarChart3, section: "secondary" },
   { path: "/reports", label: "Reports", icon: FileText, section: "secondary" },

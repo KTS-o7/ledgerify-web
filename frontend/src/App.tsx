@@ -12,6 +12,7 @@ const Accounts = lazy(() => import("./pages/Accounts"));
 const Budgets = lazy(() => import("./pages/Budgets"));
 const Investments = lazy(() => import("./pages/Investments"));
 const Loans = lazy(() => import("./pages/Loans"));
+const Sips = lazy(() => import("./pages/Sips"));
 const Insurance = lazy(() => import("./pages/Insurance"));
 const NetWorth = lazy(() => import("./pages/NetWorth"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/budgets" component={Budgets} />
             <Route path="/investments" component={Investments} />
             <Route path="/loans" component={Loans} />
+            <Route path="/sips" component={Sips} />
             <Route path="/insurance" component={Insurance} />
             <Route path="/networth" component={NetWorth} />
             <Route path="/reports" component={Reports} />

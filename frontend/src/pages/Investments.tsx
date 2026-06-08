@@ -1,9 +1,10 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, TrendingUp } from "lucide-solid";
+import { Plus, TrendingUp, Calendar } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat } from "../lib/format";
+import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
+import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
@@ -17,6 +18,21 @@ interface Holding {
   quantity: unknown;       // pgtype.Numeric
   buy_price: unknown;      // pgtype.Numeric
   current_price: unknown;  // pgtype.Numeric
+  interest_rate: unknown;  // pgtype.Numeric
+  compounding_frequency: { CompoundingFrequency: string; Valid: boolean };
+  computed_value: unknown; // pgtype.Numeric
+  maturity_date: unknown;  // pgtype.Date
+}
+
+function compoundingLabel(cf: { CompoundingFrequency: string; Valid: boolean } | undefined): string {
+  if (!cf || !cf.Valid) return "";
+  switch (cf.CompoundingFrequency) {
+    case "monthly": return "Monthly";
+    case "quarterly": return "Quarterly";
+    case "semi_annual": return "Semi-Annual";
+    case "annual": return "Annual";
+    default: return cf.CompoundingFrequency;
+  }
 }
 
 export default function Investments() {
@@ -69,6 +85,9 @@ export default function Investments() {
               const marketValue = qty * price;
               const gain = price - buyPrice;
               const gainPct = buyPrice > 0 ? ((gain / buyPrice) * 100) : 0;
+              const rate = numericToFloat(h.interest_rate);
+              const computed = numericToFloat(h.computed_value);
+              const maturityStr = pgDateToString(h.maturity_date);
               return (
                 <BentoBlock variant="pressable">
                   <div class="flex items-start gap-3">
@@ -78,12 +97,28 @@ export default function Investments() {
                         <span class="font-mono text-xs text-muted uppercase ml-2 flex-shrink-0">{h.asset_type}</span>
                       </div>
                       <div class="font-mono text-sm text-muted mt-0.5">{qty} units @ {formatCurrency(price, h.currency)}</div>
+                      <Show when={computed > 0}>
+                        <div class="font-mono text-xs text-muted mt-0.5">computed: {formatCurrency(computed, h.currency)}</div>
+                      </Show>
                       <div class="flex items-center justify-between mt-2">
                         <span class="font-display text-lg font-bold text-text">{formatCurrency(marketValue, h.currency)}</span>
                         <Show when={buyPrice > 0}>
                           <span class={`text-sm font-medium ${gainPct >= 0 ? "text-primary" : "text-accent"}`}>
                             {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
                           </span>
+                        </Show>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                        <Show when={rate > 0}>
+                          <Badge variant="outline" class="font-mono">{rate.toFixed(2)}% p.a.</Badge>
+                        </Show>
+                        <Show when={compoundingLabel(h.compounding_frequency)}>
+                          <span class="font-mono text-[11px] text-muted uppercase">{compoundingLabel(h.compounding_frequency)}</span>
+                        </Show>
+                        <Show when={maturityStr}>
+                          <Badge variant="outline" class="font-mono inline-flex items-center gap-1">
+                            <Calendar size={10} /> {maturityStr}
+                          </Badge>
                         </Show>
                       </div>
                     </div>

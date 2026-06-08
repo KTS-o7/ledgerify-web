@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, createMemo, Show } from "solid-js";
 import { api } from "../../lib/api";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
@@ -16,9 +16,22 @@ export function InvestmentForm(props: InvestmentFormProps) {
   const [quantity, setQuantity] = createSignal("");
   const [buyPrice, setBuyPrice] = createSignal("");
   const [currentPrice, setCurrentPrice] = createSignal("");
+  const [interestRate, setInterestRate] = createSignal("");
+  const [compounding, setCompounding] = createSignal("quarterly");
+  const [maturityDate, setMaturityDate] = createSignal("");
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
+
+  const showRate = createMemo(() =>
+    ["fd", "ppf", "nps", "savings", "other"].includes(assetType())
+  );
+  const showCompounding = createMemo(
+    () => assetType() === "fd" && interestRate() !== ""
+  );
+  const showMaturity = createMemo(
+    () => assetType() === "fd" || assetType() === "nps"
+  );
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -38,6 +51,9 @@ export function InvestmentForm(props: InvestmentFormProps) {
         ...(quantity() !== "" ? { quantity: parseFloat(quantity()) } : {}),
         ...(buyPrice() !== "" ? { buy_price: parseFloat(buyPrice()) } : {}),
         ...(currentPrice() !== "" ? { current_price: parseFloat(currentPrice()) } : {}),
+        ...(interestRate() !== "" ? { interest_rate: parseFloat(interestRate()) } : {}),
+        ...(compounding() && assetType() === "fd" ? { compounding_frequency: compounding() } : {}),
+        ...(maturityDate() ? { maturity_date: maturityDate() } : {}),
       });
       props.onSuccess();
     } catch (err: unknown) {
@@ -154,6 +170,55 @@ export function InvestmentForm(props: InvestmentFormProps) {
           onInput={(e) => setCurrentPrice(e.currentTarget.value)}
         />
       </div>
+
+      <Show when={showRate()}>
+        <div>
+          <label for="inv-interest-rate" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Interest Rate (% p.a.)
+          </label>
+          <Input
+            id="inv-interest-rate"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 7.75"
+            value={interestRate()}
+            onInput={(e) => setInterestRate(e.currentTarget.value)}
+          />
+        </div>
+      </Show>
+
+      <Show when={showCompounding()}>
+        <div>
+          <label for="inv-compounding" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Compounding Frequency
+          </label>
+          <Select
+            id="inv-compounding"
+            value={compounding()}
+            onChange={(e) => setCompounding(e.currentTarget.value)}
+          >
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="semi_annual">Semi-Annual</option>
+            <option value="annual">Annual</option>
+          </Select>
+        </div>
+      </Show>
+
+      <Show when={showMaturity()}>
+        <div>
+          <label for="inv-maturity-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Maturity Date
+          </label>
+          <Input
+            id="inv-maturity-date"
+            type="date"
+            value={maturityDate()}
+            onInput={(e) => setMaturityDate(e.currentTarget.value)}
+          />
+        </div>
+      </Show>
 
       <Show when={error()}>
         <p class="text-accent text-sm">{error()}</p>

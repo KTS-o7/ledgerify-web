@@ -20,6 +20,8 @@ interface Loan {
   currency: string;
   start_date: unknown;          // pgtype.Date
   tenure_months: number;
+  interest_rate: unknown;       // pgtype.Numeric
+  computed_emi: unknown;        // pgtype.Numeric
 }
 
 export default function Loans() {
@@ -65,35 +67,45 @@ export default function Loans() {
             </div>
           </Show>
           <For each={loans() ?? []}>
-            {(l) => (
-              <BentoBlock variant="pressable">
-                <div class="flex items-start gap-3">
-                  <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
-                    <Landmark size={20} />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="font-display text-lg font-bold text-text truncate">{l.name}</span>
-                      <Badge variant="outline">{l.loan_type.replace("_", " ")}</Badge>
+            {(l) => {
+              const rate = numericToFloat(l.interest_rate);
+              const computed = numericToFloat(l.computed_emi);
+              return (
+                <BentoBlock variant="pressable">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                      <Landmark size={20} />
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mt-2">
-                      <div>
-                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><TrendingDown size={12} /> Principal</div>
-                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.principal), l.currency)}</div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-display text-lg font-bold text-text truncate">{l.name}</span>
+                        <Badge variant="outline">{l.loan_type.replace("_", " ")}</Badge>
+                        <Show when={rate > 0}>
+                          <Badge variant="outline" class="font-mono">{rate.toFixed(2)}%</Badge>
+                        </Show>
                       </div>
-                      <div>
-                        <div class="text-[12px] text-muted uppercase tracking-wide">EMI</div>
-                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.emi_amount), l.currency)}</div>
-                      </div>
-                      <div>
-                        <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Outstanding</div>
-                        <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.outstanding_balance), l.currency)}</div>
+                      <div class="grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><TrendingDown size={12} /> Principal</div>
+                          <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.principal), l.currency)}</div>
+                        </div>
+                        <div>
+                          <div class="text-[12px] text-muted uppercase tracking-wide">EMI</div>
+                          <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.emi_amount), l.currency)}</div>
+                          <Show when={computed > 0}>
+                            <div class="font-mono text-[11px] text-muted">computed: {formatCurrency(computed, l.currency)}</div>
+                          </Show>
+                        </div>
+                        <div>
+                          <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Outstanding</div>
+                          <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.outstanding_balance), l.currency)}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </BentoBlock>
-            )}
+                </BentoBlock>
+              );
+            }}
           </For>
         </div>
       </div>

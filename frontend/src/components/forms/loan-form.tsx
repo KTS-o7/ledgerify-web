@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, Show } from "solid-js";
 import { api } from "../../lib/api";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
@@ -23,6 +23,22 @@ export function LoanForm(props: LoanFormProps) {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
+  const computedEmi = createMemo(() => {
+    const P = parseFloat(principal());
+    const rPct = parseFloat(interestRate());
+    const n = parseInt(termMonths(), 10);
+    if (isNaN(P) || isNaN(rPct) || isNaN(n) || n < 1) return "";
+    const r = (rPct / 100) / 12;
+    if (r === 0) return (P / n).toFixed(2);
+    const pow = Math.pow(1 + r, n);
+    return ((P * r * pow) / (pow - 1)).toFixed(2);
+  });
+
+  createEffect(() => {
+    const v = computedEmi();
+    if (v) setEmiAmount(v);
+  });
+
   async function handleSubmit(e: Event) {
     e.preventDefault();
     setError("");
@@ -38,6 +54,8 @@ export function LoanForm(props: LoanFormProps) {
       return;
     }
 
+    const principalVal = parseFloat(principal());
+
     setSubmitting(true);
     try {
       await api.post("/v1/loans", {
@@ -45,10 +63,10 @@ export function LoanForm(props: LoanFormProps) {
         loan_type: loanType(),
         currency: currency(),
         term_months: term,
-        ...(principal() !== "" ? { principal: parseFloat(principal()) } : {}),
+        ...(principal() !== "" ? { principal: principalVal } : {}),
         ...(interestRate() !== "" ? { interest_rate: parseFloat(interestRate()) } : {}),
         ...(emiAmount() !== "" ? { emi_amount: parseFloat(emiAmount()) } : {}),
-        ...(outstandingBalance() !== "" ? { outstanding_balance: parseFloat(outstandingBalance()) } : {}),
+        ...(principalVal > 0 ? { outstanding_balance: principalVal } : {}),
         ...(startDate() ? { start_date: startDate() } : {}),
       });
       props.onSuccess();
