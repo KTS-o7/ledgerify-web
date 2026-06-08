@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -290,33 +291,54 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 	}
 
 	mode := r.URL.Query().Get("mode")
+	force := r.URL.Query().Get("force") == "true"
 
-	keywords, err := h.q.ListCategoryKeywordsByUser(r.Context(), userID)
+	categorised, categoryMap, err := h.categoriseTransactions(r.Context(), userID, req.TransactionIDs, force, mode)
 	if err != nil {
 		utils.InternalError(w)
 		return
 	}
 
-	categories, err := h.q.ListCategoriesByUser(r.Context(), userID)
+	utils.OK(w, CategoriseResponse{
+		Categorised: categorised,
+		Categories:  categoryMap,
+	})
+}
+
+// categoriseTransactions runs keyword-match then LLM categorization on the
+// given transaction IDs for the given user. When force=true, transactions that
+// already have a category are re-categorized (existing category overwritten).
+// Returns count categorized and a map of txID → category name.
+func (h *ImportExportHandler) categoriseTransactions(
+	ctx context.Context,
+	userID pgtype.UUID,
+	txIDs []string,
+	force bool,
+	mode string,
+) (int, map[string]string, error) {
+	keywords, err := h.q.ListCategoryKeywordsByUser(ctx, userID)
 	if err != nil {
-		utils.InternalError(w)
-		return
+		return 0, nil, err
+	}
+	categories, err := h.q.ListCategoriesByUser(ctx, userID)
+	if err != nil {
+		return 0, nil, err
 	}
 
 	categorised := 0
 	categoryMap := make(map[string]string)
 	var unmatched []string
 
-	for _, txID := range req.TransactionIDs {
+	for _, txID := range txIDs {
 		txUUID := stringToUUID(txID)
-		tx, err := h.q.GetTransactionByID(r.Context(), txUUID)
+		tx, err := h.q.GetTransactionByID(ctx, txUUID)
 		if err != nil {
 			continue
 		}
 		if tx.UserID.Bytes != userID.Bytes {
 			continue
 		}
-		if tx.CategoryID.Valid {
+		if tx.CategoryID.Valid && !force {
 			categorised++
 			continue
 		}
@@ -324,7 +346,7 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 		matched := false
 		for _, kw := range keywords {
 			if strings.Contains(strings.ToLower(tx.Title.String), strings.ToLower(kw.Keyword)) {
-				_, err := h.pool.Exec(r.Context(), "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3", kw.CategoryID, tx.ID, userID)
+				_, err := h.pool.Exec(ctx, "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3", kw.CategoryID, tx.ID, userID)
 				if err == nil {
 					categoryMap[txID] = kw.CategoryName
 					categorised++
@@ -348,9 +370,14 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
+		updateSQL := "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3 AND category_id IS NULL"
+		if force {
+			updateSQL = "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3"
+		}
+
 		for _, txID := range unmatched {
 			txUUID := stringToUUID(txID)
-			tx, err := h.q.GetTransactionByID(r.Context(), txUUID)
+			tx, err := h.q.GetTransactionByID(ctx, txUUID)
 			if err != nil {
 				continue
 			}
@@ -358,14 +385,14 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			categoryName, err := h.llm.Categorize(r.Context(), tx.Title.String, llmCategories)
+			categoryName, err := h.llm.Categorize(ctx, tx.Title.String, llmCategories)
 			if err != nil || categoryName == "" {
 				continue
 			}
 
 			for _, cat := range categories {
 				if cat.Name == categoryName {
-					_, err := h.pool.Exec(r.Context(), "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3 AND category_id IS NULL", cat.ID, tx.ID, userID)
+					_, err := h.pool.Exec(ctx, updateSQL, cat.ID, tx.ID, userID)
 					if err == nil {
 						categoryMap[txID] = categoryName
 						categorised++
@@ -376,10 +403,7 @@ func (h *ImportExportHandler) Categorise(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	utils.OK(w, CategoriseResponse{
-		Categorised: categorised,
-		Categories:  categoryMap,
-	})
+	return categorised, categoryMap, nil
 }
 
 func numericToString(n pgtype.Numeric) string {
