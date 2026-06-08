@@ -51,16 +51,23 @@ func spaHandler(fsys embed.FS, root string) http.Handler {
 		switch {
 		case strings.HasSuffix(ext, ".js"):
 			w.Header().Set("Content-Type", "application/javascript")
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		case strings.HasSuffix(ext, ".css"):
 			w.Header().Set("Content-Type", "text/css")
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		case strings.HasSuffix(ext, ".json"):
 			w.Header().Set("Content-Type", "application/json")
 		case strings.HasSuffix(ext, ".svg"):
 			w.Header().Set("Content-Type", "image/svg+xml")
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		case strings.HasSuffix(ext, ".png"), strings.HasSuffix(ext, ".jpg"), strings.HasSuffix(ext, ".ico"):
 			w.Header().Set("Content-Type", "image/"+strings.TrimPrefix(ext, "."))
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		default:
+			// HTML: no-transform disables Cloudflare Rocket Loader and other
+			// proxy transformations that break SolidJS ES module execution.
 			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Cache-Control", "no-cache, no-transform")
 		}
 		w.Write(data)
 	})
