@@ -1,6 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar } from "lucide-solid";
+import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles } from "lucide-solid";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -40,6 +40,49 @@ export default function Settings() {
   const [pwError, setPwError] = createSignal("");
   const [pwSuccess, setPwSuccess] = createSignal(false);
   const [pwSubmitting, setPwSubmitting] = createSignal(false);
+
+  // Categorization state
+  type CatState = { mode: "fix" | "all" | null; total: number; done: number; categorised: number };
+  const [catState, setCatState] = createSignal<CatState>({ mode: null, total: 0, done: 0, categorised: 0 });
+
+  async function runCategorization(mode: "fix" | "all") {
+    const txns = await api.get<Array<{ id: string; category_id: string | null }>>("/v1/transactions?limit=500");
+    const targets = mode === "fix"
+      ? txns.filter((t) => !t.category_id)
+      : txns;
+
+    if (targets.length === 0) {
+      alert("All transactions are already categorized.");
+      return;
+    }
+
+    setCatState({ mode, total: targets.length, done: 0, categorised: 0 });
+    const force = mode === "all" ? "?force=true" : "";
+    let totalCategorised = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      try {
+        const res = await api.post<{ categorised: number }>(`/v1/transactions/categorise${force}`, {
+          transaction_ids: [targets[i].id],
+        });
+        totalCategorised += res.categorised;
+      } catch {
+        // silently skip failed transactions
+      }
+      setCatState({ mode, total: targets.length, done: i + 1, categorised: totalCategorised });
+    }
+
+    setTimeout(() => setCatState({ mode: null, total: 0, done: 0, categorised: 0 }), 3000);
+  }
+
+  async function handleFixUncategorized() {
+    await runCategorization("fix");
+  }
+
+  async function handleRecategorizeAll() {
+    if (!confirm("This will overwrite all existing categories using AI. Continue?")) return;
+    await runCategorization("all");
+  }
 
   onMount(() => setCurrency(getCurrency()));
 
@@ -133,6 +176,26 @@ export default function Settings() {
           <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Data</span>
           <Row icon={FileDown} label="Export all data" onClick={() => navigate("/export")} />
           <Row icon={FileUp} label="Import" onClick={() => navigate("/import")} />
+          <Row
+            icon={Sparkles}
+            label={
+              catState().mode === "fix"
+                ? `Categorizing ${catState().done} / ${catState().total}…`
+                : catState().mode === null && catState().categorised > 0
+                ? `Done. ${catState().categorised} categorized.`
+                : "Fix uncategorized"
+            }
+            onClick={catState().mode === null ? handleFixUncategorized : undefined}
+          />
+          <Row
+            icon={Sparkles}
+            label={
+              catState().mode === "all"
+                ? `Re-categorizing ${catState().done} / ${catState().total}…`
+                : "Re-categorize all"
+            }
+            onClick={catState().mode === null ? handleRecategorizeAll : undefined}
+          />
           <Row icon={Trash2} label="Delete account" danger onClick={handleDeleteAccount} />
         </BentoBlock>
 
