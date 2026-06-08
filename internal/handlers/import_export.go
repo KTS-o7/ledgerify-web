@@ -28,9 +28,10 @@ func NewImportExportHandler(pool *pgxpool.Pool, q *db.Queries, llmClient *llm.Cl
 }
 
 type ImportStats struct {
-	Imported int      `json:"imported"`
-	Skipped  int      `json:"skipped"`
-	Errors   []string `json:"errors,omitempty"`
+	Imported    int      `json:"imported"`
+	Skipped     int      `json:"skipped"`
+	Categorised int      `json:"categorised"`
+	Errors      []string `json:"errors,omitempty"`
 }
 
 func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +67,7 @@ func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
 
 	headers := records[0]
 	stats := ImportStats{}
+	var insertedIDs []string
 
 	accounts, _ := h.q.ListAccountsByUser(r.Context(), userID)
 	if accounts == nil {
@@ -173,7 +175,7 @@ func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
 			txCurrency = "INR"
 		}
 
-		_, err = h.q.CreateTransaction(r.Context(), db.CreateTransactionParams{
+		newTx, err := h.q.CreateTransaction(r.Context(), db.CreateTransactionParams{
 			UserID:          userID,
 			AccountID:       accountID,
 			Type:            txTypeEnum,
@@ -192,6 +194,16 @@ func (h *ImportExportHandler) Import(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		stats.Imported++
+		// Queue for LLM categorization if no category was resolved from the CSV
+		if !categoryID.Valid {
+			insertedIDs = append(insertedIDs, uuidToString(newTx.ID))
+		}
+	}
+
+	// Auto-categorize transactions that had no category in the CSV
+	if len(insertedIDs) > 0 {
+		categorised, _, _ := h.categoriseTransactions(r.Context(), userID, insertedIDs, false, "")
+		stats.Categorised = categorised
 	}
 
 	utils.Created(w, stats)
