@@ -24,6 +24,7 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/llm"
 	"github.com/KTS-o7/ledgerify-web/internal/mcp"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
+	"github.com/KTS-o7/ledgerify-web/internal/recalc"
 )
 
 func spaHandler(fsys embed.FS, root string) http.Handler {
@@ -115,8 +116,10 @@ func main() {
 	budgetHandler := handlers.NewBudgetHandler(pool, q)
 	summaryHandler := handlers.NewSummaryHandler(pool, q, cq)
 	netWorthHandler := handlers.NewNetWorthHandler(q, cq)
-	investmentHandler := handlers.NewInvestmentHandler(q)
-	loanHandler := handlers.NewLoanHandler(q)
+	recalcSvc := recalc.New(pool)
+	investmentHandler := handlers.NewInvestmentHandler(q, recalcSvc)
+	loanHandler := handlers.NewLoanHandler(q, recalcSvc)
+	sipHandler := handlers.NewSipHandler(q, recalcSvc)
 	insuranceHandler := handlers.NewInsuranceHandler(q)
 	savingsHandler := handlers.NewSavingsGoalHandler(q)
 	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
@@ -226,6 +229,14 @@ func main() {
 			r.Post("/{id}/payments", loanHandler.CreatePayment)
 		})
 
+		r.Route("/api/v1/sips", func(r chi.Router) {
+			r.Get("/", sipHandler.List)
+			r.Post("/", sipHandler.Create)
+			r.Get("/{id}", sipHandler.Get)
+			r.Put("/{id}", sipHandler.Update)
+			r.Delete("/{id}", sipHandler.Delete)
+		})
+
 		r.Route("/api/v1/insurance", func(r chi.Router) {
 			r.Get("/", insuranceHandler.List)
 			r.Post("/", insuranceHandler.Create)
@@ -274,12 +285,17 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	recalcCtx, recalcCancel := context.WithCancel(context.Background())
+	defer recalcCancel()
+	go startRecalcCron(recalcCtx, recalcSvc)
+
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
 		log.Println("shutting down...")
 		llmQueue.Shutdown()
+		recalcCancel()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)
@@ -290,4 +306,25 @@ func main() {
 		log.Fatalf("server error: %v", err)
 	}
 	log.Println("server stopped")
+}
+
+// startRecalcCron runs the per-user recalculation once on boot, then every 24h
+// after that. It bails out cleanly when ctx is cancelled.
+func startRecalcCron(ctx context.Context, svc *recalc.Service) {
+	time.Sleep(30 * time.Second)
+	if err := svc.RecalculateAll(ctx); err != nil {
+		log.Printf("initial recalc failed: %v", err)
+	}
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := svc.RecalculateAll(ctx); err != nil {
+				log.Printf("scheduled recalc failed: %v", err)
+			}
+		}
+	}
 }

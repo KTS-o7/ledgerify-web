@@ -1,24 +1,28 @@
 package handlers
 
 import (
-	"fmt"
-	"strconv"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
+	"github.com/KTS-o7/ledgerify-web/internal/recalc"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type LoanHandler struct {
-	q *db.Queries
+	q      *db.Queries
+	recalc *recalc.Service
 }
 
-func NewLoanHandler(q *db.Queries) *LoanHandler {
-	return &LoanHandler{q: q}
+func NewLoanHandler(q *db.Queries, recalc *recalc.Service) *LoanHandler {
+	return &LoanHandler{q: q, recalc: recalc}
 }
 
 type createLoanRequest struct {
@@ -51,6 +55,15 @@ type createLoanPaymentRequest struct {
 	PrincipalComponent *float64 `json:"principal_component"`
 	InterestComponent  *float64 `json:"interest_component"`
 	Status             string   `json:"status"`
+}
+
+// fireRecalc runs the per-user recalculation in the background.
+func (h *LoanHandler) fireRecalc(userID string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = h.recalc.RecalculateUser(ctx, userID)
+	}()
 }
 
 // GET /api/v1/loans
@@ -90,6 +103,13 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if req.Name == "" || req.LoanType == "" || req.Currency == "" {
 		utils.BadRequest(w, "name, loan_type, and currency are required")
 		return
+	}
+
+	// Default outstanding balance to principal when the caller didn't supply
+	// one — the recalc engine assumes the loan is fresh in that case.
+	if req.OutstandingBalance == nil && req.Principal != nil {
+		ob := *req.Principal
+		req.OutstandingBalance = &ob
 	}
 
 	var loanType db.LoanType
@@ -154,6 +174,7 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.fireRecalc(claims.UserID)
 	utils.Created(w, loan)
 }
 
@@ -207,6 +228,11 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Name == "" || req.LoanType == "" || req.Currency == "" {
 		utils.BadRequest(w, "name, loan_type, and currency are required")
 		return
+	}
+
+	if req.OutstandingBalance == nil && req.Principal != nil {
+		ob := *req.Principal
+		req.OutstandingBalance = &ob
 	}
 
 	var loanType db.LoanType
@@ -270,6 +296,7 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.fireRecalc(claims.UserID)
 	utils.OK(w, loan)
 }
 

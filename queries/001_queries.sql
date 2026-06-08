@@ -140,14 +140,14 @@ SELECT * FROM investments WHERE user_id = $1 AND deleted_at IS NULL ORDER BY nam
 SELECT * FROM investments WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: CreateInvestment :one
-INSERT INTO investments (user_id, name, asset_type, currency, quantity, buy_price, current_price, current_price_updated_at, maturity_date, interest_rate, metadata)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;
+INSERT INTO investments (user_id, name, asset_type, currency, quantity, buy_price, current_price, current_price_updated_at, maturity_date, interest_rate, compounding_frequency, metadata)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *;
 
 -- name: UpdateInvestment :one
 UPDATE investments SET name = $2, asset_type = $3, currency = $4, quantity = $5,
   buy_price = $6, current_price = $7, current_price_updated_at = $8, maturity_date = $9,
-  interest_rate = $10, metadata = $11, updated_at = now()
-WHERE id = $1 AND user_id = $12 AND deleted_at IS NULL RETURNING *;
+  interest_rate = $10, compounding_frequency = $11, metadata = $12, updated_at = now()
+WHERE id = $1 AND user_id = $13 AND deleted_at IS NULL RETURNING *;
 
 -- name: DeleteInvestment :exec
 UPDATE investments SET deleted_at = now() WHERE id = $1 AND user_id = $2;
@@ -263,6 +263,43 @@ UPDATE savings_goals SET deleted_at = now() WHERE id = $1 AND user_id = $2;
 INSERT INTO exchange_rates (base, target, rate, fetched_at)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (base, target) DO UPDATE SET rate = $3, fetched_at = $4;
+
+-- Recalc: investment computed_value (uses current_price_updated_at as the staleness stamp)
+-- name: UpdateInvestmentComputed :exec
+UPDATE investments SET computed_value = $2, current_price_updated_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
+-- Recalc: loan computed_emi + outstanding_balance from paid principal
+-- name: UpdateLoanComputed :exec
+UPDATE loans SET computed_emi = $2, outstanding_balance = $3, updated_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
+-- Recalc helpers: sum of paid/partial principal + amount components for a loan
+-- name: SumPaidPrincipal :one
+SELECT COALESCE(SUM(principal_component), 0)::numeric FROM loan_payments WHERE loan_id = $1 AND status IN ('paid', 'partial') AND deleted_at IS NULL;
+
+-- name: SumPaidAmount :one
+SELECT COALESCE(SUM(amount), 0)::numeric FROM loan_payments WHERE loan_id = $1 AND status IN ('paid', 'partial') AND deleted_at IS NULL;
+
+-- SIPs
+-- name: ListSipsByUser :many
+SELECT * FROM sips WHERE user_id = $1 AND deleted_at IS NULL ORDER BY name;
+
+-- name: GetSipByID :one
+SELECT * FROM sips WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: CreateSip :one
+INSERT INTO sips (user_id, name, sip_type, currency, monthly_amount, start_date, expected_return_rate, current_nav, units_accumulated, metadata)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *;
+
+-- name: UpdateSip :one
+UPDATE sips SET name = $2, sip_type = $3, currency = $4, monthly_amount = $5, start_date = $6,
+  expected_return_rate = $7, current_nav = $8, units_accumulated = $9, metadata = $10, updated_at = now()
+WHERE id = $1 AND user_id = $11 AND deleted_at IS NULL RETURNING *;
+
+-- name: DeleteSip :exec
+UPDATE sips SET deleted_at = now() WHERE id = $1 AND user_id = $2;
+
+-- name: UpdateSipCorpus :exec
+UPDATE sips SET corpus_value = $2, corpus_updated_at = now() WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: GetExchangeRate :one
 SELECT * FROM exchange_rates WHERE base = $1 AND target = $2;

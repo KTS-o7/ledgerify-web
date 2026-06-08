@@ -1,49 +1,54 @@
 package handlers
 
 import (
-	"fmt"
-	"strconv"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/KTS-o7/ledgerify-web/internal/db"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
+	"github.com/KTS-o7/ledgerify-web/internal/recalc"
 	"github.com/KTS-o7/ledgerify-web/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type InvestmentHandler struct {
-	q *db.Queries
+	q      *db.Queries
+	recalc *recalc.Service
 }
 
-func NewInvestmentHandler(q *db.Queries) *InvestmentHandler {
-	return &InvestmentHandler{q: q}
+func NewInvestmentHandler(q *db.Queries, recalc *recalc.Service) *InvestmentHandler {
+	return &InvestmentHandler{q: q, recalc: recalc}
 }
 
 type createInvestmentRequest struct {
-	Name        string   `json:"name"`
-	AssetType   string   `json:"asset_type"`
-	Currency    string   `json:"currency"`
-	Quantity    *float64 `json:"quantity"`
-	BuyPrice    *float64 `json:"buy_price"`
-	CurrentPrice *float64 `json:"current_price"`
-	MaturityDate *string `json:"maturity_date"`
-	InterestRate *float64 `json:"interest_rate"`
-	Metadata    *string  `json:"metadata"`
+	Name                string   `json:"name"`
+	AssetType           string   `json:"asset_type"`
+	Currency            string   `json:"currency"`
+	Quantity            *float64 `json:"quantity"`
+	BuyPrice            *float64 `json:"buy_price"`
+	CurrentPrice        *float64 `json:"current_price"`
+	MaturityDate        *string  `json:"maturity_date"`
+	InterestRate        *float64 `json:"interest_rate"`
+	CompoundingFrequency *string  `json:"compounding_frequency"`
+	Metadata            *string  `json:"metadata"`
 }
 
 type updateInvestmentRequest struct {
-	Name         string   `json:"name"`
-	AssetType    string   `json:"asset_type"`
-	Currency     string   `json:"currency"`
-	Quantity     *float64 `json:"quantity"`
-	BuyPrice     *float64 `json:"buy_price"`
-	CurrentPrice *float64 `json:"current_price"`
-	MaturityDate *string  `json:"maturity_date"`
-	InterestRate *float64 `json:"interest_rate"`
-	Metadata     *string  `json:"metadata"`
+	Name                string   `json:"name"`
+	AssetType           string   `json:"asset_type"`
+	Currency            string   `json:"currency"`
+	Quantity            *float64 `json:"quantity"`
+	BuyPrice            *float64 `json:"buy_price"`
+	CurrentPrice        *float64 `json:"current_price"`
+	MaturityDate        *string  `json:"maturity_date"`
+	InterestRate        *float64 `json:"interest_rate"`
+	CompoundingFrequency *string  `json:"compounding_frequency"`
+	Metadata            *string  `json:"metadata"`
 }
 
 type createInvestmentTxRequest struct {
@@ -53,6 +58,39 @@ type createInvestmentTxRequest struct {
 	Amount   *float64 `json:"amount"`
 	Date     string   `json:"date"`
 	Note     *string  `json:"note"`
+}
+
+// fireRecalc runs the per-user recalculation in the background. The request
+// response is returned immediately; the recalculation is best-effort.
+func (h *InvestmentHandler) fireRecalc(userID string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_ = h.recalc.RecalculateUser(ctx, userID)
+	}()
+}
+
+// parseCompoundingFrequency maps the user-facing string to the generated enum
+// type. An empty / unrecognised value returns an invalid NullCompoundingFrequency
+// so the DB column stays NULL.
+func parseCompoundingFrequency(s *string) db.NullCompoundingFrequency {
+	if s == nil || *s == "" {
+		return db.NullCompoundingFrequency{}
+	}
+	var v db.CompoundingFrequency
+	switch *s {
+	case "monthly":
+		v = db.CompoundingFrequencyMonthly
+	case "quarterly":
+		v = db.CompoundingFrequencyQuarterly
+	case "semi_annual":
+		v = db.CompoundingFrequencySemiAnnual
+	case "annual":
+		v = db.CompoundingFrequencyAnnual
+	default:
+		return db.NullCompoundingFrequency{}
+	}
+	return db.NullCompoundingFrequency{CompoundingFrequency: v, Valid: true}
 }
 
 // GET /api/v1/investments
@@ -163,6 +201,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CurrentPriceUpdatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		MaturityDate:          maturityDate,
 		InterestRate:          interestRate,
+		CompoundingFrequency:  parseCompoundingFrequency(req.CompoundingFrequency),
 		Metadata:              metadata,
 	})
 	if err != nil {
@@ -170,6 +209,7 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.fireRecalc(claims.UserID)
 	utils.Created(w, investment)
 }
 
@@ -292,6 +332,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		CurrentPriceUpdatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		MaturityDate:          maturityDate,
 		InterestRate:          interestRate,
+		CompoundingFrequency:  parseCompoundingFrequency(req.CompoundingFrequency),
 		Metadata:              metadata,
 		UserID:                userUUID,
 	})
@@ -300,6 +341,7 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.fireRecalc(claims.UserID)
 	utils.OK(w, investment)
 }
 
