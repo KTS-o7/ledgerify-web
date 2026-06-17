@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, TrendingUp, Calendar, Pencil, Trash2 } from "lucide-solid";
+import { Plus, TrendingUp, Calendar, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -24,6 +24,16 @@ interface Holding {
   maturity_date: unknown;  // pgtype.Date
 }
 
+interface InvestmentTransaction {
+  id: string;
+  type: string;
+  amount: unknown;
+  quantity: unknown;
+  price: unknown;
+  date: string;
+  note: string;
+}
+
 function compoundingLabel(cf: { CompoundingFrequency: string; Valid: boolean } | undefined): string {
   if (!cf || !cf.Valid) return "";
   switch (cf.CompoundingFrequency) {
@@ -35,11 +45,113 @@ function compoundingLabel(cf: { CompoundingFrequency: string; Valid: boolean } |
   }
 }
 
+function InvestmentTransactions(props: { investmentId: string; currency: string }) {
+  const [txns, { refetch }] = createResource(
+    () => props.investmentId,
+    (id) => api.get<InvestmentTransaction[]>(`/v1/investments/${id}/transactions`).catch(() => [] as InvestmentTransaction[])
+  );
+  const [showForm, setShowForm] = createSignal(false);
+  const [txType, setTxType] = createSignal("buy");
+  const [txAmount, setTxAmount] = createSignal("");
+  const [txDate, setTxDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [submitting, setSubmitting] = createSignal(false);
+
+  async function handleAdd(e: SubmitEvent) {
+    e.preventDefault();
+    if (!txAmount() || !txDate()) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/v1/investments/${props.investmentId}/transactions`, {
+        type: txType(),
+        amount: parseFloat(txAmount()),
+        date: txDate(),
+      });
+      setTxAmount("");
+      setShowForm(false);
+      refetch();
+    } catch {
+      alert("Failed to add transaction.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div class="mt-3 border-t border-surface-hover pt-3 space-y-2">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[12px] font-body font-medium text-muted uppercase tracking-wide">Transactions</span>
+        <button
+          type="button"
+          onClick={() => setShowForm((s) => !s)}
+          class="text-[12px] text-primary font-medium hover:underline"
+        >
+          {showForm() ? "Cancel" : "+ Add"}
+        </button>
+      </div>
+      <Show when={showForm()}>
+        <form onSubmit={handleAdd} class="flex flex-wrap gap-2 items-end bg-bg rounded-input p-2">
+          <select
+            value={txType()}
+            onChange={(e) => setTxType(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          >
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+            <option value="dividend">Dividend</option>
+            <option value="interest">Interest</option>
+            <option value="bonus">Bonus</option>
+          </select>
+          <input
+            type="number"
+            placeholder="Amount"
+            step="0.01"
+            required
+            value={txAmount()}
+            onInput={(e) => setTxAmount(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
+          />
+          <input
+            type="date"
+            value={txDate()}
+            onInput={(e) => setTxDate(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          />
+          <button
+            type="submit"
+            disabled={submitting()}
+            class="text-sm px-3 py-1 rounded-input bg-primary text-bg font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {submitting() ? "…" : "Add"}
+          </button>
+        </form>
+      </Show>
+      <Show when={txns.loading}>
+        <p class="text-xs text-muted">Loading…</p>
+      </Show>
+      <Show when={!txns.loading && (txns() ?? []).length === 0}>
+        <p class="text-xs text-muted">No transactions yet.</p>
+      </Show>
+      <For each={txns() ?? []}>
+        {(t) => (
+          <div class="flex items-center justify-between text-sm py-1">
+            <div class="flex items-center gap-2">
+              <Badge variant="outline" class="text-[11px] uppercase">{t.type}</Badge>
+              <span class="text-muted text-xs">{t.date}</span>
+            </div>
+            <span class="font-mono text-text">{formatCurrency(numericToFloat(t.amount), props.currency)}</span>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
 export default function Investments() {
   const [holdings, { refetch }] = createResource(() => api.get<Holding[]>("/v1/investments"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editHolding, setEditHolding] = createSignal<Holding | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
+  const [expandedId, setExpandedId] = createSignal<string | null>(null);
 
   function handleSuccess() {
     setSheetOpen(false);
@@ -62,6 +174,10 @@ export default function Investments() {
     } catch {
       alert("Failed to delete investment.");
     }
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedId((cur) => cur === id ? null : id);
   }
 
   return (
@@ -108,6 +224,7 @@ export default function Investments() {
               const rate = numericToFloat(h.interest_rate);
               const computed = numericToFloat(h.computed_value);
               const maturityStr = pgDateToString(h.maturity_date);
+              const isExpanded = () => expandedId() === h.id;
               return (
                 <div class="group relative">
                   <BentoBlock variant="pressable">
@@ -142,6 +259,17 @@ export default function Investments() {
                             </Badge>
                           </Show>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(h.id)}
+                          class="mt-2 flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
+                        >
+                          {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          {isExpanded() ? "Hide transactions" : "View transactions"}
+                        </button>
+                        <Show when={isExpanded()}>
+                          <InvestmentTransactions investmentId={h.id} currency={h.currency} />
+                        </Show>
                       </div>
                     </div>
                   </BentoBlock>

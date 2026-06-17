@@ -91,7 +91,10 @@ func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tagID := stringToUUID(chi.URLParam(r, "id"))
+	tagID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	tag, err := h.q.GetTagByID(r.Context(), db.GetTagByIDParams{
@@ -114,7 +117,10 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tagID := stringToUUID(chi.URLParam(r, "id"))
+	tagID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	var req updateTagRequest
@@ -149,7 +155,10 @@ func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tagID := stringToUUID(chi.URLParam(r, "id"))
+	tagID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteTag(r.Context(), db.DeleteTagParams{

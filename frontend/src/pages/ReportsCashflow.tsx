@@ -1,22 +1,29 @@
-import { createResource, Show } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Stat } from "../components/ui/stat";
 import { SkeletonBlock } from "../components/ui/skeleton";
+import { MonthPicker } from "../components/ui/month-picker";
 
 interface SummaryData {
   total_income: number;
   total_expenses: number;
 }
 
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function ReportsCashflow() {
-  const [summary] = createResource(() => api.get<SummaryData>("/v1/summary"));
+  const [month, setMonth] = createSignal(currentMonth());
+  const [summary] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
 
   return (
     <>
-      <PageHeader title="Cash Flow" back />
+      <PageHeader title="Cash Flow" back actions={<MonthPicker value={month()} onChange={setMonth} />} />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
         <Show when={summary.loading}>
           <SkeletonBlock class="col-span-1 md:col-span-6 min-h-[160px]" />

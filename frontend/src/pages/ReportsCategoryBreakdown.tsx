@@ -1,4 +1,4 @@
-import { createMemo, createResource, For, Show } from "solid-js";
+import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import { BarChart3 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
@@ -8,13 +8,20 @@ import { DonutChart } from "../components/ui/donut-chart";
 import { CategoryBar } from "../components/ui/category-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonBlock } from "../components/ui/skeleton";
+import { MonthPicker } from "../components/ui/month-picker";
 
 interface SummaryData {
   category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
 }
 
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function ReportsCategoryBreakdown() {
-  const [summary] = createResource(() => api.get<SummaryData>("/v1/summary"));
+  const [month, setMonth] = createSignal(currentMonth());
+  const [summary] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
   const segments = createMemo(() =>
     (summary()?.category_spending ?? []).map((r) => ({ label: r.category_name, value: r.total, color: r.color || undefined }))
   );
@@ -22,7 +29,7 @@ export default function ReportsCategoryBreakdown() {
 
   return (
     <>
-      <PageHeader title="Category Breakdown" back />
+      <PageHeader title="Category Breakdown" back actions={<MonthPicker value={month()} onChange={setMonth} />} />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
         <Show when={summary.loading}>
           <SkeletonBlock class="col-span-1 md:col-span-5 min-h-[380px]" />

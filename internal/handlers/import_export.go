@@ -219,6 +219,30 @@ func (h *ImportExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 
 	fromDate := r.URL.Query().Get("from_date")
 	toDate := r.URL.Query().Get("to_date")
+	fieldsParam := r.URL.Query().Get("fields")
+
+	// All available columns in order
+	allColumns := []string{"title", "type", "amount", "currency", "account", "category", "date", "note", "tags"}
+
+	// Determine which columns to include
+	var selectedCols []string
+	if fieldsParam != "" {
+		requested := strings.Split(fieldsParam, ",")
+		// Only allow valid columns, preserve requested order
+		validCols := map[string]bool{}
+		for _, c := range allColumns {
+			validCols[c] = true
+		}
+		for _, c := range requested {
+			c = strings.TrimSpace(c)
+			if validCols[c] {
+				selectedCols = append(selectedCols, c)
+			}
+		}
+	}
+	if len(selectedCols) == 0 {
+		selectedCols = allColumns
+	}
 
 	var from, to time.Time
 	var err error
@@ -263,20 +287,59 @@ func (h *ImportExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=ledgerify_export_%s.csv", time.Now().Format("2006-01-02")))
 
 	writer := csv.NewWriter(w)
-	writer.Write([]string{"title", "type", "amount", "currency", "account", "category", "date", "note", "tags"})
+	writer.Write(selectedCols)
 
+	// Build a map from column name to value extractor
 	for _, tx := range txns {
-		writer.Write([]string{
-			tx.Title.String,
-			string(tx.Type),
-			numericToString(tx.Amount),
-			tx.Currency,
-			tx.AccountName,
-			tx.CategoryName.String,
-			tx.Date.Time.Format("2006-01-02"),
-			tx.Note.String,
-			"",
-		})
+		// Fetch tags lazily only if the "tags" column is selected
+		var tagsStr string
+		for _, col := range selectedCols {
+			if col == "tags" {
+				var tagNames []string
+				tagRows, tagErr := h.pool.Query(r.Context(),
+					`SELECT tg.name FROM tags tg
+					JOIN transaction_tags tt ON tt.tag_id = tg.id
+					WHERE tt.transaction_id = $1`,
+					tx.ID,
+				)
+				if tagErr == nil {
+					for tagRows.Next() {
+						var name string
+						if scanErr := tagRows.Scan(&name); scanErr == nil {
+							tagNames = append(tagNames, name)
+						}
+					}
+					tagRows.Close()
+				}
+				tagsStr = strings.Join(tagNames, ",")
+				break
+			}
+		}
+
+		row := make([]string, 0, len(selectedCols))
+		for _, col := range selectedCols {
+			switch col {
+			case "title":
+				row = append(row, tx.Title.String)
+			case "type":
+				row = append(row, string(tx.Type))
+			case "amount":
+				row = append(row, numericToString(tx.Amount))
+			case "currency":
+				row = append(row, tx.Currency)
+			case "account":
+				row = append(row, tx.AccountName)
+			case "category":
+				row = append(row, tx.CategoryName.String)
+			case "date":
+				row = append(row, tx.Date.Time.Format("2006-01-02"))
+			case "note":
+				row = append(row, tx.Note.String)
+			case "tags":
+				row = append(row, tagsStr)
+			}
+		}
+		writer.Write(row)
 	}
 	writer.Flush()
 }

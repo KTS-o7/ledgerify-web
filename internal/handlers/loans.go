@@ -70,7 +70,7 @@ func (h *LoanHandler) fireRecalc(userID string) {
 func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *LoanHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -182,11 +182,14 @@ func (h *LoanHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	loanID := stringToUUID(chi.URLParam(r, "id"))
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	loan, err := h.q.GetLoanByID(r.Context(), loanID)
 	if err != nil {
 		utils.NotFound(w)
@@ -206,11 +209,14 @@ func (h *LoanHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	loanID := stringToUUID(chi.URLParam(r, "id"))
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	// Verify ownership
@@ -304,11 +310,14 @@ func (h *LoanHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	loanID := stringToUUID(chi.URLParam(r, "id"))
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteLoan(r.Context(), db.DeleteLoanParams{
@@ -327,11 +336,14 @@ func (h *LoanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	loanID := stringToUUID(chi.URLParam(r, "id"))
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	loan, err := h.q.GetLoanByID(r.Context(), loanID)
@@ -361,11 +373,14 @@ func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 func (h *LoanHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	loanID := stringToUUID(chi.URLParam(r, "id"))
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	loan, err := h.q.GetLoanByID(r.Context(), loanID)

@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -113,6 +114,11 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: listKeywordsTool(), Handler: listKeywordsHandler(deps)},
 		{Tool: addKeywordTool(), Handler: addKeywordHandler(deps)},
 		{Tool: deleteKeywordTool(), Handler: deleteKeywordHandler(deps)},
+		{Tool: listSipsTool(), Handler: listSipsHandler(deps)},
+		{Tool: getSipTool(), Handler: getSipHandler(deps)},
+		{Tool: createSipTool(), Handler: createSipHandler(deps)},
+		{Tool: updateSipTool(), Handler: updateSipHandler(deps)},
+		{Tool: deleteSipTool(), Handler: deleteSipHandler(deps)},
 	}
 	s.AddTools(tools...)
 }
@@ -306,6 +312,7 @@ func createTransactionTool() mcp.Tool {
 		mcp.WithString("title", mcp.Description("Transaction title")),
 		mcp.WithString("note", mcp.Description("Transaction note")),
 		mcp.WithString("date", mcp.Required(), mcp.Description("Date YYYY-MM-DD")),
+		mcp.WithArray("tags", mcp.Description("Tag IDs to associate with this transaction (optional)")),
 	)
 }
 
@@ -349,6 +356,23 @@ func createTransactionHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
 		}
 
+		// Apply tags if provided
+		if tagsRaw, ok := req.GetArguments()["tags"]; ok && tagsRaw != nil {
+			if tagsSlice, ok := tagsRaw.([]interface{}); ok && len(tagsSlice) > 0 {
+				_, _ = deps.Pool.Exec(ctx,
+					`DELETE FROM transaction_tags WHERE transaction_id = $1`, id)
+				for _, t := range tagsSlice {
+					tagID, _ := t.(string)
+					if tagID != "" {
+						_, _ = deps.Pool.Exec(ctx,
+							`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1::uuid, $2::uuid)
+							ON CONFLICT DO NOTHING`,
+							id, tagID)
+					}
+				}
+			}
+		}
+
 		result := map[string]any{
 			"id":         id,
 			"type":       retType,
@@ -379,6 +403,7 @@ func updateTransactionTool() mcp.Tool {
 		mcp.WithString("title", mcp.Description("Transaction title")),
 		mcp.WithString("note", mcp.Description("Transaction note")),
 		mcp.WithString("date", mcp.Description("Date YYYY-MM-DD")),
+		mcp.WithArray("tags", mcp.Description("Tag IDs to associate with this transaction (replaces existing tags; omit to leave tags unchanged)")),
 	)
 }
 
@@ -450,6 +475,24 @@ func updateTransactionHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			"note":     retNote,
 			"date":     retDate.Format("2006-01-02"),
 		}
+
+		// Apply tags if provided
+		if tagsRaw, ok := req.GetArguments()["tags"]; ok && tagsRaw != nil {
+			if tagsSlice, ok := tagsRaw.([]interface{}); ok {
+				_, _ = deps.Pool.Exec(ctx,
+					`DELETE FROM transaction_tags WHERE transaction_id = $1`, txID)
+				for _, t := range tagsSlice {
+					tagID, _ := t.(string)
+					if tagID != "" {
+						_, _ = deps.Pool.Exec(ctx,
+							`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1::uuid, $2::uuid)
+							ON CONFLICT DO NOTHING`,
+							txID, tagID)
+					}
+				}
+			}
+		}
+
 		jsonData, err := json.Marshal(result)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
@@ -506,8 +549,19 @@ func listAccountsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		}
 
 		rows, err := deps.Pool.Query(ctx,
-			`SELECT id, name, type, currency, opening_balance, credit_limit, created_at
-			FROM accounts WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
+			`SELECT a.id, a.name, a.type, a.currency,
+			        COALESCE(a.opening_balance, 0)::numeric(18,4) as opening_balance,
+			        COALESCE(a.opening_balance, 0) + COALESCE(SUM(
+			            CASE WHEN t.type = 'income' THEN t.amount
+			                 WHEN t.type = 'expense' THEN -t.amount
+			                 ELSE 0 END
+			        ), 0)::numeric(18,4) as balance,
+			        a.credit_limit, a.created_at
+			FROM accounts a
+			LEFT JOIN transactions t ON t.account_id = a.id AND t.deleted_at IS NULL
+			WHERE a.user_id = $1 AND a.deleted_at IS NULL
+			GROUP BY a.id, a.name, a.type, a.currency, a.opening_balance, a.credit_limit, a.created_at
+			ORDER BY a.created_at DESC`,
 			userID,
 		)
 		if err != nil {
@@ -518,11 +572,11 @@ func listAccountsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		var results []map[string]any
 		for rows.Next() {
 			var id, name, typ, currency string
-			var openingBalance string
+			var openingBalance, balance string
 			var creditLimit *string
 			var createdAt time.Time
 
-			err := rows.Scan(&id, &name, &typ, &currency, &openingBalance, &creditLimit, &createdAt)
+			err := rows.Scan(&id, &name, &typ, &currency, &openingBalance, &balance, &creditLimit, &createdAt)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
 			}
@@ -532,6 +586,7 @@ func listAccountsHandler(deps *ToolDeps) server.ToolHandlerFunc {
 				"type":            typ,
 				"currency":        currency,
 				"opening_balance": openingBalance,
+				"balance":         balance,
 				"credit_limit":    creditLimit,
 				"created_at":      createdAt.Format(time.RFC3339),
 			})
@@ -931,7 +986,7 @@ func createBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
 
 func updateBudgetTool() mcp.Tool {
 	return mcp.NewTool("update_budget",
-		mcp.WithDescription("Update a budget. id is required; all other fields overwrite the stored value if provided."),
+		mcp.WithDescription("Update a budget. id is required; all other fields overwrite the stored value if provided. Omit rollover to keep existing value."),
 		mcp.WithString("id", mcp.Required(), mcp.Description("Budget ID")),
 		mcp.WithString("name", mcp.Description("Budget name")),
 		mcp.WithNumber("amount", mcp.Description("Budget amount")),
@@ -941,7 +996,7 @@ func updateBudgetTool() mcp.Tool {
 		mcp.WithString("end_date", mcp.Description("End date YYYY-MM-DD (empty string to clear)")),
 		mcp.WithString("category_id", mcp.Description("Category ID (empty string to clear)")),
 		mcp.WithString("period_anchor_date", mcp.Description("Period anchor date (empty string to clear)")),
-		mcp.WithBoolean("rollover", mcp.Description("Rollover unused balance")),
+		mcp.WithString("rollover", mcp.Description("Rollover unused balance: 'true' or 'false'. Omit to keep existing value.")),
 	)
 }
 
@@ -966,7 +1021,18 @@ func updateBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
 		endDate := req.GetString("end_date", "")
 		categoryID := req.GetString("category_id", "")
 		anchorDate := req.GetString("period_anchor_date", "")
-		rollover := req.GetBool("rollover", false)
+		rolloverStr := req.GetString("rollover", "")
+
+		// Convert rollover string to *bool: nil means "not provided, keep existing"
+		var rolloverVal interface{}
+		switch rolloverStr {
+		case "true":
+			rolloverVal = true
+		case "false":
+			rolloverVal = false
+		default:
+			rolloverVal = nil // will use COALESCE to keep existing
+		}
 
 		var retID, retName, retCurrency, retPeriod string
 		var retAmount string
@@ -984,11 +1050,11 @@ func updateBudgetHandler(deps *ToolDeps) server.ToolHandlerFunc {
 				end_date = NULLIF($7, '')::date,
 				category_id = NULLIF($8, '')::uuid,
 				period_anchor_date = NULLIF($9, '')::date,
-				rollover = $10,
+				rollover = COALESCE($10::boolean, rollover),
 				updated_at = now()
 			WHERE id = $1 AND user_id = $11 AND deleted_at IS NULL
 			RETURNING id, name, amount, currency, period_type, start_date, end_date, category_id, period_anchor_date, rollover, updated_at`,
-			id, name, amount, currency, periodType, startDate, endDate, categoryID, anchorDate, rollover, userID,
+			id, name, amount, currency, periodType, startDate, endDate, categoryID, anchorDate, rolloverVal, userID,
 		).Scan(&retID, &retName, &retAmount, &retCurrency, &retPeriod, &retStart, &retEnd, &retCategoryID, &retAnchor, &retRollover, &updatedAt)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -2996,7 +3062,7 @@ func listCategoriesHandler(deps *ToolDeps) server.ToolHandlerFunc {
 
 func getSummaryTool() mcp.Tool {
 	return mcp.NewTool("get_summary",
-		mcp.WithDescription("Get a financial summary for a date range"),
+		mcp.WithDescription("Get a rich financial summary for a date range, including income/expense totals, category spending breakdown, account balances, budget utilization, and recent transactions"),
 		mcp.WithString("from_date", mcp.Required(), mcp.Description("Start date YYYY-MM-DD")),
 		mcp.WithString("to_date", mcp.Required(), mcp.Description("End date YYYY-MM-DD")),
 		readOnlyAnnotation(),
@@ -3016,8 +3082,8 @@ func getSummaryHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("from_date and to_date are required"), nil
 		}
 
+		// --- income / expense / transfer totals ---
 		var totalIncome, totalExpense, totalTransfer string
-
 		err = deps.Pool.QueryRow(ctx,
 			`SELECT
 				COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0),
@@ -3031,12 +3097,186 @@ func getSummaryHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError(fmt.Sprintf("summary query failed: %v", err)), nil
 		}
 
+		// --- category spending ---
+		catRows, err := deps.Pool.Query(ctx,
+			`SELECT c.id::text, c.name, COALESCE(c.color, ''), COALESCE(SUM(t.amount), 0)::numeric(18,4) as total
+			FROM transactions t
+			JOIN categories c ON c.id = t.category_id
+			WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.type = 'expense'
+			  AND t.date >= $2 AND t.date <= $3
+			GROUP BY c.id, c.name, c.color
+			ORDER BY total DESC`,
+			userID, fromDate, toDate,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("category spending query failed: %v", err)), nil
+		}
+		var categorySpending []map[string]any
+		for catRows.Next() {
+			var catID, catName, catColor, catTotal string
+			if err := catRows.Scan(&catID, &catName, &catColor, &catTotal); err != nil {
+				catRows.Close()
+				return mcp.NewToolResultError(fmt.Sprintf("category scan failed: %v", err)), nil
+			}
+			categorySpending = append(categorySpending, map[string]any{
+				"category_id":   catID,
+				"category_name": catName,
+				"color":         catColor,
+				"total":         catTotal,
+			})
+		}
+		catRows.Close()
+		if categorySpending == nil {
+			categorySpending = []map[string]any{}
+		}
+
+		// --- account balances ---
+		acctRows, err := deps.Pool.Query(ctx,
+			`SELECT a.id::text, a.name, a.type::text, a.currency,
+			        COALESCE(a.opening_balance, 0) + COALESCE(SUM(
+			            CASE WHEN t.type = 'income' THEN t.amount
+			                 WHEN t.type = 'expense' THEN -t.amount
+			                 ELSE 0 END
+			        ), 0)::numeric(18,4) as balance
+			FROM accounts a
+			LEFT JOIN transactions t ON t.account_id = a.id AND t.deleted_at IS NULL
+			WHERE a.user_id = $1 AND a.deleted_at IS NULL
+			GROUP BY a.id, a.name, a.type, a.currency, a.opening_balance
+			ORDER BY a.created_at DESC`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("account balances query failed: %v", err)), nil
+		}
+		var accountBalances []map[string]any
+		for acctRows.Next() {
+			var acctID, acctName, acctType, acctCurrency, acctBalance string
+			if err := acctRows.Scan(&acctID, &acctName, &acctType, &acctCurrency, &acctBalance); err != nil {
+				acctRows.Close()
+				return mcp.NewToolResultError(fmt.Sprintf("account scan failed: %v", err)), nil
+			}
+			accountBalances = append(accountBalances, map[string]any{
+				"account_name": acctName,
+				"balance":      acctBalance,
+				"type":         acctType,
+				"currency":     acctCurrency,
+			})
+		}
+		acctRows.Close()
+		if accountBalances == nil {
+			accountBalances = []map[string]any{}
+		}
+
+		// --- budget status ---
+		budgetRows, err := deps.Pool.Query(ctx,
+			`SELECT b.id::text, b.name, b.amount::numeric(18,4), b.currency,
+			        COALESCE(c.id::text, '') as category_id
+			FROM budgets b
+			LEFT JOIN categories c ON c.id = b.category_id
+			WHERE b.user_id = $1 AND b.deleted_at IS NULL`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("budgets query failed: %v", err)), nil
+		}
+		type budgetRow struct {
+			id, name, currency, categoryID string
+			amount                         float64
+		}
+		var budgetList []budgetRow
+		for budgetRows.Next() {
+			var br budgetRow
+			if err := budgetRows.Scan(&br.id, &br.name, &br.amount, &br.currency, &br.categoryID); err != nil {
+				budgetRows.Close()
+				return mcp.NewToolResultError(fmt.Sprintf("budget scan failed: %v", err)), nil
+			}
+			budgetList = append(budgetList, br)
+		}
+		budgetRows.Close()
+
+		var budgetStatus []map[string]any
+		for _, b := range budgetList {
+			var spent float64
+			if b.categoryID != "" {
+				_ = deps.Pool.QueryRow(ctx,
+					`SELECT COALESCE(SUM(t.amount), 0)::numeric(18,4)
+					FROM transactions t
+					WHERE t.user_id = $1 AND t.type = 'expense'
+					  AND t.category_id = $2::uuid
+					  AND t.date >= $3 AND t.date <= $4
+					  AND t.deleted_at IS NULL`,
+					userID, b.categoryID, fromDate, toDate,
+				).Scan(&spent)
+			}
+			remaining := b.amount - spent
+			spentPct := 0.0
+			if b.amount > 0 {
+				spentPct = math.Round((spent/b.amount)*100*100) / 100
+			}
+			budgetStatus = append(budgetStatus, map[string]any{
+				"budget_name": b.name,
+				"amount":      strconv.FormatFloat(b.amount, 'f', 2, 64),
+				"spent":       strconv.FormatFloat(spent, 'f', 2, 64),
+				"remaining":   strconv.FormatFloat(remaining, 'f', 2, 64),
+				"spent_pct":   spentPct,
+				"currency":    b.currency,
+			})
+		}
+		if budgetStatus == nil {
+			budgetStatus = []map[string]any{}
+		}
+
+		// --- recent transactions (last 5 in range) ---
+		txRows, err := deps.Pool.Query(ctx,
+			`SELECT t.id::text, t.type::text, t.amount::text, t.currency,
+			        COALESCE(t.title, '')::text, t.date,
+			        a.name as account_name, COALESCE(c.name, '') as category_name
+			FROM transactions t
+			JOIN accounts a ON a.id = t.account_id
+			LEFT JOIN categories c ON c.id = t.category_id
+			WHERE t.user_id = $1 AND t.deleted_at IS NULL
+			  AND t.date >= $2 AND t.date <= $3
+			ORDER BY t.date DESC, t.created_at DESC
+			LIMIT 5`,
+			userID, fromDate, toDate,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("recent transactions query failed: %v", err)), nil
+		}
+		var recentTxs []map[string]any
+		for txRows.Next() {
+			var txID, txType, txAmount, txCurrency, txTitle, txAccount, txCategory string
+			var txDate time.Time
+			if err := txRows.Scan(&txID, &txType, &txAmount, &txCurrency, &txTitle, &txDate, &txAccount, &txCategory); err != nil {
+				txRows.Close()
+				return mcp.NewToolResultError(fmt.Sprintf("transaction scan failed: %v", err)), nil
+			}
+			recentTxs = append(recentTxs, map[string]any{
+				"id":            txID,
+				"type":          txType,
+				"amount":        txAmount,
+				"currency":      txCurrency,
+				"title":         txTitle,
+				"date":          txDate.Format("2006-01-02"),
+				"account_name":  txAccount,
+				"category_name": txCategory,
+			})
+		}
+		txRows.Close()
+		if recentTxs == nil {
+			recentTxs = []map[string]any{}
+		}
+
 		result := map[string]any{
-			"total_income":    totalIncome,
-			"total_expense":   totalExpense,
-			"total_transfer":  totalTransfer,
-			"from_date":       fromDate,
-			"to_date":         toDate,
+			"total_income":        totalIncome,
+			"total_expense":       totalExpense,
+			"total_transfer":      totalTransfer,
+			"from_date":           fromDate,
+			"to_date":             toDate,
+			"category_spending":   categorySpending,
+			"account_balances":    accountBalances,
+			"budget_status":       budgetStatus,
+			"recent_transactions": recentTxs,
 		}
 		jsonData, err := json.Marshal(result)
 		if err != nil {
@@ -4294,6 +4534,330 @@ func deleteKeywordHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("keyword not found or not owned by you"), nil
 		}
 
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group SIPs: CRUD for Systematic Investment Plans
+// ============================================================================
+
+func validSipType(t string) bool {
+	switch t {
+	case "equity", "debt", "hybrid", "other":
+		return true
+	}
+	return false
+}
+
+func listSipsTool() mcp.Tool {
+	return mcp.NewTool("list_sips",
+		mcp.WithDescription("List all SIPs (Systematic Investment Plans) for the user."),
+		readOnlyAnnotation(),
+	)
+}
+
+func listSipsHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT id, name, sip_type, currency, monthly_amount, start_date,
+			        expected_return_rate, current_nav, units_accumulated, created_at, updated_at
+			FROM sips
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY created_at DESC`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, name, sipType, currency string
+			var monthlyAmount string
+			var startDate time.Time
+			var expectedReturn, currentNav, unitsAccumulated *string
+			var createdAt, updatedAt time.Time
+			if err := rows.Scan(&id, &name, &sipType, &currency, &monthlyAmount, &startDate,
+				&expectedReturn, &currentNav, &unitsAccumulated, &createdAt, &updatedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+			results = append(results, map[string]any{
+				"id":                   id,
+				"name":                 name,
+				"sip_type":             sipType,
+				"currency":             currency,
+				"monthly_amount":       monthlyAmount,
+				"start_date":           startDate.Format("2006-01-02"),
+				"expected_return_rate": expectedReturn,
+				"current_nav":          currentNav,
+				"units_accumulated":    unitsAccumulated,
+				"created_at":           createdAt.Format(time.RFC3339),
+				"updated_at":           updatedAt.Format(time.RFC3339),
+			})
+		}
+
+		jsonData, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
+	}
+}
+
+func getSipTool() mcp.Tool {
+	return mcp.NewTool("get_sip",
+		mcp.WithDescription("Get a single SIP by ID."),
+		readOnlyAnnotation(),
+		mcp.WithString("id", mcp.Required(), mcp.Description("SIP ID")),
+	)
+}
+
+func getSipHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+
+		var retID, name, sipType, currency string
+		var monthlyAmount string
+		var startDate time.Time
+		var expectedReturn, currentNav, unitsAccumulated *string
+		var createdAt, updatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`SELECT id, name, sip_type, currency, monthly_amount, start_date,
+			        expected_return_rate, current_nav, units_accumulated, created_at, updated_at
+			FROM sips
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		).Scan(&retID, &name, &sipType, &currency, &monthlyAmount, &startDate,
+			&expectedReturn, &currentNav, &unitsAccumulated, &createdAt, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("sip %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":                   retID,
+			"name":                 name,
+			"sip_type":             sipType,
+			"currency":             currency,
+			"monthly_amount":       monthlyAmount,
+			"start_date":           startDate.Format("2006-01-02"),
+			"expected_return_rate": expectedReturn,
+			"current_nav":          currentNav,
+			"units_accumulated":    unitsAccumulated,
+			"created_at":           createdAt.Format(time.RFC3339),
+			"updated_at":           updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func createSipTool() mcp.Tool {
+	return mcp.NewTool("create_sip",
+		mcp.WithDescription("Create a new SIP. sip_type is one of: equity, debt, hybrid, other. monthly_amount and start_date are required."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("SIP name (e.g. 'HDFC Flexi Cap SIP')")),
+		mcp.WithString("sip_type", mcp.Required(), mcp.Description("Type: equity, debt, hybrid, other")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithNumber("monthly_amount", mcp.Required(), mcp.Description("Monthly SIP installment amount")),
+		mcp.WithString("start_date", mcp.Required(), mcp.Description("SIP start date YYYY-MM-DD")),
+		mcp.WithNumber("expected_return_rate", mcp.Description("Expected annual return rate % (e.g. 12.5)")),
+		mcp.WithNumber("current_nav", mcp.Description("Current NAV per unit")),
+		mcp.WithNumber("units_accumulated", mcp.Description("Units accumulated so far")),
+	)
+}
+
+func createSipHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		sipType := req.GetString("sip_type", "")
+		currency := req.GetString("currency", "")
+		monthlyAmount := req.GetFloat("monthly_amount", -1)
+		startDate := req.GetString("start_date", "")
+
+		if name == "" || sipType == "" || currency == "" || monthlyAmount < 0 || startDate == "" {
+			return mcp.NewToolResultError("name, sip_type, currency, monthly_amount, and start_date are required"), nil
+		}
+		if !validSipType(sipType) {
+			return mcp.NewToolResultError("invalid sip_type. Must be one of: equity, debt, hybrid, other"), nil
+		}
+
+		expectedReturn := req.GetFloat("expected_return_rate", 0)
+		currentNav := req.GetFloat("current_nav", 0)
+		unitsAccumulated := req.GetFloat("units_accumulated", 0)
+
+		var id, retName, retType, retCurrency string
+		var retMonthly string
+		var retStart time.Time
+		var retExpected, retNav, retUnits *string
+		var createdAt, updatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO sips (user_id, name, sip_type, currency, monthly_amount, start_date,
+			                   expected_return_rate, current_nav, units_accumulated)
+			VALUES ($1, $2, $3::sip_type, $4, $5, $6::date,
+			        NULLIF($7, 0), NULLIF($8, 0), NULLIF($9, 0))
+			RETURNING id, name, sip_type, currency, monthly_amount, start_date,
+			          expected_return_rate, current_nav, units_accumulated, created_at, updated_at`,
+			userID, name, sipType, currency, monthlyAmount, startDate,
+			expectedReturn, currentNav, unitsAccumulated,
+		).Scan(&id, &retName, &retType, &retCurrency, &retMonthly, &retStart,
+			&retExpected, &retNav, &retUnits, &createdAt, &updatedAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":                   id,
+			"name":                 retName,
+			"sip_type":             retType,
+			"currency":             retCurrency,
+			"monthly_amount":       retMonthly,
+			"start_date":           retStart.Format("2006-01-02"),
+			"expected_return_rate": retExpected,
+			"current_nav":          retNav,
+			"units_accumulated":    retUnits,
+			"created_at":           createdAt.Format(time.RFC3339),
+			"updated_at":           updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateSipTool() mcp.Tool {
+	return mcp.NewTool("update_sip",
+		mcp.WithDescription("Update a SIP. id is required; other fields overwrite the stored value if provided."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("SIP ID")),
+		mcp.WithString("name", mcp.Description("SIP name")),
+		mcp.WithString("sip_type", mcp.Description("Type: equity, debt, hybrid, other")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithNumber("monthly_amount", mcp.Description("Monthly SIP amount (0 to leave unchanged)")),
+		mcp.WithString("start_date", mcp.Description("Start date YYYY-MM-DD")),
+		mcp.WithNumber("expected_return_rate", mcp.Description("Expected annual return % (0 to clear)")),
+		mcp.WithNumber("current_nav", mcp.Description("Current NAV per unit (0 to clear)")),
+		mcp.WithNumber("units_accumulated", mcp.Description("Units accumulated (0 to clear)")),
+	)
+}
+
+func updateSipHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		sipType := req.GetString("sip_type", "")
+		if sipType != "" && !validSipType(sipType) {
+			return mcp.NewToolResultError("invalid sip_type. Must be one of: equity, debt, hybrid, other"), nil
+		}
+		name := req.GetString("name", "")
+		currency := req.GetString("currency", "")
+		monthlyAmount := req.GetFloat("monthly_amount", 0)
+		startDate := req.GetString("start_date", "")
+		expectedReturn := req.GetFloat("expected_return_rate", 0)
+		currentNav := req.GetFloat("current_nav", 0)
+		unitsAccumulated := req.GetFloat("units_accumulated", 0)
+
+		var retID, retName, retType, retCurrency string
+		var retMonthly string
+		var retStart time.Time
+		var retExpected, retNav, retUnits *string
+		var updatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE sips SET
+				name = COALESCE(NULLIF($2, ''), name),
+				sip_type = COALESCE(NULLIF($3, '')::sip_type, sip_type),
+				currency = COALESCE(NULLIF($4, ''), currency),
+				monthly_amount = COALESCE(NULLIF($5, 0), monthly_amount),
+				start_date = COALESCE(NULLIF($6, '')::date, start_date),
+				expected_return_rate = NULLIF($7, 0),
+				current_nav = NULLIF($8, 0),
+				units_accumulated = NULLIF($9, 0),
+				updated_at = now()
+			WHERE id = $1 AND user_id = $10 AND deleted_at IS NULL
+			RETURNING id, name, sip_type, currency, monthly_amount, start_date,
+			          expected_return_rate, current_nav, units_accumulated, updated_at`,
+			id, name, sipType, currency, monthlyAmount, startDate,
+			expectedReturn, currentNav, unitsAccumulated, userID,
+		).Scan(&retID, &retName, &retType, &retCurrency, &retMonthly, &retStart,
+			&retExpected, &retNav, &retUnits, &updatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("sip %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":                   retID,
+			"name":                 retName,
+			"sip_type":             retType,
+			"currency":             retCurrency,
+			"monthly_amount":       retMonthly,
+			"start_date":           retStart.Format("2006-01-02"),
+			"expected_return_rate": retExpected,
+			"current_nav":          retNav,
+			"units_accumulated":    retUnits,
+			"updated_at":           updatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteSipTool() mcp.Tool {
+	return mcp.NewTool("delete_sip",
+		mcp.WithDescription("Soft-delete a SIP."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("SIP ID")),
+	)
+}
+
+func deleteSipHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE sips SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("sip %q not found (or not owned by you)", id)), nil
+		}
 		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
 	}
 }

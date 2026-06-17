@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, ShieldCheck, Calendar, Pencil, Trash2 } from "lucide-solid";
+import { Plus, ShieldCheck, Calendar, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat, pgTextToString, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -34,6 +34,13 @@ interface FullPolicy {
   renewal_date: unknown;
 }
 
+interface InsurancePayment {
+  id: string;
+  date: string;
+  amount: unknown;
+  status: string;
+}
+
 function renewalStatus(policy: Policy): "active" | "expiring" | "expired" {
   const renewal = pgDateToString(policy.end_date || policy.renewal_date);
   if (!renewal || renewal === "—") return "active";
@@ -43,11 +50,103 @@ function renewalStatus(policy: Policy): "active" | "expiring" | "expired" {
   return "active";
 }
 
+function InsurancePayments(props: { policyId: string; currency: string }) {
+  const [payments, { refetch }] = createResource(
+    () => props.policyId,
+    (id) => api.get<InsurancePayment[]>(`/v1/insurance/${id}/payments`).catch(() => [] as InsurancePayment[])
+  );
+  const [showForm, setShowForm] = createSignal(false);
+  const [payAmount, setPayAmount] = createSignal("");
+  const [payDate, setPayDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [submitting, setSubmitting] = createSignal(false);
+
+  async function handleAdd(e: SubmitEvent) {
+    e.preventDefault();
+    if (!payAmount() || !payDate()) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/v1/insurance/${props.policyId}/payments`, {
+        amount: parseFloat(payAmount()),
+        date: payDate(),
+        status: "paid",
+      });
+      setPayAmount("");
+      setShowForm(false);
+      refetch();
+    } catch {
+      alert("Failed to add payment.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const statusColor = (s: string) => s === "paid" ? "text-primary" : s === "missed" ? "text-accent" : "text-muted";
+
+  return (
+    <div class="mt-3 border-t border-surface-hover pt-3 space-y-2">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[12px] font-body font-medium text-muted uppercase tracking-wide">Payments</span>
+        <button
+          type="button"
+          onClick={() => setShowForm((s) => !s)}
+          class="text-[12px] text-primary font-medium hover:underline"
+        >
+          {showForm() ? "Cancel" : "+ Add"}
+        </button>
+      </div>
+      <Show when={showForm()}>
+        <form onSubmit={handleAdd} class="flex flex-wrap gap-2 items-end bg-bg rounded-input p-2">
+          <input
+            type="number"
+            placeholder="Amount"
+            step="0.01"
+            required
+            value={payAmount()}
+            onInput={(e) => setPayAmount(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
+          />
+          <input
+            type="date"
+            value={payDate()}
+            onInput={(e) => setPayDate(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          />
+          <button
+            type="submit"
+            disabled={submitting()}
+            class="text-sm px-3 py-1 rounded-input bg-primary text-bg font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {submitting() ? "…" : "Record"}
+          </button>
+        </form>
+      </Show>
+      <Show when={payments.loading}>
+        <p class="text-xs text-muted">Loading…</p>
+      </Show>
+      <Show when={!payments.loading && (payments() ?? []).length === 0}>
+        <p class="text-xs text-muted">No payments recorded.</p>
+      </Show>
+      <For each={payments() ?? []}>
+        {(p) => (
+          <div class="flex items-center justify-between text-sm py-1">
+            <div class="flex items-center gap-2">
+              <span class={`text-xs font-medium capitalize ${statusColor(p.status)}`}>{p.status}</span>
+              <span class="text-muted text-xs">{p.date}</span>
+            </div>
+            <span class="font-mono text-text">{formatCurrency(numericToFloat(p.amount), props.currency)}</span>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
 export default function Insurance() {
   const [policies, { refetch }] = createResource(() => api.get<Policy[]>("/v1/insurance"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editPolicy, setEditPolicy] = createSignal<FullPolicy | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
+  const [expandedId, setExpandedId] = createSignal<string | null>(null);
 
   function handleSuccess() {
     setSheetOpen(false);
@@ -80,6 +179,10 @@ export default function Insurance() {
     } catch {
       alert("Failed to delete policy.");
     }
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedId((cur) => cur === id ? null : id);
   }
 
   return (
@@ -120,6 +223,7 @@ export default function Insurance() {
               const status = renewalStatus(p);
               const provider = pgTextToString(p.provider);
               const renewalDate = pgDateToString(p.renewal_date || p.end_date);
+              const isExpanded = () => expandedId() === p.id;
               return (
                 <div class="group relative">
                   <BentoBlock variant="pressable">
@@ -149,6 +253,17 @@ export default function Insurance() {
                             <div class="font-display text-base font-semibold text-text">{renewalDate}</div>
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(p.id)}
+                          class="mt-2 flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
+                        >
+                          {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          {isExpanded() ? "Hide payments" : "View payments"}
+                        </button>
+                        <Show when={isExpanded()}>
+                          <InsurancePayments policyId={p.id} currency={p.currency} />
+                        </Show>
                       </div>
                     </div>
                   </BentoBlock>

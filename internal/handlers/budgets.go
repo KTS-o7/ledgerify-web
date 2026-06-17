@@ -156,7 +156,10 @@ func (h *BudgetHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	budgetID := stringToUUID(chi.URLParam(r, "id"))
+	budgetID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	budget, err := h.q.GetBudgetByID(r.Context(), budgetID)
@@ -169,7 +172,72 @@ func (h *BudgetHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.OK(w, budget)
+	// Enrich with spending data (same logic as List)
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	monthEnd := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location()).Add(-time.Nanosecond)
+
+	amt, _ := budget.Amount.Float64Value()
+	amount := 0.0
+	if amt.Valid {
+		amount = amt.Float64
+	}
+
+	var spent float64
+	if budget.CategoryID.Valid {
+		_ = h.pool.QueryRow(r.Context(),
+			`SELECT COALESCE(SUM(t.amount), 0)::numeric(18,4)
+			FROM transactions t
+			JOIN categories c ON c.id = t.category_id
+			WHERE t.user_id = $1 AND t.type = 'expense'
+			  AND t.category_id = $2
+			  AND t.date >= $3 AND t.date <= $4
+			  AND t.deleted_at IS NULL`,
+			userUUID, budget.CategoryID, monthStart, monthEnd,
+		).Scan(&spent)
+	}
+
+	remaining := amount - spent
+	spentPct := 0.0
+	if amount > 0 {
+		spentPct = (spent / amount) * 100
+	}
+
+	// Fetch category name/color for this budget (may be NULL)
+	var categoryName pgtype.Text
+	var categoryColor pgtype.Text
+	if budget.CategoryID.Valid {
+		_ = h.pool.QueryRow(r.Context(),
+			`SELECT COALESCE(name, ''), COALESCE(color, '') FROM categories WHERE id = $1`,
+			budget.CategoryID,
+		).Scan(&categoryName.String, &categoryColor.String)
+		categoryName.Valid = true
+		categoryColor.Valid = true
+	}
+
+	result := budgetWithSpent{
+		ID:               budget.ID,
+		UserID:           budget.UserID,
+		CategoryID:       budget.CategoryID,
+		Name:             budget.Name,
+		Amount:           budget.Amount,
+		Currency:         budget.Currency,
+		PeriodType:       budget.PeriodType,
+		StartDate:        budget.StartDate,
+		EndDate:          budget.EndDate,
+		PeriodAnchorDate: budget.PeriodAnchorDate,
+		Rollover:         budget.Rollover,
+		CreatedAt:        budget.CreatedAt,
+		UpdatedAt:        budget.UpdatedAt,
+		DeletedAt:        budget.DeletedAt,
+		CategoryName:     categoryName,
+		CategoryColor:    categoryColor,
+		Spent:            spent,
+		Remaining:        remaining,
+		SpentPct:         spentPct,
+	}
+
+	utils.OK(w, result)
 }
 
 // POST /api/v1/budgets
@@ -188,6 +256,14 @@ func (h *BudgetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if req.Name == "" || req.Amount <= 0 || req.Currency == "" || req.PeriodType == "" {
 		utils.BadRequest(w, "name, amount, currency, and period_type are required")
+		return
+	}
+
+	switch req.PeriodType {
+	case "monthly", "weekly":
+		// valid
+	default:
+		utils.BadRequest(w, "invalid period_type: must be 'monthly' or 'weekly'")
 		return
 	}
 
@@ -260,7 +336,10 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	budgetID := stringToUUID(chi.URLParam(r, "id"))
+	budgetID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userID := stringToUUID(claims.UserID)
 
 	var req updateBudgetRequest
@@ -270,6 +349,14 @@ func (h *BudgetHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Name == "" || req.Amount <= 0 || req.Currency == "" || req.PeriodType == "" {
 		utils.BadRequest(w, "name, amount, currency, and period_type are required")
+		return
+	}
+
+	switch req.PeriodType {
+	case "monthly", "weekly":
+		// valid
+	default:
+		utils.BadRequest(w, "invalid period_type: must be 'monthly' or 'weekly'")
 		return
 	}
 

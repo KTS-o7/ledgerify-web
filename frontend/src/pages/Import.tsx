@@ -3,6 +3,7 @@ import { FileUp, FileCheck, CheckCircle, AlertCircle } from "lucide-solid";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Button } from "../components/ui/button";
+import { api } from "../lib/api";
 
 interface ImportStats {
   imported: number;
@@ -31,19 +32,9 @@ export default function Import() {
     setError(null);
     setResult(null);
     try {
-      const token = localStorage.getItem("jwt_token");
       const form = new FormData();
       form.append("file", f);
-      const res = await fetch("/api/import", {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: form,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Import failed: ${res.status}`);
-      }
-      const data: ImportStats = await res.json();
+      const data = await api.upload<ImportStats>("/v1/import", form);
       setResult(data);
       setFile(null);
     } catch (e: unknown) {

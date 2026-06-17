@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/time/rate"
 
 	embedassets "github.com/KTS-o7/ledgerify-web"
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
@@ -26,6 +30,47 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/recalc"
 )
+
+// ipRateLimiters holds per-IP rate limiters. Each entry is created on first
+// access and never deleted (acceptable for low-traffic auth endpoints).
+var (
+	ipLimiters   sync.Map // map[string]*rate.Limiter
+	loginLimiter = struct {
+		r rate.Limit
+		b int
+	}{r: rate.Every(6 * time.Second), b: 10} // 10 req/min
+	refreshLimiter = struct {
+		r rate.Limit
+		b int
+	}{r: rate.Every(3 * time.Second), b: 20} // 20 req/min
+)
+
+func getIPLimiter(ip string, r rate.Limit, b int) *rate.Limiter {
+	key := fmt.Sprintf("%s:%.6f:%d", ip, float64(r), b)
+	if v, ok := ipLimiters.Load(key); ok {
+		return v.(*rate.Limiter)
+	}
+	lim := rate.NewLimiter(r, b)
+	actual, _ := ipLimiters.LoadOrStore(key, lim)
+	return actual.(*rate.Limiter)
+}
+
+func rateLimitMiddleware(r rate.Limit, b int) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ip := req.RemoteAddr
+			// chimw.RealIP has already normalised RemoteAddr to just the IP.
+			lim := getIPLimiter(ip, r, b)
+			if !lim.Allow() {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				json.NewEncoder(w).Encode(map[string]string{"error": "too many requests"})
+				return
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
 
 func spaHandler(fsys embed.FS, root string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +170,7 @@ func main() {
 	importExportHandler := handlers.NewImportExportHandler(pool, q, llmClient)
 	keywordHandler := handlers.NewKeywordHandler(pool, q)
 	_, sseServer, streamableServer := mcp.NewMCPServer(pool, jwtCfg)
-	rateHandler := handlers.NewExchangeRateHandler(q)
+	rateHandler := handlers.NewExchangeRateHandlerWithPool(q, pool)
 
 	r := chi.NewRouter()
 	r.Use(corsHandler)
@@ -144,15 +189,15 @@ func main() {
 
 	// === API ROUTES ===
 	r.Route("/api/v1/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.Register)
-		r.Post("/login", authHandler.Login)
+		r.With(rateLimitMiddleware(loginLimiter.r, loginLimiter.b)).Post("/register", authHandler.Register)
+		r.With(rateLimitMiddleware(loginLimiter.r, loginLimiter.b)).Post("/login", authHandler.Login)
 		// /refresh sits outside the auth-middleware group: it
 		// reads the bearer token from the Authorization header
 		// itself, validates it, and issues a new one. Putting
 		// it inside the middleware group would create a chicken-
 		// and-egg: the only way to get a token is to already
 		// have one.
-		r.Post("/refresh", authHandler.Refresh)
+		r.With(rateLimitMiddleware(refreshLimiter.r, refreshLimiter.b)).Post("/refresh", authHandler.Refresh)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(jwtCfg))
@@ -265,8 +310,8 @@ func main() {
 		})
 
 		r.Post("/api/v1/transactions/categorise", importExportHandler.Categorise)
-		r.Post("/api/import", importExportHandler.Import)
-		r.Get("/api/export", importExportHandler.Export)
+		r.Post("/api/v1/import", importExportHandler.Import)
+		r.Get("/api/v1/export", importExportHandler.Export)
 
 		r.Handle("/api/v1/mcp/sse", sseServer.SSEHandler())
 		r.Handle("/api/v1/mcp/message", sseServer.MessageHandler())
@@ -277,6 +322,10 @@ func main() {
 		r.Get("/mcp-connect", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/mcp", http.StatusMovedPermanently)
 		})
+
+		// Backwards-compatibility redirects for old import/export paths.
+		r.Handle("/api/import", http.RedirectHandler("/api/v1/import", http.StatusMovedPermanently))
+		r.Handle("/api/export", http.RedirectHandler("/api/v1/export", http.StatusMovedPermanently))
 
 		// SPA catch-all: serve SolidJS frontend
 		r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))

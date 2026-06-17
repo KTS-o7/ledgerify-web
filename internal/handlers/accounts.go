@@ -133,7 +133,10 @@ func (h *AccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accountID := stringToUUID(chi.URLParam(r, "id"))
+	accountID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	account, err := h.q.GetAccountByID(r.Context(), accountID)
@@ -179,7 +182,10 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accountID := stringToUUID(chi.URLParam(r, "id"))
+	accountID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	var req updateAccountRequest
@@ -234,7 +240,10 @@ func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accountID := stringToUUID(chi.URLParam(r, "id"))
+	accountID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteAccount(r.Context(), db.DeleteAccountParams{

@@ -88,7 +88,10 @@ func (h *KeywordHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userUUID := stringToUUID(claims.UserID)
-	kwID := stringToUUID(chi.URLParam(r, "id"))
+	kwID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	err := h.q.DeleteCategoryKeyword(r.Context(), db.DeleteCategoryKeywordParams{
 		ID:     kwID,

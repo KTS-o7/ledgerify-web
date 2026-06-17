@@ -4,12 +4,13 @@ import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { SegmentedControl } from "../components/ui/segmented-control";
 import { Button } from "../components/ui/button";
+import { api } from "../lib/api";
 
 type Range = "1m" | "3m" | "ytd" | "all";
 
 const FIELDS = [
   { key: "date", label: "Date" },
-  { key: "merchant", label: "Merchant" },
+  { key: "title", label: "Merchant" },
   { key: "amount", label: "Amount" },
   { key: "category", label: "Category" },
   { key: "account", label: "Account" },
@@ -30,7 +31,7 @@ function rangeToParams(range: Range): { from_date: string; to_date: string } {
 export default function Export() {
   const [range, setRange] = createSignal<Range>("3m");
   const [selected, setSelected] = createSignal<Set<string>>(
-    new Set(["date", "merchant", "amount", "category", "account"])
+    new Set(["date", "title", "amount", "category", "account"])
   );
   const [downloading, setDownloading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -49,12 +50,8 @@ export default function Export() {
     setError(null);
     try {
       const { from_date, to_date } = rangeToParams(range());
-      const token = localStorage.getItem("jwt_token");
-      const res = await fetch(`/api/export?from_date=${from_date}&to_date=${to_date}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
-      const blob = await res.blob();
+      const fields = Array.from(selected()).join(",");
+      const blob = await api.download(`/v1/export?from_date=${from_date}&to_date=${to_date}&fields=${encodeURIComponent(fields)}`);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

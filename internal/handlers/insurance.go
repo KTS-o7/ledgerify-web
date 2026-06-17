@@ -200,7 +200,10 @@ func (h *InsuranceHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	policyID := stringToUUID(chi.URLParam(r, "id"))
+	policyID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	policy, err := h.q.GetInsurancePolicyByID(r.Context(), policyID)
 	if err != nil {
 		utils.NotFound(w)
@@ -224,7 +227,10 @@ func (h *InsuranceHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	policyID := stringToUUID(chi.URLParam(r, "id"))
+	policyID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	// Verify ownership
@@ -347,7 +353,10 @@ func (h *InsuranceHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	policyID := stringToUUID(chi.URLParam(r, "id"))
+	policyID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteInsurancePolicy(r.Context(), db.DeleteInsurancePolicyParams{
@@ -370,7 +379,10 @@ func (h *InsuranceHandler) ListPayments(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	policyID := stringToUUID(chi.URLParam(r, "id"))
+	policyID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	policy, err := h.q.GetInsurancePolicyByID(r.Context(), policyID)
@@ -404,7 +416,10 @@ func (h *InsuranceHandler) CreatePayment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	policyID := stringToUUID(chi.URLParam(r, "id"))
+	policyID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	policy, err := h.q.GetInsurancePolicyByID(r.Context(), policyID)

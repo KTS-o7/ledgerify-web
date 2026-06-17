@@ -239,7 +239,10 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactionID := stringToUUID(chi.URLParam(r, "id"))
+	transactionID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	tx, err := h.q.GetTransactionByID(r.Context(), transactionID)
@@ -290,7 +293,10 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactionID := stringToUUID(chi.URLParam(r, "id"))
+	transactionID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	// Verify ownership
@@ -400,7 +406,10 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactionID := stringToUUID(chi.URLParam(r, "id"))
+	transactionID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteTransaction(r.Context(), db.DeleteTransactionParams{

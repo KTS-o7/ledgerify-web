@@ -150,7 +150,10 @@ func (h *SavingsGoalHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	goalID := stringToUUID(chi.URLParam(r, "id"))
+	goalID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	goal, err := h.q.GetSavingsGoalByID(r.Context(), db.GetSavingsGoalByIDParams{
@@ -173,7 +176,10 @@ func (h *SavingsGoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	goalID := stringToUUID(chi.URLParam(r, "id"))
+	goalID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	var req updateSavingsGoalRequest
@@ -254,7 +260,10 @@ func (h *SavingsGoalHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	goalID := stringToUUID(chi.URLParam(r, "id"))
+	goalID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteSavingsGoal(r.Context(), db.DeleteSavingsGoalParams{

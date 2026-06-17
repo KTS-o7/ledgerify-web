@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createResource, createSignal, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug } from "lucide-solid";
 import { useAuth } from "../lib/store";
@@ -27,11 +27,22 @@ function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () =
   );
 }
 
+interface MeResponse {
+  id: string;
+  name: string;
+  email: string;
+  default_currency: string;
+  timezone: string;
+}
+
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [currency, setCurrency] = createSignal(getCurrency());
   const [dateFormat, setDateFormat] = createSignal(getDateFormat());
+
+  // Fetch fresh profile data from backend
+  const [profile] = createResource(() => api.get<MeResponse>("/v1/auth/me").catch(() => null));
 
   // Change password sheet state
   const [pwSheetOpen, setPwSheetOpen] = createSignal(false);
@@ -65,18 +76,15 @@ export default function Settings() {
 
     setCatState({ mode, total: targets.length, done: 0, categorised: 0 });
     const force = mode === "all" ? "?force=true" : "";
-    let totalCategorised = 0;
 
-    for (let i = 0; i < targets.length; i++) {
-      try {
-        const res = await api.post<{ categorised: number }>(`/v1/transactions/categorise${force}`, {
-          transaction_ids: [targets[i].id],
-        });
-        totalCategorised += res.categorised;
-      } catch {
-        // silently skip failed transactions
-      }
-      setCatState({ mode, total: targets.length, done: i + 1, categorised: totalCategorised });
+    try {
+      const ids = targets.map((t) => t.id);
+      const res = await api.post<{ categorised: number }>(`/v1/transactions/categorise${force}`, {
+        transaction_ids: ids,
+      });
+      setCatState({ mode, total: targets.length, done: targets.length, categorised: res.categorised });
+    } catch {
+      setCatState({ mode, total: targets.length, done: targets.length, categorised: 0 });
     }
 
     setTimeout(() => setCatState({ mode: null, total: 0, done: 0, categorised: 0 }), 3000);
@@ -96,10 +104,32 @@ export default function Settings() {
     setDateFormat(getDateFormat());
   });
 
-  const onCurrencyChange = (e: Event) => {
+  async function handleLogout() {
+    try {
+      await api.post("/v1/auth/logout", {});
+    } catch {
+      // Ignore errors — always log out locally
+    }
+    logout();
+    navigate("/login");
+  }
+
+  const onCurrencyChange = async (e: Event) => {
     const v = (e.currentTarget as HTMLSelectElement).value;
     setCurrency(v);
     if (typeof localStorage !== "undefined") localStorage.setItem("ledgerify.currency", v);
+    // Persist to backend
+    try {
+      const currentName = profile()?.name || user()?.name || "";
+      const currentTimezone = profile()?.timezone || user()?.timezone || "UTC";
+      await api.put("/v1/auth/me", {
+        name: currentName,
+        default_currency: v,
+        timezone: currentTimezone,
+      });
+    } catch {
+      // Silently fail — localStorage update already done
+    }
   };
 
   function openPwSheet() {
@@ -154,8 +184,8 @@ export default function Settings() {
     try {
       await api.put("/v1/auth/me", {
         name: nameValue().trim(),
-        default_currency: user()?.default_currency || "INR",
-        timezone: user()?.timezone || "UTC",
+        default_currency: profile()?.default_currency || user()?.default_currency || "INR",
+        timezone: profile()?.timezone || user()?.timezone || "UTC",
       });
       updateUser({ name: nameValue().trim() });
       setNameSheetOpen(false);
@@ -176,10 +206,10 @@ export default function Settings() {
         <div class="flex flex-col gap-3">
           <BentoBlock>
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
-            <Row icon={User2} label={user()?.name || "Set your name"} onClick={() => { setNameValue(user()?.name || ""); setNameSheetOpen(true); }} />
-            <Row icon={Mail} label={user()?.email || "Email"} />
+            <Row icon={User2} label={profile()?.name || user()?.name || "Set your name"} onClick={() => { setNameValue(profile()?.name || user()?.name || ""); setNameSheetOpen(true); }} />
+            <Row icon={Mail} label={profile()?.email || user()?.email || "Email"} />
             <Row icon={KeyRound} label="Change password" onClick={openPwSheet} />
-            <Row icon={LogOut} label="Logout" danger onClick={() => { logout(); navigate("/login"); }} />
+            <Row icon={LogOut} label="Logout" danger onClick={handleLogout} />
           </BentoBlock>
           <BentoBlock>
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>

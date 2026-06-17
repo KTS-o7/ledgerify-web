@@ -78,7 +78,7 @@ func (h *SipHandler) fireRecalc(userID string) {
 func (h *SipHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *SipHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *SipHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -167,11 +167,14 @@ func (h *SipHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *SipHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	sipID := stringToUUID(chi.URLParam(r, "id"))
+	sipID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	sip, err := h.q.GetSipByID(r.Context(), sipID)
 	if err != nil {
 		utils.NotFound(w)
@@ -191,11 +194,14 @@ func (h *SipHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *SipHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	sipID := stringToUUID(chi.URLParam(r, "id"))
+	sipID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	existing, err := h.q.GetSipByID(r.Context(), sipID)
@@ -267,11 +273,14 @@ func (h *SipHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *SipHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	sipID := stringToUUID(chi.URLParam(r, "id"))
+	sipID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteSip(r.Context(), db.DeleteSipParams{

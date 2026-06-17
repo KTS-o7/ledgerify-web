@@ -1,4 +1,4 @@
-import { createResource, Show } from "solid-js";
+import { createResource, createSignal, Show } from "solid-js";
 import { BarChart3 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency } from "../lib/format";
@@ -7,17 +7,24 @@ import { BentoBlock } from "../components/ui/bento-block";
 import { Stat } from "../components/ui/stat";
 import { Sparkline } from "../components/ui/sparkline";
 import { SkeletonBlock } from "../components/ui/skeleton";
+import { MonthPicker } from "../components/ui/month-picker";
 
 interface NetWorthData { total_assets: number; total_liabilities: number; networth: number; }
 interface SummaryData { monthly_networth: Array<{ date: string; total_balance: number }>; }
 
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function ReportsNetworth() {
+  const [month, setMonth] = createSignal(currentMonth());
   const [data] = createResource(() => api.get<NetWorthData>("/v1/networth"));
-  const [summary] = createResource(() => api.get<SummaryData>("/v1/summary"));
+  const [summary] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
 
   return (
     <>
-      <PageHeader title="Net Worth Report" back />
+      <PageHeader title="Net Worth Report" back actions={<MonthPicker value={month()} onChange={setMonth} />} />
       <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3">
         <Show when={data.loading}>
           <SkeletonBlock class="col-span-1 md:col-span-12 min-h-[200px]" />

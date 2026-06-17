@@ -97,7 +97,7 @@ func parseCompoundingFrequency(s *string) db.NullCompoundingFrequency {
 func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *InvestmentHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
@@ -217,11 +217,14 @@ func (h *InvestmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	investmentID := stringToUUID(chi.URLParam(r, "id"))
+	investmentID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	investment, err := h.q.GetInvestmentByID(r.Context(), investmentID)
 	if err != nil {
 		utils.NotFound(w)
@@ -241,11 +244,14 @@ func (h *InvestmentHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	investmentID := stringToUUID(chi.URLParam(r, "id"))
+	investmentID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	// Verify ownership
@@ -349,11 +355,14 @@ func (h *InvestmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	investmentID := stringToUUID(chi.URLParam(r, "id"))
+	investmentID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteInvestment(r.Context(), db.DeleteInvestmentParams{
@@ -372,11 +381,14 @@ func (h *InvestmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	investmentID := stringToUUID(chi.URLParam(r, "id"))
+	investmentID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	investment, err := h.q.GetInvestmentByID(r.Context(), investmentID)
@@ -406,11 +418,14 @@ func (h *InvestmentHandler) ListTransactions(w http.ResponseWriter, r *http.Requ
 func (h *InvestmentHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.GetUserClaims(r)
 	if claims == nil {
-		utils.BadRequest(w, "unauthorized")
+		utils.Unauthorized(w)
 		return
 	}
 
-	investmentID := stringToUUID(chi.URLParam(r, "id"))
+	investmentID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 
 	// Verify ownership
 	investment, err := h.q.GetInvestmentByID(r.Context(), investmentID)

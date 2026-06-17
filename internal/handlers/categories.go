@@ -62,7 +62,10 @@ func (h *CategoryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categoryID := stringToUUID(chi.URLParam(r, "id"))
+	categoryID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	category, err := h.q.GetCategoryByID(r.Context(), categoryID)
 	if err != nil {
 		utils.NotFound(w)
@@ -130,7 +133,10 @@ func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categoryID := stringToUUID(chi.URLParam(r, "id"))
+	categoryID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	var req updateCategoryRequest
@@ -178,7 +184,10 @@ func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categoryID := stringToUUID(chi.URLParam(r, "id"))
+	categoryID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
 	userUUID := stringToUUID(claims.UserID)
 
 	err := h.q.DeleteCategory(r.Context(), db.DeleteCategoryParams{
