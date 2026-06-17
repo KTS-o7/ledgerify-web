@@ -41,6 +41,9 @@ function LoanPayments(props: { loanId: string; currency: string }) {
   const [showForm, setShowForm] = createSignal(false);
   const [payAmount, setPayAmount] = createSignal("");
   const [payDate, setPayDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [payStatus, setPayStatus] = createSignal("paid");
+  const [payPrincipal, setPayPrincipal] = createSignal("");
+  const [payInterest, setPayInterest] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
 
   async function handleAdd(e: SubmitEvent) {
@@ -48,12 +51,17 @@ function LoanPayments(props: { loanId: string; currency: string }) {
     if (!payAmount() || !payDate()) return;
     setSubmitting(true);
     try {
-      await api.post(`/v1/loans/${props.loanId}/payments`, {
+      const body: Record<string, unknown> = {
         amount: parseFloat(payAmount()),
         date: payDate(),
-        status: "paid",
-      });
+        status: payStatus(),
+        ...(payPrincipal() ? { principal_component: parseFloat(payPrincipal()) } : {}),
+        ...(payInterest() ? { interest_component: parseFloat(payInterest()) } : {}),
+      };
+      await api.post(`/v1/loans/${props.loanId}/payments`, body);
       setPayAmount("");
+      setPayPrincipal("");
+      setPayInterest("");
       setShowForm(false);
       refetch();
     } catch {
@@ -93,6 +101,32 @@ function LoanPayments(props: { loanId: string; currency: string }) {
             value={payDate()}
             onInput={(e) => setPayDate(e.currentTarget.value)}
             class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          />
+          <select
+            value={payStatus()}
+            onChange={(e) => setPayStatus(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          >
+            <option value="paid">Paid</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="missed">Missed</option>
+            <option value="partial">Partial</option>
+          </select>
+          <input
+            type="number"
+            placeholder="Principal component"
+            step="0.01"
+            value={payPrincipal()}
+            onInput={(e) => setPayPrincipal(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-32"
+          />
+          <input
+            type="number"
+            placeholder="Interest component"
+            step="0.01"
+            value={payInterest()}
+            onInput={(e) => setPayInterest(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-32"
           />
           <button
             type="submit"

@@ -1,6 +1,6 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { api } from "../../lib/api";
-import { numericToFloat } from "../../lib/format";
+import { numericToFloat, pgDateToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
@@ -24,6 +24,8 @@ type BudgetFormProps = {
     period_type: string;
     category_id: string | null;
     rollover: boolean;
+    start_date?: unknown;
+    end_date?: unknown;
   };
 };
 
@@ -33,11 +35,15 @@ export function BudgetForm(props: BudgetFormProps) {
     numericToFloat(props.existing?.amount)?.toString() ?? ""
   );
   const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
-  const [periodType, setPeriodType] = createSignal<"monthly" | "weekly" | "yearly">(
-    (props.existing?.period_type as "monthly" | "weekly" | "yearly") ?? "monthly"
+  const [periodType, setPeriodType] = createSignal<"monthly" | "weekly">(
+    (props.existing?.period_type as "monthly" | "weekly") ?? "monthly"
   );
   const [categoryId, setCategoryId] = createSignal(props.existing?.category_id ?? "");
   const [rollover, setRollover] = createSignal(props.existing?.rollover ?? false);
+  const [startDate, setStartDate] = createSignal(
+    pgDateToString(props.existing?.start_date) || new Date().toISOString().slice(0, 10)
+  );
+  const [endDate, setEndDate] = createSignal(pgDateToString(props.existing?.end_date) ?? "");
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -64,7 +70,11 @@ export function BudgetForm(props: BudgetFormProps) {
         currency: currency(),
         period_type: periodType(),
         rollover: rollover(),
+        start_date: startDate(),
       };
+      if (endDate()) {
+        body.end_date = endDate();
+      }
       if (categoryId()) {
         body.category_id = categoryId();
       }
@@ -120,7 +130,6 @@ export function BudgetForm(props: BudgetFormProps) {
           options={[
             { value: "monthly", label: "Monthly" },
             { value: "weekly", label: "Weekly" },
-            { value: "yearly", label: "Yearly" },
           ]}
           value={periodType()}
           onChange={(v) => setPeriodType(v)}
@@ -170,6 +179,31 @@ export function BudgetForm(props: BudgetFormProps) {
           />
           <span class="text-base text-text font-body">Roll over unused budget</span>
         </label>
+      </div>
+
+      <div>
+        <label for="budget-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          Start Date
+        </label>
+        <Input
+          id="budget-start-date"
+          type="date"
+          value={startDate()}
+          onInput={(e) => setStartDate(e.currentTarget.value)}
+          required
+        />
+      </div>
+
+      <div>
+        <label for="budget-end-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          End Date (optional)
+        </label>
+        <Input
+          id="budget-end-date"
+          type="date"
+          value={endDate()}
+          onInput={(e) => setEndDate(e.currentTarget.value)}
+        />
       </div>
 
       <Show when={error()}>

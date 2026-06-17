@@ -32,6 +32,9 @@ interface FullPolicy {
   coverage_amount: unknown;
   currency: string;
   renewal_date: unknown;
+  start_date: unknown;
+  nominee: unknown;
+  notes: unknown;
 }
 
 interface InsurancePayment {
@@ -58,6 +61,7 @@ function InsurancePayments(props: { policyId: string; currency: string }) {
   const [showForm, setShowForm] = createSignal(false);
   const [payAmount, setPayAmount] = createSignal("");
   const [payDate, setPayDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [payStatus, setPayStatus] = createSignal("paid");
   const [submitting, setSubmitting] = createSignal(false);
 
   async function handleAdd(e: SubmitEvent) {
@@ -68,7 +72,7 @@ function InsurancePayments(props: { policyId: string; currency: string }) {
       await api.post(`/v1/insurance/${props.policyId}/payments`, {
         amount: parseFloat(payAmount()),
         date: payDate(),
-        status: "paid",
+        status: payStatus(),
       });
       setPayAmount("");
       setShowForm(false);
@@ -111,6 +115,15 @@ function InsurancePayments(props: { policyId: string; currency: string }) {
             onInput={(e) => setPayDate(e.currentTarget.value)}
             class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
           />
+          <select
+            value={payStatus()}
+            onChange={(e) => setPayStatus(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
+          >
+            <option value="paid">Paid</option>
+            <option value="due">Due</option>
+            <option value="missed">Missed</option>
+          </select>
           <button
             type="submit"
             disabled={submitting()}
@@ -310,6 +323,9 @@ export default function Insurance() {
                 coverage_amount: p().coverage_amount,
                 currency: p().currency,
                 renewal_date: p().renewal_date,
+                start_date: p().start_date,
+                nominee: p().nominee,
+                notes: p().notes,
               }}
               onSuccess={handleEditSuccess}
               onClose={closeEdit}

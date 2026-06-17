@@ -20,6 +20,7 @@ interface SavingsGoal {
   currency: string;
   deadline: unknown;
   status: "active" | "achieved" | "abandoned";
+  linked_account_id: unknown;
 }
 
 export default function Savings() {
@@ -167,6 +168,8 @@ export default function Savings() {
                 currency: g().currency,
                 deadline: g().deadline,
                 status: g().status,
+                description: g().description,
+                linked_account_id: g().linked_account_id,
               }}
               onSuccess={handleEditSuccess}
               onClose={closeEdit}

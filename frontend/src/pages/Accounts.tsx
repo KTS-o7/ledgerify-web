@@ -11,7 +11,17 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
 import { AccountForm } from "../components/forms/account-form";
 
-interface Account { id: string; name: string; type: string; currency: string; balance: number; }
+interface Account { id: string; name: string; type: string; currency: string; balance: number; credit_limit?: number | null; }
+
+interface FullAccount {
+  id: string;
+  name: string;
+  type: string;
+  currency: string;
+  credit_limit?: number | null;
+  statement_day?: number | null;
+  payment_due_day?: number | null;
+}
 
 function accountIcon(type: string) {
   switch (type) {
@@ -34,12 +44,22 @@ export default function Accounts() {
   const navigate = useNavigate();
   const [accounts, { refetch }] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
-  const [editAccount, setEditAccount] = createSignal<Account | null>(null);
+  const [editAccount, setEditAccount] = createSignal<FullAccount | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
 
   function openSheet() { setSheetOpen(true); }
   function closeSheet() { setSheetOpen(false); }
   function handleSuccess() { closeSheet(); refetch(); }
+
+  async function openEdit(id: string) {
+    try {
+      const full = await api.get<FullAccount>(`/v1/accounts/${id}`);
+      setEditAccount(full);
+      setEditSheetOpen(true);
+    } catch {
+      alert("Failed to load account.");
+    }
+  }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete "${name}"? All transactions linked to this account will be affected.`)) return;
@@ -87,9 +107,9 @@ export default function Accounts() {
                     />
                   </BentoBlock>
                   <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button
+                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditAccount(a); setEditSheetOpen(true); }}
+                      onClick={(e) => { e.stopPropagation(); openEdit(accountId); }}
                       aria-label={`Edit ${a.name}`}
                       class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                     >
@@ -127,7 +147,15 @@ export default function Accounts() {
             const accountId = typeof acct().id === 'string' ? acct().id : (acct().id as any)?.String ?? '';
             return (
               <AccountForm
-                existing={{ id: accountId, name: acct().name, type: acct().type, currency: acct().currency }}
+                existing={{
+                  id: accountId,
+                  name: acct().name,
+                  type: acct().type,
+                  currency: acct().currency,
+                  credit_limit: acct().credit_limit,
+                  statement_day: acct().statement_day,
+                  payment_due_day: acct().payment_due_day,
+                }}
                 onSuccess={() => { setEditSheetOpen(false); setEditAccount(null); refetch(); }}
                 onClose={() => { setEditSheetOpen(false); setEditAccount(null); }}
               />

@@ -53,6 +53,9 @@ function InvestmentTransactions(props: { investmentId: string; currency: string 
   const [showForm, setShowForm] = createSignal(false);
   const [txType, setTxType] = createSignal("buy");
   const [txAmount, setTxAmount] = createSignal("");
+  const [txQuantity, setTxQuantity] = createSignal("");
+  const [txPrice, setTxPrice] = createSignal("");
+  const [txNote, setTxNote] = createSignal("");
   const [txDate, setTxDate] = createSignal(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = createSignal(false);
 
@@ -61,12 +64,19 @@ function InvestmentTransactions(props: { investmentId: string; currency: string 
     if (!txAmount() || !txDate()) return;
     setSubmitting(true);
     try {
-      await api.post(`/v1/investments/${props.investmentId}/transactions`, {
+      const body: Record<string, unknown> = {
         type: txType(),
         amount: parseFloat(txAmount()),
         date: txDate(),
-      });
+        ...(txQuantity() ? { quantity: parseFloat(txQuantity()) } : {}),
+        ...(txPrice() ? { price: parseFloat(txPrice()) } : {}),
+        ...(txNote() ? { note: txNote() } : {}),
+      };
+      await api.post(`/v1/investments/${props.investmentId}/transactions`, body);
       setTxAmount("");
+      setTxQuantity("");
+      setTxPrice("");
+      setTxNote("");
       setShowForm(false);
       refetch();
     } catch {
@@ -109,6 +119,29 @@ function InvestmentTransactions(props: { investmentId: string; currency: string 
             value={txAmount()}
             onInput={(e) => setTxAmount(e.currentTarget.value)}
             class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
+          />
+          <input
+            type="number"
+            placeholder="Quantity"
+            step="any"
+            value={txQuantity()}
+            onInput={(e) => setTxQuantity(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-24"
+          />
+          <input
+            type="number"
+            placeholder="Price per unit"
+            step="0.01"
+            value={txPrice()}
+            onInput={(e) => setTxPrice(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
+          />
+          <input
+            type="text"
+            placeholder="Note"
+            value={txNote()}
+            onInput={(e) => setTxNote(e.currentTarget.value)}
+            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-36"
           />
           <input
             type="date"

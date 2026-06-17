@@ -33,6 +33,7 @@ type TransactionFormProps = {
     title?: string;
     note?: string;
     account_id: string;
+    transfer_to_id?: string;
   };
 };
 
@@ -47,6 +48,7 @@ export function TransactionForm(props: TransactionFormProps) {
   const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? "expense");
   const [amount, setAmount] = createSignal(props.existing?.amount ?? "");
   const [accountId, setAccountId] = createSignal(props.existing?.account_id ?? "");
+  const [transferToId, setTransferToId] = createSignal(props.existing?.transfer_to_id ?? "");
   const [categoryId, setCategoryId] = createSignal(props.existing?.category_id ?? "");
   const [title, setTitle] = createSignal(props.existing?.title ?? "");
   const [date, setDate] = createSignal(props.existing?.date ?? todayISO());
@@ -85,7 +87,7 @@ export function TransactionForm(props: TransactionFormProps) {
 
     setSubmitting(true);
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         account_id: accountId(),
         type: txType(),
         amount: amt,
@@ -94,6 +96,7 @@ export function TransactionForm(props: TransactionFormProps) {
         ...(categoryId() ? { category_id: categoryId() } : {}),
         ...(title() ? { title: title() } : {}),
         ...(note() ? { note: note() } : {}),
+        ...(txType() === "transfer" && transferToId() ? { transfer_to_id: transferToId() } : {}),
       };
       if (props.existing) {
         await api.put(`/v1/transactions/${props.existing.id}`, body);
@@ -156,6 +159,30 @@ export function TransactionForm(props: TransactionFormProps) {
           </Select>
         </Show>
       </div>
+
+      {/* To Account (transfer only) */}
+      <Show when={txType() === "transfer"}>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">To Account</label>
+          <Show when={accounts.loading}>
+            <Select disabled>
+              <option>Loading…</option>
+            </Select>
+          </Show>
+          <Show when={!accounts.loading}>
+            <Select
+              value={transferToId()}
+              onChange={(e) => setTransferToId(e.currentTarget.value)}
+              required
+            >
+              <option value="">Select destination account…</option>
+              <For each={(accounts() ?? []).filter((acc) => acc.id !== accountId())}>
+                {(acc) => <option value={acc.id}>{acc.name}</option>}
+              </For>
+            </Select>
+          </Show>
+        </div>
+      </Show>
 
       {/* Category */}
       <div class="flex flex-col gap-1.5">

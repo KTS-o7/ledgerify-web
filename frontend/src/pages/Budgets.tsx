@@ -22,6 +22,8 @@ interface Budget {
   remaining: number;
   spent_pct: number;
   rollover: boolean;
+  start_date: unknown;   // pgtype.Date
+  end_date: unknown;     // pgtype.Date
 }
 
 export default function Budgets() {
@@ -168,6 +170,8 @@ export default function Budgets() {
                 period_type: b().period_type,
                 category_id: b().category_id,
                 rollover: b().rollover,
+                start_date: b().start_date,
+                end_date: b().end_date,
               }}
               onSuccess={handleEditSuccess}
               onClose={closeEdit}

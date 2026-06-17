@@ -1,6 +1,6 @@
-import { createSignal, For, Show } from "solid-js";
+import { createResource, createSignal, For, Show } from "solid-js";
 import { api } from "../../lib/api";
-import { numericToFloat, pgDateToString } from "../../lib/format";
+import { numericToFloat, pgDateToString, pgTextToString } from "../../lib/format";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { SegmentedControl } from "../ui/segmented-control";
@@ -16,6 +16,11 @@ const CURRENCY_OPTIONS = ["INR", "USD", "EUR", "GBP"];
 
 type GoalStatus = "active" | "achieved" | "abandoned";
 
+type Account = {
+  id: string;
+  name: string;
+};
+
 type SavingsFormProps = {
   onSuccess: () => void;
   onClose: () => void;
@@ -27,6 +32,8 @@ type SavingsFormProps = {
     currency: string;
     deadline: unknown;
     status: GoalStatus;
+    description?: unknown;
+    linked_account_id?: unknown;
   };
 };
 
@@ -41,6 +48,12 @@ export function SavingsForm(props: SavingsFormProps) {
   const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
   const [deadline, setDeadline] = createSignal(pgDateToString(props.existing?.deadline) ?? "");
   const [status, setStatus] = createSignal<GoalStatus>(props.existing?.status ?? "active");
+  const [description, setDescription] = createSignal(pgTextToString(props.existing?.description) ?? "");
+  const [linkedAccountId, setLinkedAccountId] = createSignal(
+    (props.existing?.linked_account_id as string) ?? ""
+  );
+
+  const [accounts] = createResource(() => api.get<Account[]>("/v1/accounts").catch(() => [] as Account[]));
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -62,6 +75,8 @@ export function SavingsForm(props: SavingsFormProps) {
       if (targetAmount()) body.target_amount = parseFloat(targetAmount());
       if (currentAmount()) body.current_amount = parseFloat(currentAmount());
       if (deadline()) body.deadline = deadline();
+      if (description().trim()) body.description = description().trim();
+      if (linkedAccountId()) body.linked_account_id = linkedAccountId();
       if (props.existing) {
         await api.put(`/v1/savings/${props.existing.id}`, body);
       } else {
@@ -136,6 +151,35 @@ export function SavingsForm(props: SavingsFormProps) {
           value={deadline()}
           onInput={(e) => setDeadline(e.currentTarget.value)}
         />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-muted" for="sg-description">Description</label>
+        <textarea
+          id="sg-description"
+          rows={3}
+          placeholder="Optional notes about this goal…"
+          value={description()}
+          onInput={(e) => setDescription(e.currentTarget.value)}
+          class="w-full rounded-input border border-border bg-surface px-3 py-2 text-base text-text font-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg resize-none"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-muted" for="sg-linked-account">
+          Linked Account
+          <span class="ml-1 text-muted font-normal normal-case text-xs">(Optional — auto-syncs balance)</span>
+        </label>
+        <Select
+          id="sg-linked-account"
+          value={linkedAccountId()}
+          onChange={(e) => setLinkedAccountId((e.currentTarget as HTMLSelectElement).value)}
+        >
+          <option value="">No linked account</option>
+          <For each={accounts() ?? []}>
+            {(acc) => <option value={acc.id}>{acc.name}</option>}
+          </For>
+        </Select>
       </div>
 
       <div class="flex flex-col gap-1">

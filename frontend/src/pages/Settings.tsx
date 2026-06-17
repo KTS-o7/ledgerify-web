@@ -1,6 +1,6 @@
-import { createResource, createSignal, onMount, Show } from "solid-js";
+import { createResource, createSignal, createEffect, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug } from "lucide-solid";
+import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug, Clock } from "lucide-solid";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -40,6 +40,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [currency, setCurrency] = createSignal(getCurrency());
   const [dateFormat, setDateFormat] = createSignal(getDateFormat());
+  const [timezone, setTimezone] = createSignal("UTC");
 
   // Fetch fresh profile data from backend
   const [profile] = createResource(() => api.get<MeResponse>("/v1/auth/me").catch(() => null));
@@ -104,6 +105,12 @@ export default function Settings() {
     setDateFormat(getDateFormat());
   });
 
+  // Sync timezone from profile when it loads
+  createEffect(() => {
+    const tz = profile()?.timezone;
+    if (tz) setTimezone(tz);
+  });
+
   async function handleLogout() {
     try {
       await api.post("/v1/auth/logout", {});
@@ -121,7 +128,7 @@ export default function Settings() {
     // Persist to backend
     try {
       const currentName = profile()?.name || user()?.name || "";
-      const currentTimezone = profile()?.timezone || user()?.timezone || "UTC";
+      const currentTimezone = timezone();
       await api.put("/v1/auth/me", {
         name: currentName,
         default_currency: v,
@@ -129,6 +136,22 @@ export default function Settings() {
       });
     } catch {
       // Silently fail — localStorage update already done
+    }
+  };
+
+  const onTimezoneChange = async (e: Event) => {
+    const v = (e.currentTarget as HTMLSelectElement).value;
+    setTimezone(v);
+    try {
+      const currentName = profile()?.name || user()?.name || "";
+      const currentCurrency = currency();
+      await api.put("/v1/auth/me", {
+        name: currentName,
+        default_currency: currentCurrency,
+        timezone: v,
+      });
+    } catch {
+      // Silently fail
     }
   };
 
@@ -185,7 +208,7 @@ export default function Settings() {
       await api.put("/v1/auth/me", {
         name: nameValue().trim(),
         default_currency: profile()?.default_currency || user()?.default_currency || "INR",
-        timezone: profile()?.timezone || user()?.timezone || "UTC",
+        timezone: timezone(),
       });
       updateUser({ name: nameValue().trim() });
       setNameSheetOpen(false);
@@ -234,6 +257,22 @@ export default function Settings() {
                 <option value="MMM DD">MMM DD</option>
                 <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+              </Select>
+            </div>
+            <div class="flex items-center gap-3 h-14">
+              <Clock size={18} class="text-muted" />
+              <label for="settings-timezone" class="flex-1 font-body text-base text-text">Timezone</label>
+              <Select id="settings-timezone" class="w-44" value={timezone()} onChange={onTimezoneChange}>
+                <option value="UTC">UTC</option>
+                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                <option value="America/New_York">America/New_York</option>
+                <option value="America/Chicago">America/Chicago</option>
+                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="Europe/Paris">Europe/Paris</option>
+                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                <option value="Asia/Singapore">Asia/Singapore</option>
+                <option value="Australia/Sydney">Australia/Sydney</option>
               </Select>
             </div>
           </BentoBlock>

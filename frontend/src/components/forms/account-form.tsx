@@ -13,6 +13,9 @@ type AccountFormProps = {
     name: string;
     type: string;
     currency: string;
+    credit_limit?: number | null;
+    statement_day?: number | null;
+    payment_due_day?: number | null;
   };
 };
 
@@ -21,6 +24,15 @@ export function AccountForm(props: AccountFormProps) {
   const [type, setType] = createSignal(props.existing?.type ?? "bank");
   const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
   const [openingBalance, setOpeningBalance] = createSignal("");
+  const [creditLimit, setCreditLimit] = createSignal(
+    props.existing?.credit_limit != null ? String(props.existing.credit_limit) : ""
+  );
+  const [statementDay, setStatementDay] = createSignal(
+    props.existing?.statement_day != null ? String(props.existing.statement_day) : ""
+  );
+  const [paymentDueDay, setPaymentDueDay] = createSignal(
+    props.existing?.payment_due_day != null ? String(props.existing.payment_due_day) : ""
+  );
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -35,17 +47,26 @@ export function AccountForm(props: AccountFormProps) {
 
     setSubmitting(true);
     try {
+      const creditCardFields: Record<string, unknown> = {};
+      if (type() === "credit_card") {
+        if (creditLimit() !== "") creditCardFields.credit_limit = parseFloat(creditLimit());
+        if (statementDay() !== "") creditCardFields.statement_day = parseFloat(statementDay());
+        if (paymentDueDay() !== "") creditCardFields.payment_due_day = parseFloat(paymentDueDay());
+      }
+
       if (props.existing) {
         await api.put(`/v1/accounts/${props.existing.id}`, {
           name: name().trim(),
           type: type(),
           currency: currency(),
+          ...creditCardFields,
         });
       } else {
         const body: Record<string, unknown> = {
           name: name().trim(),
           type: type(),
           currency: currency(),
+          ...creditCardFields,
         };
         const bal = openingBalance().trim();
         if (bal !== "") {
@@ -124,6 +145,53 @@ export function AccountForm(props: AccountFormProps) {
             placeholder="0"
             value={openingBalance()}
             onInput={(e) => setOpeningBalance(e.currentTarget.value)}
+          />
+        </div>
+      </Show>
+
+      <Show when={type() === "credit_card"}>
+        <div>
+          <label for="account-credit-limit" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Credit Limit
+          </label>
+          <Input
+            id="account-credit-limit"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0"
+            value={creditLimit()}
+            onInput={(e) => setCreditLimit(e.currentTarget.value)}
+          />
+        </div>
+        <div>
+          <label for="account-statement-day" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Statement Day
+          </label>
+          <Input
+            id="account-statement-day"
+            type="number"
+            min="1"
+            max="31"
+            step="1"
+            placeholder="e.g. 1"
+            value={statementDay()}
+            onInput={(e) => setStatementDay(e.currentTarget.value)}
+          />
+        </div>
+        <div>
+          <label for="account-payment-due-day" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+            Payment Due Day
+          </label>
+          <Input
+            id="account-payment-due-day"
+            type="number"
+            min="1"
+            max="31"
+            step="1"
+            placeholder="e.g. 15"
+            value={paymentDueDay()}
+            onInput={(e) => setPaymentDueDay(e.currentTarget.value)}
           />
         </div>
       </Show>

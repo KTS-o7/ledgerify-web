@@ -39,6 +39,7 @@ type createTransactionRequest struct {
 	Note            string   `json:"note"`
 	Date            string   `json:"date"`
 	Tags            []string `json:"tags"`
+	TransferToID    string   `json:"transfer_to_id"`
 }
 
 type updateTransactionRequest struct {
@@ -197,6 +198,12 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		categoryID = stringToUUID(req.CategoryID)
 	}
 
+	// Parse optional transfer destination account
+	var transferToID pgtype.UUID
+	if req.TransferToID != "" {
+		transferToID = stringToUUID(req.TransferToID)
+	}
+
 	transaction, err := h.q.CreateTransaction(r.Context(), db.CreateTransactionParams{
 		UserID:          userUUID,
 		AccountID:       accountUUID,
@@ -209,6 +216,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Title:           pgtype.Text{String: req.Title, Valid: req.Title != ""},
 		Note:            pgtype.Text{String: req.Note, Valid: req.Note != ""},
 		Date:            pgtype.Date{Time: parsedDate, Valid: true},
+		TransferToID:    transferToID,
 	})
 	if err != nil {
 		utils.InternalError(w)

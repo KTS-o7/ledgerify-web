@@ -21,6 +21,9 @@ type InsuranceFormProps = {
     coverage_amount: unknown;
     currency: string;
     renewal_date: unknown;
+    start_date?: unknown;
+    nominee?: unknown;
+    notes?: unknown;
   };
 };
 
@@ -45,6 +48,9 @@ export function InsuranceForm(props: InsuranceFormProps) {
   );
   const [currency, setCurrency] = createSignal(props.existing?.currency ?? "INR");
   const [renewalDate, setRenewalDate] = createSignal(pgDateToString(props.existing?.renewal_date) ?? "");
+  const [startDate, setStartDate] = createSignal(pgDateToString(props.existing?.start_date) ?? "");
+  const [nominee, setNominee] = createSignal(pgTextToString(props.existing?.nominee) ?? "");
+  const [notes, setNotes] = createSignal(pgTextToString(props.existing?.notes) ?? "");
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -69,6 +75,9 @@ export function InsuranceForm(props: InsuranceFormProps) {
         ...(premiumAmount() !== "" ? { premium_amount: parseFloat(premiumAmount()) } : {}),
         ...(coverageAmount() !== "" ? { coverage_amount: parseFloat(coverageAmount()) } : {}),
         ...(renewalDate() ? { renewal_date: renewalDate() } : {}),
+        ...(startDate() ? { start_date: startDate() } : {}),
+        ...(nominee().trim() ? { nominee: nominee().trim() } : {}),
+        ...(notes().trim() ? { notes: notes().trim() } : {}),
       };
       if (props.existing) {
         await api.put(`/v1/insurance/${props.existing.id}`, body);
@@ -209,6 +218,47 @@ export function InsuranceForm(props: InsuranceFormProps) {
           onInput={(e) => setRenewalDate(e.currentTarget.value)}
         />
       </div>
+
+      {/* Start Date */}
+      <div>
+        <label for="ins-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          Start Date
+        </label>
+        <Input
+          id="ins-start-date"
+          type="date"
+          value={startDate()}
+          onInput={(e) => setStartDate(e.currentTarget.value)}
+        />
+      </div>
+
+      {/* Nominee */}
+      <div>
+        <label for="ins-nominee" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          Nominee
+        </label>
+        <Input
+          id="ins-nominee"
+          type="text"
+          placeholder="e.g. Spouse name"
+          value={nominee()}
+          onInput={(e) => setNominee(e.currentTarget.value)}
+        />
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label for="ins-notes" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          Notes
+        </label>
+        <textarea
+          id="ins-notes"
+          rows={3}
+          placeholder="Any additional notes…"
+          value={notes()}
+          onInput={(e) => setNotes(e.currentTarget.value)}
+          class="w-full rounded-input border border-border bg-surface px-3 py-2 text-base text-text font-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg resize-none"
+        /></div>
 
       <Show when={error()}>
         <p class="text-accent text-sm">{error()}</p>

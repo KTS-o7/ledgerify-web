@@ -31,6 +31,7 @@ interface FullTx {
   category_id: string | null;
   title: string;
   note: string;
+  transfer_to_id?: string | null;
 }
 
 function categoryIcon(category: string) {
@@ -235,6 +236,7 @@ export default function Transactions() {
                 category_id: tx().category_id ?? undefined,
                 title: tx().title,
                 note: tx().note,
+                transfer_to_id: tx().transfer_to_id ?? undefined,
               }}
               onSuccess={() => { setEditSheetOpen(false); setEditTx(null); refetch(); }}
               onClose={() => { setEditSheetOpen(false); setEditTx(null); }}
