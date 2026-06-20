@@ -34,13 +34,14 @@ type BudgetStatusItem struct {
 }
 
 type SummaryResponse struct {
-	TotalIncome        float64                         `json:"total_income"`
-	TotalExpenses      float64                         `json:"total_expenses"`
-	CategorySpending   []db.CategorySpendingRow        `json:"category_spending"`
-	MonthlyNetworth    []db.MonthlyNetworthRow         `json:"monthly_networth"`
-	RecentTransactions []db.ListTransactionsByUserRow  `json:"recent_transactions"`
-	AccountBalances    []db.UserAccountBalance         `json:"account_balances"`
-	BudgetStatus       []BudgetStatusItem              `json:"budget_status"`
+	TotalIncome              float64                        `json:"total_income"`
+	TotalExpenses            float64                        `json:"total_expenses"`
+	CategorySpending         []db.CategorySpendingRow       `json:"category_spending"`
+	IncomeCategorySpending   []db.CategorySpendingRow       `json:"income_category_spending"`
+	MonthlyNetworth          []db.MonthlyNetworthRow        `json:"monthly_networth"`
+	RecentTransactions       []db.ListTransactionsByUserRow `json:"recent_transactions"`
+	AccountBalances          []db.UserAccountBalance        `json:"account_balances"`
+	BudgetStatus             []BudgetStatusItem             `json:"budget_status"`
 }
 
 // GET /api/v1/summary
@@ -83,6 +84,12 @@ func (h *SummaryHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		categorySpending = []db.CategorySpendingRow{}
 	}
 
+	// Income category spending (this month)
+	incomeCategorySpending, err := h.cq.GetIncomeCategorySpending(r.Context(), userID, monthStart, monthEnd)
+	if err != nil {
+		incomeCategorySpending = []db.CategorySpendingRow{}
+	}
+
 	// Monthly networth
 	monthlyNetworth, err := h.cq.GetMonthlyNetworth(r.Context(), userID, sixMonthsAgo, monthEnd)
 	if err != nil {
@@ -114,13 +121,14 @@ func (h *SummaryHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	budgetStatus := h.computeBudgetStatus(r.Context(), userUUID, monthStart, monthEnd)
 
 	utils.OK(w, SummaryResponse{
-		TotalIncome:        math.Round(totalIncome*100) / 100,
-		TotalExpenses:      math.Round(totalExpenses*100) / 100,
-		CategorySpending:   categorySpending,
-		MonthlyNetworth:    monthlyNetworth,
-		RecentTransactions: recentTxs,
-		AccountBalances:    accountBalances,
-		BudgetStatus:       budgetStatus,
+		TotalIncome:            math.Round(totalIncome*100) / 100,
+		TotalExpenses:          math.Round(totalExpenses*100) / 100,
+		CategorySpending:       categorySpending,
+		IncomeCategorySpending: incomeCategorySpending,
+		MonthlyNetworth:        monthlyNetworth,
+		RecentTransactions:     recentTxs,
+		AccountBalances:        accountBalances,
+		BudgetStatus:           budgetStatus,
 	})
 }
 

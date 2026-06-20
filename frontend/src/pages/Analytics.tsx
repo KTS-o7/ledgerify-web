@@ -18,6 +18,7 @@ interface SummaryData {
   total_income: number;
   total_expenses: number;
   category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
+  income_category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
 }
 
 function categoryIcon(name: string) {
@@ -49,7 +50,9 @@ export default function Analytics() {
   const segments = createMemo((): Array<DonutSegment & { icon: ReturnType<typeof categoryIcon> }> => {
     const data = summary();
     if (!data) return [];
-    const rows = data.category_spending ?? [];
+    const rows = mode() === "income"
+      ? (data.income_category_spending ?? [])
+      : (data.category_spending ?? []);
     return rows.map((r) => ({
       label: r.category_name,
       value: r.total,
@@ -82,11 +85,17 @@ export default function Analytics() {
         <Show when={!summary.loading && summary()}>
           <BentoBlock class="col-span-1 md:col-span-5 flex flex-col items-center justify-center min-h-[360px]">
             <Show
-              when={mode() === "expense" ? segments().length > 0 : true}
-              fallback={<EmptyState icon={MoreHorizontal} title="No spending data" body="Add transactions to see category breakdown." />}
+              when={segments().length > 0}
+              fallback={
+                <EmptyState
+                  icon={MoreHorizontal}
+                  title={mode() === "income" ? "No income data" : "No spending data"}
+                  body={mode() === "income" ? "Add income transactions to see category breakdown." : "Add transactions to see category breakdown."}
+                />
+              }
             >
               <DonutChart
-                segments={mode() === "income" ? [] : segments()}
+                segments={segments()}
                 centerLabel={mode() === "expense" ? "Total Spent" : "Total Income"}
                 centerValue={formatCurrency(mode() === "expense" ? (summary()?.total_expenses ?? 0) : (summary()?.total_income ?? 0))}
                 centerTrend={undefined}
@@ -99,53 +108,52 @@ export default function Analytics() {
           </BentoBlock>
           <BentoBlock class="col-span-1 md:col-span-7 flex flex-col min-h-[360px]">
             <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-4 block">By Category</span>
-            <Show when={mode() === "income"}>
-              <p class="text-sm text-muted py-4 text-center">Income breakdown by category is not available.</p>
-            </Show>
-            <Show when={mode() === "expense"}>
-              <Show
-                when={segments().length > 0}
-                fallback={<p class="text-sm text-muted py-4 text-center">No categories yet.</p>}
-              >
-                <ul class="flex flex-col gap-4 flex-1">
-                  <For each={segments()}>
-                    {(seg, i) => {
-                      const Icon = seg.icon;
-                      const pct = () => total() > 0 ? (seg.value / total()) * 100 : 0;
-                      const isActive = () => highlight() === null || highlight() === i();
-                      return (
-                        <li
-                          onMouseEnter={() => setHighlight(i())}
-                          onMouseLeave={() => setHighlight(null)}
-                          class={cn(
-                            "flex items-center gap-3 transition-opacity motion-reduce:transition-none",
-                            !isActive() && "opacity-30"
-                          )}
-                        >
-                          <div class="w-9 h-9 rounded-lg bg-bg flex items-center justify-center text-muted flex-shrink-0">
-                            <Icon size={18} />
+            <Show
+              when={segments().length > 0}
+              fallback={
+                <p class="text-sm text-muted py-4 text-center">
+                  {mode() === "income" ? "No income categories this month." : "No categories yet."}
+                </p>
+              }
+            >
+              <ul class="flex flex-col gap-4 flex-1">
+                <For each={segments()}>
+                  {(seg, i) => {
+                    const Icon = seg.icon;
+                    const pct = () => total() > 0 ? (seg.value / total()) * 100 : 0;
+                    const isActive = () => highlight() === null || highlight() === i();
+                    return (
+                      <li
+                        onMouseEnter={() => setHighlight(i())}
+                        onMouseLeave={() => setHighlight(null)}
+                        class={cn(
+                          "flex items-center gap-3 transition-opacity motion-reduce:transition-none",
+                          !isActive() && "opacity-30"
+                        )}
+                      >
+                        <div class="w-9 h-9 rounded-lg bg-bg flex items-center justify-center text-muted flex-shrink-0">
+                          <Icon size={18} />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between mb-1.5">
+                            <span class="font-body text-sm text-text">{seg.label}</span>
+                            <span class="font-display text-sm font-semibold text-text">{formatCurrency(seg.value)}</span>
                           </div>
-                          <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between mb-1.5">
-                              <span class="font-body text-sm text-text">{seg.label}</span>
-                              <span class="font-display text-sm font-semibold text-text">{formatCurrency(seg.value)}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                              <CategoryBar
-                                value={pct() / 100}
-                                color={isActive() ? "var(--color-primary)" : "var(--color-muted)"}
-                                trackColor="bg-bg"
-                                class="flex-1"
-                              />
-                              <span class="text-[12px] font-mono text-muted w-10 text-right">{pct().toFixed(0)}%</span>
-                            </div>
+                          <div class="flex items-center gap-2">
+                            <CategoryBar
+                              value={pct() / 100}
+                              color={isActive() ? "var(--color-primary)" : "var(--color-muted)"}
+                              trackColor="bg-bg"
+                              class="flex-1"
+                            />
+                            <span class="text-[12px] font-mono text-muted w-10 text-right">{pct().toFixed(0)}%</span>
                           </div>
-                        </li>
-                      );
-                    }}
-                  </For>
-                </ul>
-              </Show>
+                        </div>
+                      </li>
+                    );
+                  }}
+                </For>
+              </ul>
             </Show>
           </BentoBlock>
         </Show>

@@ -51,6 +51,32 @@ func (q *CustomQueries) GetCategorySpending(ctx context.Context, userID string, 
 	return result, rows.Err()
 }
 
+func (q *CustomQueries) GetIncomeCategorySpending(ctx context.Context, userID string, fromDate, toDate time.Time) ([]CategorySpendingRow, error) {
+	rows, err := q.pool.Query(ctx, `
+		SELECT c.id, c.name, c.color, COALESCE(SUM(t.amount), 0)::numeric(18,4) as total
+		FROM transactions t
+		JOIN categories c ON c.id = t.category_id
+		WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.type = 'income'
+		  AND t.date >= $2 AND t.date <= $3
+		GROUP BY c.id, c.name, c.color
+		ORDER BY total DESC
+	`, userID, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []CategorySpendingRow
+	for rows.Next() {
+		var r CategorySpendingRow
+		if err := rows.Scan(&r.CategoryID, &r.CategoryName, &r.Color, &r.Total); err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+	return result, rows.Err()
+}
+
 type MonthlyNetworthRow struct {
 	Date         string  `json:"date"`
 	TotalBalance float64 `json:"total_balance"`

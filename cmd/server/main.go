@@ -278,6 +278,7 @@ func main() {
 			r.Delete("/{id}", loanHandler.Delete)
 			r.Get("/{id}/payments", loanHandler.ListPayments)
 			r.Post("/{id}/payments", loanHandler.CreatePayment)
+			r.Get("/{id}/amortization", loanHandler.GetAmortization)
 		})
 
 		r.Route("/api/v1/sips", func(r chi.Router) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -367,6 +368,150 @@ func (h *LoanHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.OK(w, payments)
+}
+
+// amortizationRow is a single row in the amortization schedule.
+type amortizationRow struct {
+	Installment        int     `json:"installment"`
+	PaymentDate        string  `json:"payment_date"`
+	EMI                float64 `json:"emi"`
+	PrincipalComponent float64 `json:"principal_component"`
+	InterestComponent  float64 `json:"interest_component"`
+	RemainingBalance   float64 `json:"remaining_balance"`
+}
+
+// amortizationResponse is the full amortization schedule response.
+type amortizationResponse struct {
+	LoanID       string            `json:"loan_id"`
+	LoanName     string            `json:"loan_name"`
+	EMI          float64           `json:"emi"`
+	TotalPayment float64           `json:"total_payment"`
+	TotalInterest float64          `json:"total_interest"`
+	Schedule     []amortizationRow `json:"schedule"`
+}
+
+// computeAmortization builds a full reducing-balance amortization schedule.
+// It is exported (via the internal test) as a pure function so unit tests
+// can exercise the math without a real HTTP round-trip.
+func computeAmortization(outstandingBalance, annualRatePct float64, termMonths int, startDate time.Time) (amortizationResponse, error) {
+	if outstandingBalance == 0 || termMonths == 0 {
+		return amortizationResponse{}, fmt.Errorf("insufficient loan data for amortization")
+	}
+
+	n := termMonths
+	r := annualRatePct / 100.0 / 12.0
+
+	var emi float64
+	if r == 0 {
+		emi = outstandingBalance / float64(n)
+	} else {
+		factor := math.Pow(1+r, float64(n))
+		emi = outstandingBalance * r * factor / (factor - 1)
+	}
+
+	schedule := make([]amortizationRow, 0, n)
+	balance := outstandingBalance
+	var totalPayment, totalInterest float64
+
+	for i := 1; i <= n; i++ {
+		interest := balance * r
+		principal := emi - interest
+		// Clamp final installment rounding
+		if principal > balance {
+			principal = balance
+		}
+		balance -= principal
+		if balance < 0 {
+			balance = 0
+		}
+
+		paymentDate := startDate.AddDate(0, i-1, 0)
+
+		schedule = append(schedule, amortizationRow{
+			Installment:        i,
+			PaymentDate:        paymentDate.Format("2006-01-02"),
+			EMI:                math.Round(emi*100) / 100,
+			PrincipalComponent: math.Round(principal*100) / 100,
+			InterestComponent:  math.Round(interest*100) / 100,
+			RemainingBalance:   math.Round(balance*100) / 100,
+		})
+
+		totalPayment += emi
+		totalInterest += interest
+	}
+
+	// Use the loan's UUID from the caller — we return a partial struct here;
+	// the handler fills in LoanID and LoanName.
+	return amortizationResponse{
+		EMI:           math.Round(emi*100) / 100,
+		TotalPayment:  math.Round(totalPayment*100) / 100,
+		TotalInterest: math.Round(totalInterest*100) / 100,
+		Schedule:      schedule,
+	}, nil
+}
+
+// numericToFloatValue extracts a float64 from pgtype.Numeric, returning 0 on
+// invalid/missing values. (Distinct from the *float64 variant used elsewhere.)
+func numericToFloatValue(n pgtype.Numeric) float64 {
+	if !n.Valid {
+		return 0
+	}
+	f, err := n.Float64Value()
+	if err != nil || !f.Valid {
+		return 0
+	}
+	return f.Float64
+}
+
+// GET /api/v1/loans/{id}/amortization
+func (h *LoanHandler) GetAmortization(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	loanID, ok := parseUUIDParam(w, chi.URLParam(r, "id"))
+	if !ok {
+		return
+	}
+
+	loan, err := h.q.GetLoanByID(r.Context(), loanID)
+	if err != nil {
+		utils.NotFound(w)
+		return
+	}
+	userUUID := stringToUUID(claims.UserID)
+	if loan.UserID.Bytes != userUUID.Bytes {
+		utils.NotFound(w)
+		return
+	}
+
+	outstandingBalance := numericToFloatValue(loan.OutstandingBalance)
+	interestRate := numericToFloatValue(loan.InterestRate)
+	termMonths := int(loan.TenureMonths)
+
+	if outstandingBalance == 0 || termMonths == 0 {
+		utils.Error(w, http.StatusUnprocessableEntity, "insufficient loan data for amortization")
+		return
+	}
+
+	// Determine the start date; fall back to today if unset.
+	startDate := time.Now()
+	if loan.StartDate.Valid {
+		startDate = loan.StartDate.Time
+	}
+
+	result, err := computeAmortization(outstandingBalance, interestRate, termMonths, startDate)
+	if err != nil {
+		utils.Error(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	result.LoanID = uuidToString(loan.ID)
+	result.LoanName = loan.Name
+
+	utils.OK(w, result)
 }
 
 // POST /api/v1/loans/{id}/payments

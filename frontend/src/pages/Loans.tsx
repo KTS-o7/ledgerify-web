@@ -1,5 +1,5 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, Landmark, Calendar, TrendingDown, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-solid";
+import { Plus, Landmark, Calendar, TrendingDown, Pencil, Trash2, ChevronDown, ChevronUp, BarChart2 } from "lucide-solid";
 import { api } from "../lib/api";
 import { formatCurrency, numericToFloat } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
@@ -31,6 +31,24 @@ interface LoanPayment {
   principal_component: unknown;
   interest_component: unknown;
   status: string;
+}
+
+interface AmortizationRow {
+  installment: number;
+  payment_date: string;
+  emi: number;
+  principal_component: number;
+  interest_component: number;
+  remaining_balance: number;
+}
+
+interface AmortizationData {
+  loan_id: string;
+  loan_name: string;
+  emi: number;
+  total_payment: number;
+  total_interest: number;
+  schedule: AmortizationRow[];
 }
 
 function LoanPayments(props: { loanId: string; currency: string }) {
@@ -158,12 +176,100 @@ function LoanPayments(props: { loanId: string; currency: string }) {
   );
 }
 
+function AmortizationSchedule(props: { loanId: string; currency: string }) {
+  const [data] = createResource(
+    () => props.loanId,
+    (id) =>
+      api
+        .get<AmortizationData>(`/v1/loans/${id}/amortization`)
+        .catch(() => null)
+  );
+
+  const today = new Date();
+  const todayYM = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+  const isCurrentMonth = (dateStr: string) => dateStr.slice(0, 7) === todayYM;
+
+  return (
+    <div class="mt-3 border-t border-surface-hover pt-3">
+      <span class="text-[12px] font-body font-medium text-muted uppercase tracking-wide">Amortization Schedule</span>
+
+      <Show when={data.loading}>
+        <p class="text-xs text-muted mt-2">Loading…</p>
+      </Show>
+
+      <Show when={!data.loading && data() === null}>
+        <p class="text-xs text-muted mt-2">
+          Schedule unavailable — add outstanding balance and term to see projections.
+        </p>
+      </Show>
+
+      <Show when={data()}>
+        {(d) => (
+          <>
+            {/* Summary row */}
+            <div class="grid grid-cols-3 gap-2 mt-2 mb-3">
+              <div>
+                <div class="text-[11px] text-muted uppercase tracking-wide">EMI</div>
+                <div class="text-xs font-semibold text-text font-mono">{formatCurrency(d().emi, props.currency)}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-muted uppercase tracking-wide">Total Payment</div>
+                <div class="text-xs font-semibold text-text font-mono">{formatCurrency(d().total_payment, props.currency)}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-muted uppercase tracking-wide">Total Interest</div>
+                <div class="text-xs font-semibold text-text font-mono">{formatCurrency(d().total_interest, props.currency)}</div>
+              </div>
+            </div>
+
+            {/* Schedule table */}
+            <div class="overflow-y-auto max-h-[300px] rounded-input border border-surface-hover">
+              <table class="w-full text-xs border-collapse">
+                <thead class="sticky top-0 bg-surface z-10">
+                  <tr>
+                    <th class="text-left px-2 py-1.5 text-muted font-medium">#</th>
+                    <th class="text-left px-2 py-1.5 text-muted font-medium">Date</th>
+                    <th class="text-right px-2 py-1.5 text-muted font-medium">EMI</th>
+                    <th class="text-right px-2 py-1.5 text-muted font-medium">Principal</th>
+                    <th class="text-right px-2 py-1.5 text-muted font-medium">Interest</th>
+                    <th class="text-right px-2 py-1.5 text-muted font-medium">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <For each={d().schedule}>
+                    {(row) => (
+                      <tr
+                        class={`border-t border-surface-hover ${
+                          isCurrentMonth(row.payment_date) ? "bg-primary/10 font-medium" : "hover:bg-surface-hover/50"
+                        }`}
+                      >
+                        <td class="px-2 py-1 text-muted">{row.installment}</td>
+                        <td class="px-2 py-1 text-text font-mono">{row.payment_date}</td>
+                        <td class="px-2 py-1 text-right text-text font-mono">{formatCurrency(row.emi, props.currency)}</td>
+                        <td class="px-2 py-1 text-right text-primary font-mono">{formatCurrency(row.principal_component, props.currency)}</td>
+                        <td class="px-2 py-1 text-right text-accent font-mono">{formatCurrency(row.interest_component, props.currency)}</td>
+                        <td class="px-2 py-1 text-right text-text font-mono">{formatCurrency(row.remaining_balance, props.currency)}</td>
+                      </tr>
+                    )}
+                  </For>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Show>
+    </div>
+  );
+}
+
 export default function Loans() {
   const [loans, { refetch }] = createResource(() => api.get<Loan[]>("/v1/loans"));
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editLoan, setEditLoan] = createSignal<Loan | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
   const [expandedId, setExpandedId] = createSignal<string | null>(null);
+  const [amortizationId, setAmortizationId] = createSignal<string | null>(null);
 
   function handleSuccess() {
     setSheetOpen(false);
@@ -190,6 +296,10 @@ export default function Loans() {
 
   function toggleExpand(id: string) {
     setExpandedId((cur) => cur === id ? null : id);
+  }
+
+  function toggleAmortization(id: string) {
+    setAmortizationId((cur) => cur === id ? null : id);
   }
 
   return (
@@ -230,6 +340,7 @@ export default function Loans() {
               const rate = numericToFloat(l.interest_rate);
               const computed = numericToFloat(l.computed_emi);
               const isExpanded = () => expandedId() === l.id;
+              const isAmortizationOpen = () => amortizationId() === l.id;
               return (
                 <div class="group relative">
                   <BentoBlock variant="pressable">
@@ -262,16 +373,29 @@ export default function Loans() {
                             <div class="font-display text-sm font-semibold text-text">{formatCurrency(numericToFloat(l.outstanding_balance), l.currency)}</div>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(l.id)}
-                          class="mt-2 flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
-                        >
-                          {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {isExpanded() ? "Hide payments" : "View payments"}
-                        </button>
+                        <div class="flex items-center gap-3 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(l.id)}
+                            class="flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
+                          >
+                            {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            {isExpanded() ? "Hide payments" : "View payments"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleAmortization(l.id)}
+                            class="flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
+                          >
+                            <BarChart2 size={12} />
+                            {isAmortizationOpen() ? "Hide schedule" : "Amortization"}
+                          </button>
+                        </div>
                         <Show when={isExpanded()}>
                           <LoanPayments loanId={l.id} currency={l.currency} />
+                        </Show>
+                        <Show when={isAmortizationOpen()}>
+                          <AmortizationSchedule loanId={l.id} currency={l.currency} />
                         </Show>
                       </div>
                     </div>
