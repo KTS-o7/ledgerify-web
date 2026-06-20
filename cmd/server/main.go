@@ -161,6 +161,7 @@ func main() {
 	budgetHandler := handlers.NewBudgetHandler(pool, q)
 	summaryHandler := handlers.NewSummaryHandler(pool, q, cq)
 	netWorthHandler := handlers.NewNetWorthHandler(q, cq)
+	netWorthSnapshotHandler := handlers.NewNetWorthSnapshotHandler(pool)
 	recalcSvc := recalc.New(pool)
 	investmentHandler := handlers.NewInvestmentHandler(q, recalcSvc)
 	loanHandler := handlers.NewLoanHandler(q, recalcSvc)
@@ -211,6 +212,8 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware(jwtCfg))
 
+		r.Delete("/api/v1/users/me", authHandler.DeleteAccount)
+
 		r.Route("/api/v1/accounts", func(r chi.Router) {
 			r.Get("/", accountHandler.List)
 			r.Post("/", accountHandler.Create)
@@ -245,6 +248,9 @@ func main() {
 
 		r.Get("/api/v1/summary", summaryHandler.GetSummary)
 		r.Get("/api/v1/networth", netWorthHandler.Get)
+		r.Post("/api/v1/networth/snapshot", netWorthSnapshotHandler.Create)
+		r.Get("/api/v1/networth/snapshots", netWorthSnapshotHandler.List)
+		r.Delete("/api/v1/networth/snapshots/{id}", netWorthSnapshotHandler.Delete)
 
 		r.Route("/api/v1/budgets", func(r chi.Router) {
 			r.Get("/", budgetHandler.List)

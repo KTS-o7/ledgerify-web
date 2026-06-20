@@ -1,12 +1,12 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { Download } from "lucide-solid";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { SegmentedControl } from "../components/ui/segmented-control";
 import { Button } from "../components/ui/button";
 import { api } from "../lib/api";
+import { cn } from "../lib/utils";
 
-type Range = "1m" | "3m" | "ytd" | "all";
+type Preset = "1m" | "3m" | "ytd" | "all";
 
 const FIELDS = [
   { key: "date", label: "Date" },
@@ -15,26 +15,40 @@ const FIELDS = [
   { key: "category", label: "Category" },
   { key: "account", label: "Account" },
   { key: "note", label: "Note" },
+  { key: "type", label: "Type" },
+  { key: "currency", label: "Currency" },
+  { key: "tags", label: "Tags" },
 ];
 
-function rangeToParams(range: Range): { from_date: string; to_date: string } {
+const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+function presetDates(preset: Preset): { from_date: string; to_date: string } {
   const to = new Date();
   const from = new Date();
-  if (range === "1m") from.setMonth(from.getMonth() - 1);
-  else if (range === "3m") from.setMonth(from.getMonth() - 3);
-  else if (range === "ytd") from.setMonth(0, 1);
-  else from.setFullYear(from.getFullYear() - 10); // "all" — go back 10 years
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  if (preset === "1m") from.setMonth(from.getMonth() - 1);
+  else if (preset === "3m") from.setMonth(from.getMonth() - 3);
+  else if (preset === "ytd") from.setMonth(0, 1);
+  else from.setFullYear(from.getFullYear() - 10);
   return { from_date: fmt(from), to_date: fmt(to) };
 }
 
 export default function Export() {
-  const [range, setRange] = createSignal<Range>("3m");
+  const defaultDates = presetDates("3m");
+  const [activePreset, setActivePreset] = createSignal<Preset | null>("3m");
+  const [fromDate, setFromDate] = createSignal(defaultDates.from_date);
+  const [toDate, setToDate] = createSignal(defaultDates.to_date);
   const [selected, setSelected] = createSignal<Set<string>>(
     new Set(["date", "title", "amount", "category", "account"])
   );
   const [downloading, setDownloading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+
+  const applyPreset = (preset: Preset) => {
+    const dates = presetDates(preset);
+    setFromDate(dates.from_date);
+    setToDate(dates.to_date);
+    setActivePreset(preset);
+  };
 
   const toggle = (key: string) => {
     setSelected((s) => {
@@ -49,13 +63,12 @@ export default function Export() {
     setDownloading(true);
     setError(null);
     try {
-      const { from_date, to_date } = rangeToParams(range());
       const fields = Array.from(selected()).join(",");
-      const blob = await api.download(`/v1/export?from_date=${from_date}&to_date=${to_date}&fields=${encodeURIComponent(fields)}`);
+      const blob = await api.download(`/v1/export?from_date=${fromDate()}&to_date=${toDate()}&fields=${encodeURIComponent(fields)}`);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ledgerify_${from_date}_${to_date}.csv`;
+      a.download = `ledgerify_${fromDate()}_${toDate()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: unknown) {
@@ -65,6 +78,13 @@ export default function Export() {
     }
   };
 
+  const PRESETS: { value: Preset; label: string }[] = [
+    { value: "1m", label: "1M" },
+    { value: "3m", label: "3M" },
+    { value: "ytd", label: "YTD" },
+    { value: "all", label: "ALL" },
+  ];
+
   return (
     <>
       <PageHeader title="Export" />
@@ -73,17 +93,46 @@ export default function Export() {
           <div class="space-y-4">
             <div>
               <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Date range</span>
-              <SegmentedControl<Range>
-                options={[
-                  { value: "1m", label: "1M" },
-                  { value: "3m", label: "3M" },
-                  { value: "ytd", label: "YTD" },
-                  { value: "all", label: "ALL" },
-                ]}
-                value={range()}
-                onChange={setRange}
-                ariaLabel="Export date range"
-              />
+              {/* Preset chips */}
+              <div class="flex gap-2 mb-3">
+                <For each={PRESETS}>
+                  {(p) => (
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(p.value)}
+                      class={cn(
+                        "px-3 py-1.5 rounded-pill text-sm font-display font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                        activePreset() === p.value
+                          ? "bg-text text-bg"
+                          : "bg-surface text-muted hover:text-text"
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  )}
+                </For>
+              </div>
+              {/* Manual date inputs */}
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[12px] text-muted mb-1 block">From</label>
+                  <input
+                    type="date"
+                    value={fromDate()}
+                    onInput={(e) => { setFromDate(e.currentTarget.value); setActivePreset(null); }}
+                    class="flex h-10 w-full rounded-input border border-border bg-surface px-3 text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label class="text-[12px] text-muted mb-1 block">To</label>
+                  <input
+                    type="date"
+                    value={toDate()}
+                    onInput={(e) => { setToDate(e.currentTarget.value); setActivePreset(null); }}
+                    class="flex h-10 w-full rounded-input border border-border bg-surface px-3 text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Fields</span>
@@ -105,7 +154,9 @@ export default function Export() {
                 </For>
               </ul>
             </div>
-            {error() && <p class="text-accent text-sm">{error()}</p>}
+            <Show when={error()}>
+              <p class="text-accent text-sm">{error()}</p>
+            </Show>
             <Button class="w-full" size="lg" disabled={selected().size === 0 || downloading()} onClick={download}>
               <Download size={18} />
               <span>{downloading() ? "Preparing…" : "Download CSV"}</span>

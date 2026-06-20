@@ -1,7 +1,7 @@
 import { createResource, createSignal, For, Show, createMemo } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
 import { api } from "../lib/api";
-import { ShoppingCart, Coffee, Bus, Banknote, Receipt, Plus, X } from "lucide-solid";
+import { ShoppingCart, Coffee, Bus, Banknote, Receipt, Plus, X, SlidersHorizontal } from "lucide-solid";
 import { formatDateGroup } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { SearchBar } from "../components/ui/search-bar";
@@ -10,6 +10,7 @@ import { SkeletonRow } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
 import { TransactionForm } from "../components/forms/transaction-form";
+import { cn } from "../lib/utils";
 
 interface Tx {
   id: string;
@@ -32,7 +33,15 @@ interface FullTx {
   title: string;
   note: string;
   transfer_to_id?: string | null;
+  tags?: { id: string; name: string; color: string }[];
 }
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+type TxType = "" | "income" | "expense" | "transfer";
 
 function categoryIcon(category: string) {
   switch (category) {
@@ -61,10 +70,40 @@ export default function Transactions() {
   const [search, setSearch] = createSignal("");
   const [limit, setLimit] = createSignal(50);
   const [loadingMore, setLoadingMore] = createSignal(false);
+
+  // Filter signals
+  const [fromDate, setFromDate] = createSignal("");
+  const [toDate, setToDate] = createSignal("");
+  const [typeFilter, setTypeFilter] = createSignal<TxType>("");
+  const [categoryId, setCategoryId] = createSignal("");
+
+  // Build query string for reactive resource
+  const queryKey = createMemo(() => ({
+    lim: limit(),
+    accountId: accountIdFilter(),
+    from: fromDate(),
+    to: toDate(),
+    type: typeFilter(),
+    catId: categoryId(),
+  }));
+
   const [txns, { refetch }] = createResource(
-    () => ({ lim: limit(), accountId: accountIdFilter() }),
-    ({ lim, accountId }) => api.get<Tx[]>(`/v1/transactions?limit=${lim}${accountId ? `&account_id=${accountId}` : ""}`)
+    queryKey,
+    ({ lim, accountId, from, to, type, catId }) => {
+      const params = new URLSearchParams();
+      params.set("limit", String(lim));
+      if (accountId) params.set("account_id", accountId);
+      if (from) params.set("from_date", from);
+      if (to) params.set("to_date", to);
+      if (type) params.set("type", type);
+      if (catId) params.set("category_id", catId);
+      return api.get<Tx[]>(`/v1/transactions?${params.toString()}`);
+    }
   );
+
+  // Fetch categories for the filter dropdown
+  const [categories] = createResource(() => api.get<Category[]>("/v1/categories"));
+
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editTx, setEditTx] = createSignal<FullTx | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
@@ -102,6 +141,24 @@ export default function Transactions() {
     setLoadingMore(false);
   }
 
+  function resetFilters() {
+    setFromDate("");
+    setToDate("");
+    setTypeFilter("");
+    setCategoryId("");
+    setLimit(50);
+  }
+
+  function resetDateFilters() {
+    setFromDate("");
+    setToDate("");
+    setLimit(50);
+  }
+
+  const hasActiveFilters = createMemo(() =>
+    fromDate() !== "" || toDate() !== "" || typeFilter() !== "" || categoryId() !== ""
+  );
+
   const filtered = createMemo(() => {
     const list = txns() ?? [];
     const q = search().toLowerCase().trim();
@@ -114,6 +171,13 @@ export default function Transactions() {
   });
 
   const groups = createMemo(() => groupByDate(filtered()));
+
+  const TYPE_CHIPS: { value: TxType; label: string }[] = [
+    { value: "", label: "All" },
+    { value: "income", label: "Income" },
+    { value: "expense", label: "Expense" },
+    { value: "transfer", label: "Transfer" },
+  ];
 
   return (
     <>
@@ -128,9 +192,10 @@ export default function Transactions() {
           </button>
         }
       />
-      <div class="sticky top-14 md:top-16 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-4 py-3">
+      <div class="sticky top-14 md:top-16 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-4 py-3 space-y-3">
+        {/* Account filter badge */}
         <Show when={accountNameFilter()}>
-          <div class="pb-2 flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <span class="text-[13px] text-muted">Filtered by account:</span>
             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface text-sm font-medium text-text border border-border">
               {accountNameFilter()}
@@ -145,6 +210,104 @@ export default function Transactions() {
             </span>
           </div>
         </Show>
+
+        {/* Filter bar */}
+        <div class="flex flex-col gap-2.5">
+          {/* Type chips */}
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <SlidersHorizontal size={14} class="text-muted shrink-0" />
+            <For each={TYPE_CHIPS}>
+              {(chip) => (
+                <button
+                  type="button"
+                  onClick={() => { setTypeFilter(chip.value); setLimit(50); }}
+                  class={cn(
+                    "px-3 py-1 rounded-pill text-[13px] font-display font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                    typeFilter() === chip.value
+                      ? "bg-text text-bg"
+                      : "bg-surface text-muted hover:text-text border border-border"
+                  )}
+                >
+                  {chip.label}
+                </button>
+              )}
+            </For>
+          </div>
+
+          {/* Date range + category */}
+          <div class="flex items-end gap-2 flex-wrap">
+            {/* From date */}
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="text-[11px] text-muted uppercase tracking-wide">From</label>
+              <div class="relative flex items-center">
+                <input
+                  type="date"
+                  value={fromDate()}
+                  onInput={(e) => { setFromDate(e.currentTarget.value); setLimit(50); }}
+                  class="h-8 rounded-input border border-border bg-surface px-2.5 text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary pr-7"
+                />
+                <Show when={fromDate()}>
+                  <button
+                    type="button"
+                    onClick={() => { setFromDate(""); setLimit(50); }}
+                    class="absolute right-1.5 text-muted hover:text-text"
+                    aria-label="Clear from date"
+                  >
+                    <X size={12} />
+                  </button>
+                </Show>
+              </div>
+            </div>
+            {/* To date */}
+            <div class="flex flex-col gap-1 min-w-0">
+              <label class="text-[11px] text-muted uppercase tracking-wide">To</label>
+              <div class="relative flex items-center">
+                <input
+                  type="date"
+                  value={toDate()}
+                  onInput={(e) => { setToDate(e.currentTarget.value); setLimit(50); }}
+                  class="h-8 rounded-input border border-border bg-surface px-2.5 text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary pr-7"
+                />
+                <Show when={toDate()}>
+                  <button
+                    type="button"
+                    onClick={() => { setToDate(""); setLimit(50); }}
+                    class="absolute right-1.5 text-muted hover:text-text"
+                    aria-label="Clear to date"
+                  >
+                    <X size={12} />
+                  </button>
+                </Show>
+              </div>
+            </div>
+            {/* Category select */}
+            <div class="flex flex-col gap-1 min-w-0 flex-1">
+              <label class="text-[11px] text-muted uppercase tracking-wide">Category</label>
+              <select
+                value={categoryId()}
+                onChange={(e) => { setCategoryId(e.currentTarget.value); setLimit(50); }}
+                class="h-8 rounded-input border border-border bg-surface px-2.5 text-sm text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary min-w-[130px]"
+              >
+                <option value="">All categories</option>
+                <For each={categories() ?? []}>
+                  {(cat) => <option value={cat.id}>{cat.name}</option>}
+                </For>
+              </select>
+            </div>
+            {/* Clear all filters */}
+            <Show when={hasActiveFilters()}>
+              <button
+                type="button"
+                onClick={resetFilters}
+                class="h-8 px-3 rounded-input border border-border text-[13px] text-muted hover:text-text transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <X size={12} />
+                Clear filters
+              </button>
+            </Show>
+          </div>
+        </div>
+
         <SearchBar
           value={search()}
           onChange={setSearch}
@@ -169,14 +332,14 @@ export default function Transactions() {
         <Show when={!txns.loading && !txns.error && filtered().length === 0}>
           <EmptyState
             icon={Receipt}
-            title={search() ? "No matches" : "No transactions yet"}
-            body={search() ? `Nothing matches "${search()}".` : "Add your first transaction to see it here."}
+            title={search() ? "No matches" : hasActiveFilters() ? "No transactions match filters" : "No transactions yet"}
+            body={search() ? `Nothing matches "${search()}".` : hasActiveFilters() ? "Try adjusting or clearing your filters." : "Add your first transaction to see it here."}
           />
         </Show>
         <For each={groups()}>
           {([date, items]) => (
             <div class="mb-4">
-              <div class="sticky top-[124px] md:top-[136px] z-10 bg-bg/95 backdrop-blur-sm py-2">
+              <div class="sticky top-[220px] md:top-[232px] z-10 bg-bg/95 backdrop-blur-sm py-2">
                 <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">
                   {formatDateGroup(date)}
                 </span>
@@ -237,6 +400,7 @@ export default function Transactions() {
                 title: tx().title,
                 note: tx().note,
                 transfer_to_id: tx().transfer_to_id ?? undefined,
+                tags: tx().tags ?? [],
               }}
               onSuccess={() => { setEditSheetOpen(false); setEditTx(null); refetch(); }}
               onClose={() => { setEditSheetOpen(false); setEditTx(null); }}

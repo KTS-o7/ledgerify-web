@@ -286,6 +286,23 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, map[string]string{"message": "password updated"})
 }
 
+// DELETE /api/v1/users/me
+func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+
+	userUUID := stringToUUID(claims.UserID)
+	if err := h.q.DeleteUser(r.Context(), userUUID); err != nil {
+		utils.InternalError(w)
+		return
+	}
+
+	utils.OK(w, map[string]string{"message": "account deleted"})
+}
+
 type updateProfileRequest struct {
 	Name            string `json:"name"`
 	DefaultCurrency string `json:"default_currency"`

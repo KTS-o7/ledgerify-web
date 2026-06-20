@@ -82,6 +82,12 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		accountFilter = stringToUUID(a)
 	}
 
+	// Category filter
+	var categoryFilter pgtype.UUID
+	if c := q.Get("category_id"); c != "" {
+		categoryFilter = stringToUUID(c)
+	}
+
 	// Date range filters
 	var fromDate pgtype.Date
 	if fd := q.Get("from_date"); fd != "" {
@@ -109,12 +115,13 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	limitRows := pgtype.Int4{Int32: limit, Valid: true}
 
 	transactions, err := h.q.ListTransactionsByUser(r.Context(), db.ListTransactionsByUserParams{
-		UserID:    userUUID,
-		Type:      typeFilter,
-		AccountID: accountFilter,
-		FromDate:  fromDate,
-		ToDate:    toDate,
-		LimitRows: limitRows,
+		UserID:     userUUID,
+		Type:       typeFilter,
+		AccountID:  accountFilter,
+		CategoryID: categoryFilter,
+		FromDate:   fromDate,
+		ToDate:     toDate,
+		LimitRows:  limitRows,
 	})
 	if err != nil {
 		utils.InternalError(w)

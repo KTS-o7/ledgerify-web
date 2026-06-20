@@ -111,6 +111,37 @@ export default function Settings() {
     if (tz) setTimezone(tz);
   });
 
+  // Delete account state
+  const [deleteSheetOpen, setDeleteSheetOpen] = createSignal(false);
+  const [deleteConfirmText, setDeleteConfirmText] = createSignal("");
+  const [deleteError, setDeleteError] = createSignal("");
+  const [deleteSubmitting, setDeleteSubmitting] = createSignal(false);
+
+  function openDeleteSheet() {
+    setDeleteConfirmText("");
+    setDeleteError("");
+    setDeleteSheetOpen(true);
+  }
+
+  async function handleDeleteAccount(e: SubmitEvent) {
+    e.preventDefault();
+    if (deleteConfirmText() !== "DELETE") {
+      setDeleteError('Type "DELETE" to confirm.');
+      return;
+    }
+    setDeleteSubmitting(true);
+    setDeleteError("");
+    try {
+      await api.delete("/v1/users/me");
+      logout();
+      if (typeof localStorage !== "undefined") localStorage.clear();
+      navigate("/login");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete account.");
+      setDeleteSubmitting(false);
+    }
+  }
+
   async function handleLogout() {
     try {
       await api.post("/v1/auth/logout", {});
@@ -187,12 +218,6 @@ export default function Settings() {
       setPwError(err instanceof Error ? err.message : "Failed to update password.");
     } finally {
       setPwSubmitting(false);
-    }
-  }
-
-  function handleDeleteAccount() {
-    if (confirm("Delete your account? This cannot be undone.")) {
-      alert("Not available yet");
     }
   }
 
@@ -304,7 +329,7 @@ export default function Settings() {
             }
             onClick={catState().mode === null ? handleRecategorizeAll : undefined}
           />
-          <Row icon={Trash2} label="Delete account" danger onClick={handleDeleteAccount} />
+          <Row icon={Trash2} label="Delete account" danger onClick={openDeleteSheet} />
         </BentoBlock>
 
       </div>
@@ -381,6 +406,38 @@ export default function Settings() {
           </Show>
           <Button type="submit" disabled={nameSubmitting()} class="w-full mt-2">
             {nameSubmitting() ? "Saving…" : "Save Name"}
+          </Button>
+        </form>
+      </Sheet>
+
+      {/* Delete Account Sheet */}
+      <Sheet open={deleteSheetOpen()} onClose={() => setDeleteSheetOpen(false)} title="Delete Account">
+        <form onSubmit={handleDeleteAccount} class="flex flex-col gap-4">
+          <p class="text-sm text-text">
+            This will permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.
+          </p>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-muted" for="delete-confirm">
+              Type <span class="font-mono font-bold text-accent">DELETE</span> to confirm
+            </label>
+            <Input
+              id="delete-confirm"
+              type="text"
+              required
+              value={deleteConfirmText()}
+              onInput={(e) => setDeleteConfirmText(e.currentTarget.value)}
+              autocomplete="off"
+            />
+          </div>
+          <Show when={deleteError()}>
+            <p class="text-accent text-sm">{deleteError()}</p>
+          </Show>
+          <Button
+            type="submit"
+            disabled={deleteSubmitting() || deleteConfirmText() !== "DELETE"}
+            class="w-full mt-2 bg-accent text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {deleteSubmitting() ? "Deleting…" : "Delete My Account"}
           </Button>
         </form>
       </Sheet>

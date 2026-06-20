@@ -54,20 +54,24 @@ func (q *CustomQueries) GetCategorySpending(ctx context.Context, userID string, 
 type MonthlyNetworthRow struct {
 	Date         string  `json:"date"`
 	TotalBalance float64 `json:"total_balance"`
+	Income       float64 `json:"income"`
+	Expense      float64 `json:"expense"`
 }
 
 func (q *CustomQueries) GetMonthlyNetworth(ctx context.Context, userID string, fromDate, toDate time.Time) ([]MonthlyNetworthRow, error) {
 	rows, err := q.pool.Query(ctx, `
-		SELECT date::text, SUM(balance) as total_balance FROM (
-			SELECT t.date,
-				SUM(CASE WHEN t.type = 'income' THEN t.amount
-						 WHEN t.type = 'expense' THEN -t.amount
-						 ELSE 0 END) as balance
-			FROM transactions t
-			WHERE t.user_id = $1 AND t.deleted_at IS NULL
-			  AND t.date >= $2 AND t.date <= $3
-			GROUP BY t.date
-		) subq GROUP BY date ORDER BY date
+		SELECT
+			to_char(date_trunc('month', t.date), 'YYYY-MM') as month,
+			COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0)::numeric(18,4) as income,
+			COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0)::numeric(18,4) as expense,
+			COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount
+							  WHEN t.type = 'expense' THEN -t.amount
+							  ELSE 0 END), 0)::numeric(18,4) as total_balance
+		FROM transactions t
+		WHERE t.user_id = $1 AND t.deleted_at IS NULL
+		  AND t.date >= $2 AND t.date <= $3
+		GROUP BY date_trunc('month', t.date)
+		ORDER BY date_trunc('month', t.date)
 	`, userID, fromDate, toDate)
 	if err != nil {
 		return nil, err
@@ -77,7 +81,7 @@ func (q *CustomQueries) GetMonthlyNetworth(ctx context.Context, userID string, f
 	var result []MonthlyNetworthRow
 	for rows.Next() {
 		var r MonthlyNetworthRow
-		if err := rows.Scan(&r.Date, &r.TotalBalance); err != nil {
+		if err := rows.Scan(&r.Date, &r.Income, &r.Expense, &r.TotalBalance); err != nil {
 			return nil, err
 		}
 		result = append(result, r)

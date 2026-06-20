@@ -1,5 +1,7 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, Tag, Trash2, Pencil } from "lucide-solid";
+import { Dynamic } from "solid-js/web";
+import { Plus, Tag, Trash2, Pencil, ShoppingCart, House, Car, Utensils, Zap, Heart, Briefcase, Coffee, Plane, Music, Book, Gift, Smartphone, Dumbbell, Pill, GraduationCap, Wallet, TrendingUp, Film, Bus } from "lucide-solid";
+import type { Component } from "solid-js";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
@@ -13,8 +15,32 @@ interface Category {
   name: string;
   type: string;
   color: string;
+  icon: string;
   user_id: string | null;
 }
+
+const ICON_MAP: Record<string, Component<{ size?: number; class?: string }>> = {
+  "shopping-cart": ShoppingCart,
+  "house": House,
+  "car": Car,
+  "utensils": Utensils,
+  "zap": Zap,
+  "heart": Heart,
+  "briefcase": Briefcase,
+  "coffee": Coffee,
+  "plane": Plane,
+  "music": Music,
+  "book": Book,
+  "gift": Gift,
+  "smartphone": Smartphone,
+  "dumbbell": Dumbbell,
+  "pill": Pill,
+  "graduation-cap": GraduationCap,
+  "wallet": Wallet,
+  "trending-up": TrendingUp,
+  "film": Film,
+  "bus": Bus,
+};
 
 interface Keyword {
   id: string;
@@ -129,6 +155,9 @@ export default function Categories() {
                       class="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ "background-color": cat.color }}
                     />
+                    <Show when={cat.icon && ICON_MAP[cat.icon]} fallback={null}>
+                      <Dynamic component={ICON_MAP[cat.icon]!} size={16} class="text-muted flex-shrink-0" />
+                    </Show>
                     <span class="font-display font-semibold text-text flex-1">{cat.name}</span>
                     <span class="text-[12px] font-body uppercase tracking-wide text-muted">
                       {cat.type}
@@ -247,6 +276,7 @@ export default function Categories() {
                 name: cat().name,
                 type: cat().type as "income" | "expense",
                 color: cat().color,
+                icon: cat().icon,
               }}
               onSuccess={handleEditSuccess}
               onClose={closeEdit}

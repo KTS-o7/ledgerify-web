@@ -4,6 +4,7 @@ import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
 import { SegmentedControl } from "../ui/segmented-control";
+import { cn } from "../../lib/utils";
 
 interface Account {
   id: string;
@@ -16,6 +17,12 @@ interface Category {
   id: string;
   name: string;
   type: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }
 
 type TxType = "expense" | "income" | "transfer";
@@ -34,6 +41,7 @@ type TransactionFormProps = {
     note?: string;
     account_id: string;
     transfer_to_id?: string;
+    tags?: Tag[];
   };
 };
 
@@ -44,6 +52,7 @@ function todayISO(): string {
 export function TransactionForm(props: TransactionFormProps) {
   const [accounts] = createResource(() => api.get<Account[]>("/v1/accounts"));
   const [categories] = createResource(() => api.get<Category[]>("/v1/categories"));
+  const [availableTags] = createResource(() => api.get<Tag[]>("/v1/tags"));
 
   const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? "expense");
   const [amount, setAmount] = createSignal(props.existing?.amount ?? "");
@@ -54,6 +63,9 @@ export function TransactionForm(props: TransactionFormProps) {
   const [date, setDate] = createSignal(props.existing?.date ?? todayISO());
   const [note, setNote] = createSignal(props.existing?.note ?? "");
   const [currency] = createSignal(props.existing?.currency ?? "INR");
+
+  const initialTagIds = () => (props.existing?.tags ?? []).map((t) => t.id);
+  const [selectedTagIds, setSelectedTagIds] = createSignal<string[]>(initialTagIds());
 
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
@@ -97,6 +109,7 @@ export function TransactionForm(props: TransactionFormProps) {
         ...(title() ? { title: title() } : {}),
         ...(note() ? { note: note() } : {}),
         ...(txType() === "transfer" && transferToId() ? { transfer_to_id: transferToId() } : {}),
+        tags: selectedTagIds(),
       };
       if (props.existing) {
         await api.put(`/v1/transactions/${props.existing.id}`, body);

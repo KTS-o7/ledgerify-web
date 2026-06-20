@@ -213,6 +213,37 @@ export default function Investments() {
     setExpandedId((cur) => cur === id ? null : id);
   }
 
+  // ── Portfolio summary (client-side aggregation) ────────────────────────
+  const portfolioSummary = () => {
+    const list = holdings() ?? [];
+    if (list.length === 0) return null;
+
+    let totalInvested = 0;
+    let currentValue = 0;
+
+    for (const h of list) {
+      const qty = numericToFloat(h.quantity);
+      const buyPrice = numericToFloat(h.buy_price);
+      const currentPrice = numericToFloat(h.current_price);
+      const computed = numericToFloat(h.computed_value);
+
+      if (qty > 0 && buyPrice > 0) {
+        totalInvested += qty * buyPrice;
+      }
+      // Use computed_value when available, otherwise qty * current_price
+      if (computed > 0) {
+        currentValue += computed;
+      } else if (qty > 0 && currentPrice > 0) {
+        currentValue += qty * currentPrice;
+      }
+    }
+
+    const gainLoss = currentValue - totalInvested;
+    const gainPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
+
+    return { totalInvested, currentValue, gainLoss, gainPct };
+  };
+
   return (
     <>
       <PageHeader title="Investments" actions={
@@ -225,7 +256,38 @@ export default function Investments() {
           <Plus size={20} />
         </button>
       } />
-      <div class="p-4 md:p-6">
+      <div class="p-4 md:p-6 flex flex-col gap-4">
+        {/* Portfolio summary bento */}
+        <Show when={!holdings.loading && portfolioSummary()}>
+          {(ps) => {
+            const isGain = () => ps().gainLoss >= 0;
+            return (
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <BentoBlock class="flex flex-col gap-1">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Total invested</span>
+                  <span class="font-display font-bold text-xl text-text">{formatCurrency(ps().totalInvested)}</span>
+                </BentoBlock>
+                <BentoBlock class="flex flex-col gap-1">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Current value</span>
+                  <span class="font-display font-bold text-xl text-text">{formatCurrency(ps().currentValue)}</span>
+                </BentoBlock>
+                <BentoBlock class="flex flex-col gap-1">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Overall gain/loss</span>
+                  <span class={`font-display font-bold text-xl ${isGain() ? "text-primary" : "text-accent"}`}>
+                    {isGain() ? "+" : ""}{formatCurrency(ps().gainLoss)}
+                  </span>
+                </BentoBlock>
+                <BentoBlock class="flex flex-col gap-1">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Return</span>
+                  <span class={`font-display font-bold text-xl ${isGain() ? "text-primary" : "text-accent"}`}>
+                    {isGain() ? "+" : ""}{ps().gainPct.toFixed(2)}%
+                  </span>
+                </BentoBlock>
+              </div>
+            );
+          }}
+        </Show>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <Show when={holdings.loading}>
             <SkeletonBlock class="min-h-[120px]" />

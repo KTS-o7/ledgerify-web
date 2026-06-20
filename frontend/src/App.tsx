@@ -27,6 +27,7 @@ const Export = lazy(() => import("./pages/Export"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Categories = lazy(() => import("./pages/Categories"));
 const McpConnect = lazy(() => import("./pages/McpConnect"));
+const Tags = lazy(() => import("./pages/Tags"));
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/savings" component={Savings} />
             <Route path="/analytics" component={Analytics} />
             <Route path="/categories" component={Categories} />
+            <Route path="/tags" component={Tags} />
             <Route path="/mcp" component={McpConnect} />
           </Route>
         </Route>
