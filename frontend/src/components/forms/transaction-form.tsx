@@ -70,6 +70,13 @@ export function TransactionForm(props: TransactionFormProps) {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
+  const [makeRecurring, setMakeRecurring] = createSignal(false);
+  const [recFrequency, setRecFrequency] = createSignal<"weekly" | "monthly" | "custom">("monthly");
+  const [recIntervalValue, setRecIntervalValue] = createSignal("1");
+  const [recIntervalUnit, setRecIntervalUnit] = createSignal<"day" | "week" | "month">("month");
+  const [recStartDate, setRecStartDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [recEndDate, setRecEndDate] = createSignal("");
+
   const filteredCategories = createMemo(() => {
     const all = categories() ?? [];
     const t = txType();
@@ -115,6 +122,34 @@ export function TransactionForm(props: TransactionFormProps) {
         await api.put(`/v1/transactions/${props.existing.id}`, body);
       } else {
         await api.post("/v1/transactions", body);
+      }
+      if (makeRecurring()) {
+        try {
+          const ruleName = title() || note() || `${txType()} ${amt}`;
+          const recurringBody: Record<string, unknown> = {
+            name: ruleName,
+            account_id: accountId(),
+            type: txType(),
+            amount: amt,
+            currency: currency(),
+            frequency: recFrequency(),
+            start_date: recStartDate(),
+            ...(categoryId() ? { category_id: categoryId() } : {}),
+            ...(txType() === "transfer" && transferToId() ? { transfer_to_id: transferToId() } : {}),
+            ...(title() ? { title: title() } : {}),
+            ...(note() ? { note: note() } : {}),
+            ...(recFrequency() === "custom"
+              ? {
+                  interval_value: parseInt(recIntervalValue(), 10) || 1,
+                  interval_unit: recIntervalUnit(),
+                }
+              : {}),
+            ...(recEndDate() ? { end_date: recEndDate() } : {}),
+          };
+          await api.post("/v1/recurring", recurringBody);
+        } catch (recErr) {
+          console.error("Failed to create recurring rule:", recErr);
+        }
       }
       props.onSuccess();
     } catch (err: unknown) {
@@ -255,6 +290,52 @@ export function TransactionForm(props: TransactionFormProps) {
       <Show when={error()}>
         <p class="text-accent text-sm">{error()}</p>
       </Show>
+
+      {/* Recurring */}
+      <div class="border-t border-border pt-4 mt-4 space-y-3">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={makeRecurring()} onChange={(e) => setMakeRecurring(e.currentTarget.checked)} class="w-4 h-4 accent-primary" />
+          <span class="font-body text-sm text-text">Make this recurring</span>
+        </label>
+        <Show when={makeRecurring()}>
+          <div class="space-y-3 pl-6">
+            <label class="block">
+              <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Frequency</span>
+              <select value={recFrequency()} onChange={(e) => setRecFrequency(e.currentTarget.value as "weekly" | "monthly" | "custom")} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body">
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <Show when={recFrequency() === "custom"}>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="block">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Every N</span>
+                  <input type="number" min="1" value={recIntervalValue()} onInput={(e) => setRecIntervalValue(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+                </label>
+                <label class="block">
+                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Unit</span>
+                  <select value={recIntervalUnit()} onChange={(e) => setRecIntervalUnit(e.currentTarget.value as "day" | "week" | "month")} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body">
+                    <option value="day">Days</option>
+                    <option value="week">Weeks</option>
+                    <option value="month">Months</option>
+                  </select>
+                </label>
+              </div>
+            </Show>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="block">
+                <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Start date</span>
+                <input type="date" value={recStartDate()} onInput={(e) => setRecStartDate(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+              </label>
+              <label class="block">
+                <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">End date (optional)</span>
+                <input type="date" value={recEndDate()} onInput={(e) => setRecEndDate(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+              </label>
+            </div>
+          </div>
+        </Show>
+      </div>
 
       {/* Submit */}
       <Button type="submit" class="w-full" disabled={submitting()}>
