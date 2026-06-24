@@ -28,6 +28,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Categories = lazy(() => import("./pages/Categories"));
 const McpConnect = lazy(() => import("./pages/McpConnect"));
 const Tags = lazy(() => import("./pages/Tags"));
+const Recurring = lazy(() => import("./pages/Recurring"));
 
 export default function App() {
   return (
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/analytics" component={Analytics} />
             <Route path="/categories" component={Categories} />
             <Route path="/tags" component={Tags} />
+            <Route path="/recurring" component={Recurring} />
             <Route path="/mcp" component={McpConnect} />
           </Route>
         </Route>
