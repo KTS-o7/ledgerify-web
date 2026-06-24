@@ -353,7 +353,7 @@ func (h *RecurringHandler) fetchRule(ctx context.Context, id string, userID pgty
 }
 
 func scanRecurringRules(rows pgx.Rows) ([]RecurringRule, error) {
-	var out []RecurringRule
+	out := make([]RecurringRule, 0)
 	for rows.Next() {
 		r, err := scanRecurringRule(rows)
 		if err != nil {
