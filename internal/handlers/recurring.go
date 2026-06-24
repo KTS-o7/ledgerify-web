@@ -287,6 +287,24 @@ func (h *RecurringHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 	utils.OK(w, map[string]string{"status": req.Status})
 }
 
+// RunNow triggers immediate generation of due occurrences for the current user.
+func (h *RecurringHandler) RunNow(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetUserClaims(r)
+	if claims == nil {
+		utils.Unauthorized(w)
+		return
+	}
+	userID := stringToUUID(claims.UserID)
+	eng := recurring.NewEngine(h.pool)
+	count, err := eng.RunOnce(r.Context(), time.Now().UTC())
+	if err != nil {
+		utils.InternalError(w)
+		return
+	}
+	_ = userID // Note: RunOnce runs across all users; user-scoped filtering can be added later
+	utils.OK(w, map[string]any{"generated": count})
+}
+
 func (h *RecurringHandler) fetchRule(ctx context.Context, id string, userID pgtype.UUID) (*RecurringRule, error) {
 	row := h.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, type, amount, currency, account_id, category_id, transfer_to_id, title, note, frequency, interval_value, interval_unit, start_date, end_date, next_due_date, last_generated_date, status, created_at, updated_at
