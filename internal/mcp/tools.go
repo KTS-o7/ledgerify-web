@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/KTS-o7/ledgerify-web/internal/auth"
+	"github.com/KTS-o7/ledgerify-web/internal/recurring"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -119,6 +120,11 @@ func RegisterTools(s *server.MCPServer, deps *ToolDeps) {
 		{Tool: createSipTool(), Handler: createSipHandler(deps)},
 		{Tool: updateSipTool(), Handler: updateSipHandler(deps)},
 		{Tool: deleteSipTool(), Handler: deleteSipHandler(deps)},
+		{Tool: listRecurringTool(), Handler: listRecurringHandler(deps)},
+		{Tool: createRecurringTool(), Handler: createRecurringHandler(deps)},
+		{Tool: updateRecurringTool(), Handler: updateRecurringHandler(deps)},
+		{Tool: deleteRecurringTool(), Handler: deleteRecurringHandler(deps)},
+		{Tool: runRecurringTool(), Handler: runRecurringHandler(deps)},
 	}
 	s.AddTools(tools...)
 }
@@ -4859,5 +4865,434 @@ func deleteSipHandler(deps *ToolDeps) server.ToolHandlerFunc {
 			return mcp.NewToolResultError(fmt.Sprintf("sip %q not found (or not owned by you)", id)), nil
 		}
 		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+// ============================================================================
+// Group: recurring transactions CRUD + run-now
+//
+// Mirrors the REST /api/recurring/* endpoints. list/create/update/delete all
+// scope to the authenticated user; run_recurring uses the shared engine (which
+// currently processes all active rules across all users — same caveat as the
+// REST /run-now endpoint, noted in the tool description).
+// ============================================================================
+
+func validRecurringType(t string) bool {
+	switch t {
+	case "income", "expense", "transfer", "credit_payment":
+		return true
+	}
+	return false
+}
+
+func validIntervalUnit(u string) bool {
+	switch u {
+	case "day", "week", "month":
+		return true
+	}
+	return false
+}
+
+func formatDatePtrMCP(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+	return t.Format("2006-01-02")
+}
+
+func listRecurringTool() mcp.Tool {
+	return mcp.NewTool("list_recurring",
+		mcp.WithDescription("List all recurring transaction rules for the user (active and paused)."),
+		readOnlyAnnotation(),
+	)
+}
+
+func listRecurringHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		rows, err := deps.Pool.Query(ctx,
+			`SELECT id, user_id, name, type, amount, currency, account_id, category_id, transfer_to_id,
+			        title, note, frequency, interval_value, interval_unit,
+			        start_date, end_date, next_due_date, last_generated_date, status, created_at, updated_at
+			FROM recurring_transactions
+			WHERE user_id = $1 AND deleted_at IS NULL
+			ORDER BY created_at DESC`,
+			userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+		defer rows.Close()
+
+		var results []map[string]any
+		for rows.Next() {
+			var id, ruleUserID, name, typ, amount, currency, accountID, frequency, status string
+			var categoryID, transferToID *string
+			var title, note *string
+			var intervalValue, intervalUnit *string
+			var startDate, nextDueDate time.Time
+			var endDate, lastGeneratedDate *time.Time
+			var createdAt, updatedAt time.Time
+
+			if err := rows.Scan(&id, &ruleUserID, &name, &typ, &amount, &currency, &accountID,
+				&categoryID, &transferToID, &title, &note,
+				&frequency, &intervalValue, &intervalUnit,
+				&startDate, &endDate, &nextDueDate, &lastGeneratedDate,
+				&status, &createdAt, &updatedAt); err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("scan failed: %v", err)), nil
+			}
+
+			results = append(results, map[string]any{
+				"id":                  id,
+				"user_id":             ruleUserID,
+				"name":                name,
+				"type":                typ,
+				"amount":              amount,
+				"currency":            currency,
+				"account_id":          accountID,
+				"category_id":         categoryID,
+				"transfer_to_id":      transferToID,
+				"title":               title,
+				"note":                note,
+				"frequency":           frequency,
+				"interval_value":      intervalValue,
+				"interval_unit":       intervalUnit,
+				"start_date":          startDate.Format("2006-01-02"),
+				"end_date":            formatDatePtrMCP(endDate),
+				"next_due_date":       nextDueDate.Format("2006-01-02"),
+				"last_generated_date": formatDatePtrMCP(lastGeneratedDate),
+				"status":              status,
+				"created_at":          createdAt.Format(time.RFC3339),
+				"updated_at":          updatedAt.Format(time.RFC3339),
+			})
+		}
+
+		jsonData, err := marshalAsJSONArray(results)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("marshal failed: %v", err)), nil
+		}
+		return mcp.NewToolResultText(jsonData), nil
+	}
+}
+
+func createRecurringTool() mcp.Tool {
+	return mcp.NewTool("create_recurring",
+		mcp.WithDescription("Create a recurring transaction rule. type is one of: income, expense, transfer, credit_payment. frequency is one of: weekly, monthly, custom (custom requires interval_value and interval_unit: day|week|month). start_date is both the first occurrence and the initial next_due_date."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Rule name (e.g. 'Netflix monthly', 'Salary credit')")),
+		mcp.WithString("type", mcp.Required(), mcp.Description("Type: income, expense, transfer, credit_payment")),
+		mcp.WithNumber("amount", mcp.Required(), mcp.Description("Amount per occurrence (must be > 0)")),
+		mcp.WithString("currency", mcp.Required(), mcp.Description("Currency code (e.g. INR)")),
+		mcp.WithString("account_id", mcp.Required(), mcp.Description("Source account ID")),
+		mcp.WithString("frequency", mcp.Required(), mcp.Description("Frequency: weekly, monthly, custom")),
+		mcp.WithString("start_date", mcp.Required(), mcp.Description("First occurrence / next due date YYYY-MM-DD")),
+		mcp.WithString("category_id", mcp.Description("Category ID (optional)")),
+		mcp.WithString("transfer_to_id", mcp.Description("Destination account ID for transfers (optional)")),
+		mcp.WithString("title", mcp.Description("Title template applied to generated transactions (optional)")),
+		mcp.WithString("note", mcp.Description("Note template applied to generated transactions (optional)")),
+		mcp.WithNumber("interval_value", mcp.Description("For frequency=custom: how many units between occurrences")),
+		mcp.WithString("interval_unit", mcp.Description("For frequency=custom: day, week, or month")),
+		mcp.WithString("end_date", mcp.Description("Stop generating after this date YYYY-MM-DD (optional)")),
+	)
+}
+
+func createRecurringHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		name := req.GetString("name", "")
+		typ := req.GetString("type", "")
+		amount := req.GetFloat("amount", -1)
+		currency := req.GetString("currency", "")
+		accountID := req.GetString("account_id", "")
+		frequency := req.GetString("frequency", "")
+		startDate := req.GetString("start_date", "")
+
+		if name == "" || typ == "" || currency == "" || accountID == "" || frequency == "" || startDate == "" || amount <= 0 {
+			return mcp.NewToolResultError("name, type, amount (>0), currency, account_id, frequency, and start_date are required"), nil
+		}
+		if !validRecurringType(typ) {
+			return mcp.NewToolResultError("invalid type. Must be one of: income, expense, transfer, credit_payment"), nil
+		}
+		if _, err := recurring.StringFrequency(frequency); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		categoryID := req.GetString("category_id", "")
+		transferToID := req.GetString("transfer_to_id", "")
+		title := req.GetString("title", "")
+		note := req.GetString("note", "")
+		intervalValue := req.GetInt("interval_value", 0)
+		intervalUnit := req.GetString("interval_unit", "")
+		endDate := req.GetString("end_date", "")
+
+		var intervalValArg interface{}
+		var intervalUnitArg interface{}
+		if frequency == "custom" {
+			if intervalValue <= 0 || intervalUnit == "" {
+				return mcp.NewToolResultError("frequency=custom requires interval_value (>0) and interval_unit (day|week|month)"), nil
+			}
+			if !validIntervalUnit(intervalUnit) {
+				return mcp.NewToolResultError("interval_unit must be one of: day, week, month"), nil
+			}
+			intervalValArg = intervalValue
+			intervalUnitArg = intervalUnit
+		}
+
+		var retID, retUserID, retName, retType, retAmount, retCurrency, retAccountID, retFrequency, retStatus string
+		var retCategoryID, retTransferToID, retTitle, retNote *string
+		var retIntervalValue, retIntervalUnit *string
+		var retStart, retNextDue time.Time
+		var retEndDate, retLastGenerated *time.Time
+		var retCreatedAt, retUpdatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`INSERT INTO recurring_transactions
+				(user_id, name, type, amount, currency, account_id, category_id, transfer_to_id,
+				 title, note, frequency, interval_value, interval_unit, start_date, end_date,
+				 next_due_date, status, created_at, updated_at)
+			VALUES
+				($1, $2, $3::transaction_type, $4, $5, $6::uuid, NULLIF($7, '')::uuid, NULLIF($8, '')::uuid,
+				 NULLIF($9, ''), NULLIF($10, ''), $11, $12, NULLIF($13, ''), $14::date, NULLIF($15, '')::date,
+				 $14::date, 'active'::recurrence_status, now(), now())
+			RETURNING id, user_id, name, type, amount, currency, account_id, category_id, transfer_to_id,
+			          title, note, frequency, interval_value, interval_unit,
+			          start_date, end_date, next_due_date, last_generated_date, status, created_at, updated_at`,
+			userID, name, typ, amount, currency, accountID, categoryID, transferToID,
+			title, note, frequency, intervalValArg, intervalUnitArg,
+			startDate, endDate,
+		).Scan(&retID, &retUserID, &retName, &retType, &retAmount, &retCurrency, &retAccountID,
+			&retCategoryID, &retTransferToID, &retTitle, &retNote,
+			&retFrequency, &retIntervalValue, &retIntervalUnit,
+			&retStart, &retEndDate, &retNextDue, &retLastGenerated,
+			&retStatus, &retCreatedAt, &retUpdatedAt)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("create failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":                  retID,
+			"user_id":             retUserID,
+			"name":                retName,
+			"type":                retType,
+			"amount":              retAmount,
+			"currency":            retCurrency,
+			"account_id":          retAccountID,
+			"category_id":         retCategoryID,
+			"transfer_to_id":      retTransferToID,
+			"title":               retTitle,
+			"note":                retNote,
+			"frequency":           retFrequency,
+			"interval_value":      retIntervalValue,
+			"interval_unit":       retIntervalUnit,
+			"start_date":          retStart.Format("2006-01-02"),
+			"end_date":            formatDatePtrMCP(retEndDate),
+			"next_due_date":       retNextDue.Format("2006-01-02"),
+			"last_generated_date": formatDatePtrMCP(retLastGenerated),
+			"status":              retStatus,
+			"created_at":          retCreatedAt.Format(time.RFC3339),
+			"updated_at":          retUpdatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func updateRecurringTool() mcp.Tool {
+	return mcp.NewTool("update_recurring",
+		mcp.WithDescription("Update a recurring transaction rule. id is required; other fields overwrite the stored value if provided. Pass empty string / 0 to clear optional fields. If start_date is updated, next_due_date is reset to the new start_date."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Recurring rule ID")),
+		mcp.WithString("name", mcp.Description("Rule name")),
+		mcp.WithString("type", mcp.Description("Type: income, expense, transfer, credit_payment")),
+		mcp.WithNumber("amount", mcp.Description("Amount (0 to leave unchanged)")),
+		mcp.WithString("currency", mcp.Description("Currency code")),
+		mcp.WithString("account_id", mcp.Description("Source account ID")),
+		mcp.WithString("category_id", mcp.Description("Category ID (empty to clear)")),
+		mcp.WithString("transfer_to_id", mcp.Description("Destination account ID for transfers (empty to clear)")),
+		mcp.WithString("title", mcp.Description("Title template (empty to clear)")),
+		mcp.WithString("note", mcp.Description("Note template (empty to clear)")),
+		mcp.WithString("frequency", mcp.Description("Frequency: weekly, monthly, custom")),
+		mcp.WithNumber("interval_value", mcp.Description("For frequency=custom: how many units (0 to clear)")),
+		mcp.WithString("interval_unit", mcp.Description("For frequency=custom: day, week, or month (empty to clear)")),
+		mcp.WithString("start_date", mcp.Description("Start date YYYY-MM-DD (also resets next_due_date when changed)")),
+		mcp.WithString("end_date", mcp.Description("Stop generating after this date YYYY-MM-DD (empty to clear)")),
+		mcp.WithString("status", mcp.Description("Status: active, paused")),
+	)
+}
+
+func updateRecurringHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+
+		name := req.GetString("name", "")
+		typ := req.GetString("type", "")
+		amount := req.GetFloat("amount", 0)
+		currency := req.GetString("currency", "")
+		accountID := req.GetString("account_id", "")
+		categoryID := req.GetString("category_id", "")
+		transferToID := req.GetString("transfer_to_id", "")
+		title := req.GetString("title", "")
+		note := req.GetString("note", "")
+		frequency := req.GetString("frequency", "")
+		intervalValue := req.GetInt("interval_value", 0)
+		intervalUnit := req.GetString("interval_unit", "")
+		startDate := req.GetString("start_date", "")
+		endDate := req.GetString("end_date", "")
+		status := req.GetString("status", "")
+
+		if typ != "" && !validRecurringType(typ) {
+			return mcp.NewToolResultError("invalid type. Must be one of: income, expense, transfer, credit_payment"), nil
+		}
+		if frequency != "" {
+			if _, err := recurring.StringFrequency(frequency); err != nil {
+				return mcp.NewToolResultError(err.Error()), nil
+			}
+			if intervalUnit != "" && !validIntervalUnit(intervalUnit) {
+				return mcp.NewToolResultError("interval_unit must be one of: day, week, month"), nil
+			}
+		}
+		if status != "" {
+			switch status {
+			case "active", "paused":
+			default:
+				return mcp.NewToolResultError("status must be one of: active, paused"), nil
+			}
+		}
+
+		var retID, retUserID, retName, retType, retAmount, retCurrency, retAccountID, retFrequency, retStatus string
+		var retCategoryID, retTransferToID, retTitle, retNote *string
+		var retIntervalValue, retIntervalUnit *string
+		var retStart, retNextDue time.Time
+		var retEndDate, retLastGenerated *time.Time
+		var retUpdatedAt time.Time
+
+		err = deps.Pool.QueryRow(ctx,
+			`UPDATE recurring_transactions SET
+				name = COALESCE(NULLIF($2, ''), name),
+				type = COALESCE(NULLIF($3, '')::transaction_type, type),
+				amount = COALESCE(NULLIF($4, 0), amount),
+				currency = COALESCE(NULLIF($5, ''), currency),
+				account_id = COALESCE(NULLIF($6, '')::uuid, account_id),
+				category_id = NULLIF($7, '')::uuid,
+				transfer_to_id = NULLIF($8, '')::uuid,
+				title = NULLIF($9, ''),
+				note = NULLIF($10, ''),
+				frequency = COALESCE(NULLIF($11, ''), frequency),
+				interval_value = NULLIF($12, 0),
+				interval_unit = NULLIF($13, ''),
+				start_date = COALESCE(NULLIF($14, '')::date, start_date),
+				next_due_date = COALESCE(NULLIF($14, '')::date, next_due_date),
+				end_date = NULLIF($15, '')::date,
+				status = COALESCE(NULLIF($16, '')::recurrence_status, status),
+				updated_at = now()
+			WHERE id = $1 AND user_id = $17 AND deleted_at IS NULL
+			RETURNING id, user_id, name, type, amount, currency, account_id, category_id, transfer_to_id,
+			          title, note, frequency, interval_value, interval_unit,
+			          start_date, end_date, next_due_date, last_generated_date, status, updated_at`,
+			id, name, typ, amount, currency, accountID, categoryID, transferToID,
+			title, note, frequency, intervalValue, intervalUnit,
+			startDate, endDate, status, userID,
+		).Scan(&retID, &retUserID, &retName, &retType, &retAmount, &retCurrency, &retAccountID,
+			&retCategoryID, &retTransferToID, &retTitle, &retNote,
+			&retFrequency, &retIntervalValue, &retIntervalUnit,
+			&retStart, &retEndDate, &retNextDue, &retLastGenerated,
+			&retStatus, &retUpdatedAt)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return mcp.NewToolResultError(fmt.Sprintf("recurring rule %q not found (or not owned by you)", id)), nil
+			}
+			return mcp.NewToolResultError(fmt.Sprintf("update failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"id":                  retID,
+			"user_id":             retUserID,
+			"name":                retName,
+			"type":                retType,
+			"amount":              retAmount,
+			"currency":            retCurrency,
+			"account_id":          retAccountID,
+			"category_id":         retCategoryID,
+			"transfer_to_id":      retTransferToID,
+			"title":               retTitle,
+			"note":                retNote,
+			"frequency":           retFrequency,
+			"interval_value":      retIntervalValue,
+			"interval_unit":       retIntervalUnit,
+			"start_date":          retStart.Format("2006-01-02"),
+			"end_date":            formatDatePtrMCP(retEndDate),
+			"next_due_date":       retNextDue.Format("2006-01-02"),
+			"last_generated_date": formatDatePtrMCP(retLastGenerated),
+			"status":              retStatus,
+			"updated_at":          retUpdatedAt.Format(time.RFC3339),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func deleteRecurringTool() mcp.Tool {
+	return mcp.NewTool("delete_recurring",
+		mcp.WithDescription("Soft-delete a recurring transaction rule. Already-generated occurrences remain intact."),
+		mcp.WithString("id", mcp.Required(), mcp.Description("Recurring rule ID")),
+	)
+}
+
+func deleteRecurringHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		userID, err := requireUserID(ctx)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		id := req.GetString("id", "")
+		if id == "" {
+			return mcp.NewToolResultError("id is required"), nil
+		}
+		tag, err := deps.Pool.Exec(ctx,
+			`UPDATE recurring_transactions SET deleted_at = now(), updated_at = now()
+			WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+			id, userID,
+		)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", err)), nil
+		}
+		if tag.RowsAffected() == 0 {
+			return mcp.NewToolResultError(fmt.Sprintf("recurring rule %q not found (or not owned by you)", id)), nil
+		}
+		return mcp.NewToolResultText(`{"status":"deleted"}`), nil
+	}
+}
+
+func runRecurringTool() mcp.Tool {
+	return mcp.NewTool("run_recurring",
+		mcp.WithDescription("Manually trigger the recurring-transaction engine to generate any due occurrences right now (instead of waiting for the scheduled daily run). Returns the number of transactions generated. Engine processes all active rules across all users — authentication is required but the result is not user-scoped."),
+	)
+}
+
+func runRecurringHandler(deps *ToolDeps) server.ToolHandlerFunc {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if _, err := requireUserID(ctx); err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		eng := recurring.NewEngine(deps.Pool)
+		count, err := eng.RunOnce(ctx, time.Now().UTC())
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("run failed: %v", err)), nil
+		}
+		result := map[string]any{"generated": count}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
 	}
 }
