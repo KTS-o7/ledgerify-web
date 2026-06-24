@@ -116,7 +116,8 @@ func (e *Engine) insertOccurrence(ctx context.Context, rl ruleRow, date time.Tim
 	_, err := e.pool.Exec(ctx,
 		`INSERT INTO transactions
 		   (user_id, account_id, type, amount, currency, category_id, transfer_to_id, title, note, date, is_recurring, parent_recurring_id)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,$11)`,
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,$11)
+		 ON CONFLICT (parent_recurring_id, date) WHERE parent_recurring_id IS NOT NULL DO NOTHING`,
 		rl.UserID, rl.AccountID, rl.Type, rl.Amount, rl.Currency,
 		rl.CategoryID, rl.TransferToID, rl.Title, rl.Note, date, rl.ID)
 	return err

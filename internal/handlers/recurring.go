@@ -122,6 +122,10 @@ func (h *RecurringHandler) Create(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	if req.Type != "income" && req.Type != "expense" && req.Type != "transfer" {
+		utils.BadRequest(w, "type must be 'income', 'expense', or 'transfer'")
+		return
+	}
 	if req.Name == "" || req.AccountID == "" || req.Amount <= 0 {
 		utils.BadRequest(w, "name, account_id, amount required")
 		return
@@ -129,6 +133,12 @@ func (h *RecurringHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if _, err := recurring.StringFrequency(req.Frequency); err != nil {
 		utils.BadRequest(w, err.Error())
 		return
+	}
+	if req.Frequency == "custom" {
+		if req.IntervalValue == nil || *req.IntervalValue <= 0 || req.IntervalUnit == nil || (*req.IntervalUnit != "day" && *req.IntervalUnit != "week" && *req.IntervalUnit != "month") {
+			utils.BadRequest(w, "frequency=custom requires interval_value (>0) and interval_unit (day|week|month)")
+			return
+		}
 	}
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
@@ -146,6 +156,20 @@ func (h *RecurringHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	id := uuidNewString()
 	now := time.Now().UTC()
+
+	// Verify account ownership
+	var owned bool
+	if err := h.pool.QueryRow(r.Context(),
+		`SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL)`,
+		nullableUUID(req.AccountID), userUUID).Scan(&owned); err != nil {
+		utils.InternalError(w)
+		return
+	}
+	if !owned {
+		utils.BadRequest(w, "account_id does not belong to user")
+		return
+	}
+
 	_, err = h.pool.Exec(r.Context(),
 		`INSERT INTO recurring_transactions
 		   (id, user_id, name, type, amount, currency, account_id, category_id, transfer_to_id, title, note, frequency, interval_value, interval_unit, start_date, end_date, next_due_date, status, created_at, updated_at)
@@ -181,9 +205,19 @@ func (h *RecurringHandler) Update(w http.ResponseWriter, r *http.Request) {
 		utils.BadRequest(w, "invalid request body")
 		return
 	}
+	if req.Type != "income" && req.Type != "expense" && req.Type != "transfer" {
+		utils.BadRequest(w, "type must be 'income', 'expense', or 'transfer'")
+		return
+	}
 	if _, err := recurring.StringFrequency(req.Frequency); err != nil {
 		utils.BadRequest(w, err.Error())
 		return
+	}
+	if req.Frequency == "custom" {
+		if req.IntervalValue == nil || *req.IntervalValue <= 0 || req.IntervalUnit == nil || (*req.IntervalUnit != "day" && *req.IntervalUnit != "week" && *req.IntervalUnit != "month") {
+			utils.BadRequest(w, "frequency=custom requires interval_value (>0) and interval_unit (day|week|month)")
+			return
+		}
 	}
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {

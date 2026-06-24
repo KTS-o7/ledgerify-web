@@ -29,3 +29,8 @@ CREATE TABLE "recurring_transactions" (
 
 CREATE INDEX "recurring_user_status_idx" ON "recurring_transactions" ("user_id", "status");
 CREATE INDEX "recurring_next_due_idx" ON "recurring_transactions" ("next_due_date");
+
+-- Prevents duplicate occurrences from being inserted by concurrent RunOnce calls
+CREATE UNIQUE INDEX "transactions_recurring_occurrence_uniq"
+    ON "transactions" ("parent_recurring_id", "date")
+    WHERE "parent_recurring_id" IS NOT NULL;
