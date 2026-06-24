@@ -29,6 +29,7 @@ import (
 	"github.com/KTS-o7/ledgerify-web/internal/mcp"
 	"github.com/KTS-o7/ledgerify-web/internal/middleware"
 	"github.com/KTS-o7/ledgerify-web/internal/recalc"
+	"github.com/KTS-o7/ledgerify-web/internal/recurring"
 )
 
 // ipRateLimiters holds per-IP rate limiters. Each entry is created on first
@@ -172,6 +173,7 @@ func main() {
 	keywordHandler := handlers.NewKeywordHandler(pool, q)
 	_, sseServer, streamableServer := mcp.NewMCPServer(pool, jwtCfg)
 	rateHandler := handlers.NewExchangeRateHandlerWithPool(q, pool)
+	recurringHandler := handlers.NewRecurringHandler(pool)
 
 	r := chi.NewRouter()
 	r.Use(corsHandler)
@@ -316,6 +318,18 @@ func main() {
 			r.Delete("/{id}", keywordHandler.Delete)
 		})
 
+		r.Route("/api/v1/recurring", func(r chi.Router) {
+			r.Get("/", recurringHandler.List)
+			r.Post("/", recurringHandler.Create)
+			r.Post("/run-now", recurringHandler.RunNow)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", recurringHandler.Get)
+				r.Put("/", recurringHandler.Update)
+				r.Delete("/", recurringHandler.Delete)
+				r.Post("/status", recurringHandler.SetStatus)
+			})
+		})
+
 		r.Post("/api/v1/transactions/categorise", importExportHandler.Categorise)
 		r.Post("/api/v1/import", importExportHandler.Import)
 		r.Get("/api/v1/export", importExportHandler.Export)
@@ -348,6 +362,9 @@ func main() {
 	recalcCtx, recalcCancel := context.WithCancel(context.Background())
 	defer recalcCancel()
 	go startRecalcCron(recalcCtx, recalcSvc)
+
+	recurringEngine := recurring.NewEngine(pool)
+	recurringEngine.Start(recalcCtx)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
