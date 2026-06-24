@@ -20,6 +20,7 @@ interface Tx {
   date: string;
   category_name: string;
   account_name: string;
+  parent_recurring_id?: string | null;
 }
 
 interface FullTx {
@@ -354,6 +355,7 @@ export default function Transactions() {
                       amount={parseFloat(tx.amount)}
                       type={tx.type}
                       date={tx.date}
+                      recurring={!!tx.parent_recurring_id}
                       onEdit={() => openEdit(tx.id)}
                       onDelete={() => handleDelete(tx.id, tx.title)}
                     />

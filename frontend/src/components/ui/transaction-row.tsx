@@ -1,7 +1,7 @@
 import { type Component, type JSX, Show } from "solid-js";
 import { formatCurrency, formatDate } from "../../lib/format";
 import { cn } from "../../lib/utils";
-import { Pencil, Trash2 } from "lucide-solid";
+import { Pencil, RotateCw, Trash2 } from "lucide-solid";
 
 type TransactionRowProps = {
   icon: Component<{ class?: string; size?: number }>;
@@ -10,6 +10,7 @@ type TransactionRowProps = {
   amount: number;
   type: "income" | "expense" | "transfer";
   date: string;
+  recurring?: boolean;
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -25,7 +26,14 @@ export const TransactionRow: Component<TransactionRowProps> = (props) => {
         {(() => { const Icon = props.icon; return <Icon size={20} />; })()}
       </div>
       <div class="flex-1 min-w-0">
-        <div class="font-body text-base text-text truncate">{props.merchant}</div>
+        <div class="font-body text-base text-text truncate flex items-center gap-1.5">
+          <span class="truncate">{props.merchant}</span>
+          <Show when={props.recurring}>
+            <span title="Part of a recurring rule" class="shrink-0 inline-flex">
+              <RotateCw size={12} class="text-primary" />
+            </span>
+          </Show>
+        </div>
         <div class="font-body text-[13px] font-medium text-muted mt-0.5">{props.category} · {formatDate(props.date)}</div>
       </div>
       <div class={cn("font-display font-semibold text-lg", typeTone[props.type])}
