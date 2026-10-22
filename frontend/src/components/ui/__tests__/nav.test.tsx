@@ -1,28 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { primaryNavItems, secondaryNavItems } from "../nav-items";
+import { navGroups, mobileTabs, allNavItems } from "../nav-items";
 import "@testing-library/jest-dom/vitest";
 
 describe("nav-items", () => {
-  it("has 4 primary items", () => {
-    expect(primaryNavItems).toHaveLength(4);
+  it("groups the sidebar into Overview, Plan, Wealth, Tools", () => {
+    expect(navGroups.map((g) => g.label)).toEqual(["Overview", "Plan", "Wealth", "Tools"]);
   });
-  it("has 13 secondary items", () => {
-    expect(secondaryNavItems).toHaveLength(13);
+  it("has 4 mobile tabs around the centre quick-add", () => {
+    expect(mobileTabs.map((t) => t.label)).toEqual(["Home", "Activity", "Insights", "Wealth"]);
   });
-  it("every primary item has path, label, icon, section=primary", () => {
-    for (const item of primaryNavItems) {
-      expect(item.path).toBeTypeOf("string");
+  it("has unique G shortcuts", () => {
+    const keys = allNavItems.map((i) => i.go).filter(Boolean);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+  it("every item has a path, label and icon", () => {
+    for (const item of allNavItems) {
+      expect(item.path.startsWith("/")).toBe(true);
       expect(item.label).toBeTypeOf("string");
       expect(item.icon).toBeDefined();
-      expect(item.section).toBe("primary");
-    }
-  });
-  it("every secondary item has path, label, icon, section=secondary", () => {
-    for (const item of secondaryNavItems) {
-      expect(item.path).toBeTypeOf("string");
-      expect(item.label).toBeTypeOf("string");
-      expect(item.icon).toBeDefined();
-      expect(item.section).toBe("secondary");
     }
   });
 });
