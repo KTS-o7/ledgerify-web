@@ -59,7 +59,7 @@ function syncThemeColor() {
 }
 
 export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** Route changes wrapped in the View Transitions API when available. */
 export function withViewTransition(fn: () => void) {

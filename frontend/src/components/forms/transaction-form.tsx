@@ -1,9 +1,10 @@
-import { createSignal, createResource, createMemo, For, Show } from "solid-js";
+import { createSignal, createResource, createMemo, For, Show, type JSX } from "solid-js";
+import { PenLine, Tag as TagIcon, Landmark, ArrowRight, Calendar, StickyNote, Delete, Repeat } from "lucide-solid";
 import { api } from "../../lib/api";
-import { Input } from "../ui/input";
-import { Select } from "../ui/select";
 import { Button } from "../ui/button";
 import { SegmentedControl } from "../ui/segmented-control";
+import { Eyebrow } from "../ui/eyebrow";
+import { moneyParts } from "../ui/money";
 import { cn } from "../../lib/utils";
 
 interface Account {
@@ -57,7 +58,7 @@ export function TransactionForm(props: TransactionFormProps) {
   const [availableTags] = createResource(() => api.get<Tag[]>("/v1/tags"));
 
   const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? props.initialType ?? "expense");
-  const [amount, setAmount] = createSignal(props.existing?.amount ?? "");
+  const [amount, setAmount] = createSignal(props.existing?.amount != null ? String(props.existing.amount) : "");
   const [accountId, setAccountId] = createSignal(props.existing?.account_id ?? "");
   const [transferToId, setTransferToId] = createSignal(props.existing?.transfer_to_id ?? "");
   const [categoryId, setCategoryId] = createSignal(props.existing?.category_id ?? "");
@@ -86,11 +87,39 @@ export function TransactionForm(props: TransactionFormProps) {
     return all.filter((c) => c.type === t || c.type === "both" || !c.type);
   });
 
-  const typeOptions: { value: TxType; label: string }[] = [
-    { value: "expense", label: "Expense" },
-    { value: "income", label: "Income" },
-    { value: "transfer", label: "Transfer" },
+  const typeOptions: { value: TxType; label: string; activeClass: string }[] = [
+    { value: "expense", label: "Expense", activeClass: "text-text" },
+    { value: "income", label: "Income", activeClass: "text-pos" },
+    { value: "transfer", label: "Transfer", activeClass: "text-signal" },
   ];
+
+  // The keypad replaces the system keyboard on phones; desktop types into the input.
+  const useKeypad = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches;
+
+  /** Keep the amount a plain decimal: digits, one dot, two fraction digits. */
+  function sanitizeAmount(raw: string): string {
+    let v = raw.replace(/[^0-9.]/g, "");
+    const dot = v.indexOf(".");
+    if (dot >= 0) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, "").slice(0, 2);
+    v = v.replace(/^0+(?=\d)/, "");
+    return v.slice(0, 12);
+  }
+  function pressKey(k: string) {
+    if (k === "back") setAmount((a) => a.slice(0, -1));
+    else if (k === ".") setAmount((a) => (a.includes(".") ? a : sanitizeAmount((a || "0") + ".")));
+    else setAmount((a) => sanitizeAmount(a + k));
+  }
+  const symbol = () => moneyParts(0, currency()).symbol;
+  /** Group the integer part en-IN style while typing, keeping a trailing dot. */
+  const displayAmount = () => {
+    const a = amount();
+    if (!a) return "0";
+    const [int, frac] = a.split(".");
+    const grouped = new Intl.NumberFormat("en-IN").format(Number(int || "0"));
+    return frac !== undefined ? `${grouped}.${frac}` : grouped;
+  };
+  const keypad = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "back"];
+  const submitLabel = () => (props.existing ? "Save changes" : `Save ${txType()}`);
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -161,149 +190,137 @@ export function TransactionForm(props: TransactionFormProps) {
     }
   }
 
+  const row = "flex items-center gap-3 min-h-12 px-3.5 border-b border-border last:border-b-0";
+  const bare = "flex-1 min-w-0 h-12 bg-transparent text-[14.5px] font-medium text-text placeholder:text-faint placeholder:font-normal focus:outline-none";
+  const icon = (I: typeof PenLine) => <I size={16} class="text-muted shrink-0" aria-hidden="true" />;
+  const field = (label: string, control: JSX.Element, I: typeof PenLine) => (
+    <label class={row}>
+      {icon(I)}
+      <span class="sr-only">{label}</span>
+      {control}
+    </label>
+  );
+  const smallInput = "w-full h-10 px-3 rounded-[10px] bg-bg border border-border-strong text-text text-[14px] focus:outline-none focus:border-signal";
+
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
-      {/* Type */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Type</label>
-        <SegmentedControl
-          options={typeOptions}
-          value={txType()}
-          onChange={setTxType}
-          ariaLabel="Transaction type"
-        />
+      <SegmentedControl
+        options={typeOptions}
+        value={txType()}
+        onChange={setTxType}
+        ariaLabel="Transaction type"
+      />
+
+      {/* Amount: a big mono display over a real input (screen readers and desktop typing). */}
+      <div class="flex flex-col items-center gap-2.5 pt-2 pb-1">
+        <div class="relative flex items-baseline justify-center gap-1.5 max-w-full rounded-[12px] px-3 focus-within:ring-2 focus-within:ring-signal">
+          <span class="font-mono text-[30px] leading-none text-muted" aria-hidden="true">{symbol()}</span>
+          <span class={cn("font-mono font-medium text-[60px] leading-none tracking-[-0.05em] tabular truncate", amount() ? "text-text" : "text-faint")} aria-hidden="true">
+            {displayAmount()}
+          </span>
+          <span class="w-[2px] h-12 self-center bg-signal rounded-full animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+          <input
+            id="tx-amount"
+            type="text"
+            inputmode={useKeypad ? "none" : "decimal"}
+            autocomplete="off"
+            aria-label={`Amount in ${currency()}`}
+            value={amount()}
+            onInput={(e) => { const v = sanitizeAmount(e.currentTarget.value); setAmount(v); e.currentTarget.value = v; }}
+            class="absolute inset-0 w-full h-full opacity-0 cursor-text"
+          />
+        </div>
+        <span class="inline-flex items-center h-7 px-2.5 rounded-pill border border-border-strong font-mono font-medium text-[12px] text-muted">
+          {currency()}
+        </span>
       </div>
 
-      {/* Amount */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Amount</label>
-        <Input
-          type="number"
-          min="0.01"
-          step="0.01"
-          placeholder="0.00"
-          value={amount()}
-          onInput={(e) => setAmount(e.currentTarget.value)}
-          required
-        />
-      </div>
-
-      {/* Account */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Account</label>
-        <Show when={accounts.loading}>
-          <Select disabled>
-            <option>Loading…</option>
-          </Select>
+      {/* Grouped fields */}
+      <div class="flex flex-col rounded-[14px] border border-border bg-bg">
+        {field("Description", (
+          <input type="text" placeholder={txType() === "income" ? "Where from?" : "What was it?"} value={title()} onInput={(e) => setTitle(e.currentTarget.value)} class={bare} />
+        ), PenLine)}
+        {field("Category", (
+          <select value={categoryId()} onChange={(e) => setCategoryId(e.currentTarget.value)} disabled={categories.loading} class={cn(bare, "appearance-none cursor-pointer", !categoryId() && "text-muted font-normal")}>
+            <option value="">{categories.loading ? "Loading…" : "No category"}</option>
+            <For each={filteredCategories()}>{(cat) => <option value={cat.id}>{cat.name}</option>}</For>
+          </select>
+        ), TagIcon)}
+        {field(txType() === "transfer" ? "From account" : "Account", (
+          <select value={accountId()} onChange={(e) => setAccountId(e.currentTarget.value)} disabled={accounts.loading} required class={cn(bare, "appearance-none cursor-pointer", !accountId() && "text-muted font-normal")}>
+            <option value="">{accounts.loading ? "Loading…" : txType() === "transfer" ? "From account…" : "Select account…"}</option>
+            <For each={accounts() ?? []}>{(acc) => <option value={acc.id}>{acc.name}</option>}</For>
+          </select>
+        ), Landmark)}
+        <Show when={txType() === "transfer"}>
+          {field("To account", (
+            <select value={transferToId()} onChange={(e) => setTransferToId(e.currentTarget.value)} disabled={accounts.loading} required class={cn(bare, "appearance-none cursor-pointer", !transferToId() && "text-muted font-normal")}>
+              <option value="">{accounts.loading ? "Loading…" : "To account…"}</option>
+              <For each={(accounts() ?? []).filter((acc) => acc.id !== accountId())}>{(acc) => <option value={acc.id}>{acc.name}</option>}</For>
+            </select>
+          ), ArrowRight)}
         </Show>
-        <Show when={!accounts.loading}>
-          <Select
-            value={accountId()}
-            onChange={(e) => setAccountId(e.currentTarget.value)}
-            required
-          >
-            <option value="">Select account…</option>
-            <For each={accounts() ?? []}>
-              {(acc) => <option value={acc.id}>{acc.name}</option>}
-            </For>
-          </Select>
-        </Show>
+        {field("Date", (
+          <input type="date" value={date()} onInput={(e) => setDate(e.currentTarget.value)} required class={cn(bare, "font-mono tabular")} />
+        ), Calendar)}
+        {field("Note", (
+          <input type="text" placeholder="Note (optional)" value={note()} onInput={(e) => setNote(e.currentTarget.value)} class={bare} />
+        ), StickyNote)}
       </div>
 
-      {/* To Account (transfer only) */}
-      <Show when={txType() === "transfer"}>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">To Account</label>
-          <Show when={accounts.loading}>
-            <Select disabled>
-              <option>Loading…</option>
-            </Select>
-          </Show>
-          <Show when={!accounts.loading}>
-            <Select
-              value={transferToId()}
-              onChange={(e) => setTransferToId(e.currentTarget.value)}
-              required
-            >
-              <option value="">Select destination account…</option>
-              <For each={(accounts() ?? []).filter((acc) => acc.id !== accountId())}>
-                {(acc) => <option value={acc.id}>{acc.name}</option>}
-              </For>
-            </Select>
-          </Show>
+      {/* Tags */}
+      <Show when={(availableTags() ?? []).length > 0}>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Tags">
+          <For each={availableTags()}>
+            {(tag) => {
+              const on = () => selectedTagIds().includes(tag.id);
+              return (
+                <button
+                  type="button"
+                  aria-pressed={on()}
+                  onClick={() => setSelectedTagIds((ids) => (on() ? ids.filter((i) => i !== tag.id) : [...ids, tag.id]))}
+                  class={cn("h-7 px-3 rounded-pill text-[12.5px] font-medium transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
+                    on() ? "bg-signal-soft text-signal" : "border border-border-strong text-muted hover:text-text")}
+                >
+                  #{tag.name}
+                </button>
+              );
+            }}
+          </For>
         </div>
       </Show>
 
-      {/* Category */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Category</label>
-        <Show when={categories.loading}>
-          <Select disabled>
-            <option>Loading…</option>
-          </Select>
-        </Show>
-        <Show when={!categories.loading}>
-          <Select
-            value={categoryId()}
-            onChange={(e) => setCategoryId(e.currentTarget.value)}
-          >
-            <option value="">No category</option>
-            <For each={filteredCategories()}>
-              {(cat) => <option value={cat.id}>{cat.name}</option>}
-            </For>
-          </Select>
-        </Show>
-      </div>
-
-      {/* Title */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Description</label>
-        <Input
-          type="text"
-          placeholder="Description (optional)"
-          value={title()}
-          onInput={(e) => setTitle(e.currentTarget.value)}
-        />
-      </div>
-
-      {/* Date */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Date</label>
-        <Input
-          type="date"
-          value={date()}
-          onInput={(e) => setDate(e.currentTarget.value)}
-          required
-        />
-      </div>
-
-      {/* Note */}
-      <div class="flex flex-col gap-1.5">
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Note</label>
-        <Input
-          type="text"
-          placeholder="Note (optional)"
-          value={note()}
-          onInput={(e) => setNote(e.currentTarget.value)}
-        />
-      </div>
-
-      {/* Error */}
-      <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+      {/* Keypad (phones) */}
+      <Show when={useKeypad}>
+        <div class="grid grid-cols-3 gap-1.5 md:hidden" role="group" aria-label="Amount keypad">
+          <For each={keypad}>
+            {(k) => (
+              <button
+                type="button"
+                onClick={() => pressKey(k)}
+                aria-label={k === "back" ? "Delete digit" : k === "." ? "Decimal point" : k}
+                class="h-12 rounded-[12px] flex items-center justify-center font-mono font-medium text-[24px] text-text active:bg-raised transition-colors duration-[90ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+              >
+                <Show when={k === "back"} fallback={k}><Delete size={22} /></Show>
+              </button>
+            )}
+          </For>
+        </div>
       </Show>
 
       {/* Recurring */}
-      <div class="border-t border-border pt-4 mt-4 space-y-3">
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={makeRecurring()} onChange={(e) => setMakeRecurring(e.currentTarget.checked)} class="w-4 h-4 accent-primary" />
-          <span class="font-body text-sm text-text">Make this recurring</span>
+      <div class="rounded-[14px] border border-border">
+        <label class="flex items-center gap-3 min-h-12 px-3.5 cursor-pointer">
+          <Repeat size={16} class="text-muted shrink-0" aria-hidden="true" />
+          <span class="flex-1 text-[14.5px] font-medium text-text">Repeat this</span>
+          <input type="checkbox" role="switch" checked={makeRecurring()} onChange={(e) => setMakeRecurring(e.currentTarget.checked)} class="peer sr-only" />
+          <span aria-hidden="true" class="relative w-9 h-5 rounded-pill bg-sunken border border-border-strong transition-colors duration-[160ms] peer-checked:bg-signal peer-focus-visible:ring-2 peer-focus-visible:ring-signal after:absolute after:top-0.5 after:left-0.5 after:w-3.5 after:h-3.5 after:rounded-full after:bg-text after:transition-transform after:duration-[160ms] peer-checked:after:translate-x-4 peer-checked:after:bg-btn-text" />
         </label>
         <Show when={makeRecurring()}>
-          <div class="space-y-3 pl-6">
-            <label class="block">
-              <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Frequency</span>
-              <select value={recFrequency()} onChange={(e) => setRecFrequency(e.currentTarget.value as "weekly" | "monthly" | "custom")} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body">
+          <div class="flex flex-col gap-3 px-3.5 pb-3.5 pt-1 border-t border-border">
+            <label class="flex flex-col gap-1.5 pt-2">
+              <Eyebrow>Frequency</Eyebrow>
+              <select value={recFrequency()} onChange={(e) => setRecFrequency(e.currentTarget.value as "weekly" | "monthly" | "custom")} class={smallInput}>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
                 <option value="custom">Custom</option>
@@ -311,13 +328,13 @@ export function TransactionForm(props: TransactionFormProps) {
             </label>
             <Show when={recFrequency() === "custom"}>
               <div class="grid grid-cols-2 gap-2">
-                <label class="block">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Every N</span>
-                  <input type="number" min="1" value={recIntervalValue()} onInput={(e) => setRecIntervalValue(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+                <label class="flex flex-col gap-1.5">
+                  <Eyebrow>Every N</Eyebrow>
+                  <input type="number" min="1" value={recIntervalValue()} onInput={(e) => setRecIntervalValue(e.currentTarget.value)} class={cn(smallInput, "font-mono tabular")} />
                 </label>
-                <label class="block">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Unit</span>
-                  <select value={recIntervalUnit()} onChange={(e) => setRecIntervalUnit(e.currentTarget.value as "day" | "week" | "month")} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body">
+                <label class="flex flex-col gap-1.5">
+                  <Eyebrow>Unit</Eyebrow>
+                  <select value={recIntervalUnit()} onChange={(e) => setRecIntervalUnit(e.currentTarget.value as "day" | "week" | "month")} class={smallInput}>
                     <option value="day">Days</option>
                     <option value="week">Weeks</option>
                     <option value="month">Months</option>
@@ -326,22 +343,26 @@ export function TransactionForm(props: TransactionFormProps) {
               </div>
             </Show>
             <div class="grid grid-cols-2 gap-2">
-              <label class="block">
-                <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Start date</span>
-                <input type="date" value={recStartDate()} onInput={(e) => setRecStartDate(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+              <label class="flex flex-col gap-1.5">
+                <Eyebrow>Starts</Eyebrow>
+                <input type="date" value={recStartDate()} onInput={(e) => setRecStartDate(e.currentTarget.value)} class={cn(smallInput, "font-mono tabular")} />
               </label>
-              <label class="block">
-                <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">End date (optional)</span>
-                <input type="date" value={recEndDate()} onInput={(e) => setRecEndDate(e.currentTarget.value)} class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body" />
+              <label class="flex flex-col gap-1.5">
+                <Eyebrow>Ends (optional)</Eyebrow>
+                <input type="date" value={recEndDate()} onInput={(e) => setRecEndDate(e.currentTarget.value)} class={cn(smallInput, "font-mono tabular")} />
               </label>
             </div>
           </div>
         </Show>
       </div>
 
-      {/* Submit */}
-      <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? (props.existing ? "Saving…" : "Adding…") : (props.existing ? "Save Changes" : "Add Transaction")}
+      {/* Error */}
+      <Show when={error()}>
+        <p class="text-neg text-[13.5px]" role="alert">{error()}</p>
+      </Show>
+
+      <Button type="submit" size="lg" class="w-full" disabled={submitting()}>
+        {submitting() ? "Saving…" : submitLabel()}
       </Button>
     </form>
   );
