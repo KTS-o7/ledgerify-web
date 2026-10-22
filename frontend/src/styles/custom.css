@@ -151,12 +151,18 @@
   --animate-aurora: aurora 28s ease-in-out infinite alternate;
 }
 
-html, body { background: var(--lg-bg); color: var(--lg-text); }
-body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
-.tabular, .font-mono { font-variant-numeric: tabular-nums; }
-a { color: var(--lg-signal); }
-a:hover { color: var(--lg-text); }
-:focus-visible { outline: 2px solid var(--lg-signal); outline-offset: 2px; }
+/* Base styles live in the base layer so Tailwind utilities (text-muted on a
+   nav link, for example) still win over them. */
+@layer base {
+  html, body { background: var(--lg-bg); color: var(--lg-text); }
+  body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+  a { color: var(--lg-signal); }
+  a:hover { color: var(--lg-text); }
+  :focus-visible { outline: 2px solid var(--lg-signal); outline-offset: 2px; }
+}
+@layer utilities {
+  .tabular, .font-mono { font-variant-numeric: tabular-nums; }
+}
 
 @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes slide-right { from { transform: translateX(100%); } to { transform: translateX(0); } }

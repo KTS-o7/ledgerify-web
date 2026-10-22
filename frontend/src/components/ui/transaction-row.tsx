@@ -31,7 +31,7 @@ const typeTone = { income: "pos", expense: "text", transfer: "muted" } as const;
 export const TransactionRow: Component<TransactionRowProps> = (props) => {
   const label = () => `${props.merchant}, ${props.category}, ${props.type}, ${typePrefix[props.type]}${formatCurrency(Math.abs(props.amount), props.currency)}, ${formatDate(props.date)}${props.pending ? ", waiting to sync" : ""}`;
   const content = (): JSX.Element => (
-    <div class="group flex items-center gap-3 h-[60px]">
+    <div class="group relative flex items-center gap-3 h-[60px]">
       <div
         class={cn("w-[38px] h-[38px] shrink-0 rounded-[10px] flex items-center justify-center",
           props.pending ? "border border-dashed border-border-strong text-muted" : "bg-raised")}
@@ -58,7 +58,7 @@ export const TransactionRow: Component<TransactionRowProps> = (props) => {
         {typePrefix[props.type]}<Money value={Math.abs(props.amount)} currency={props.currency} tone={typeTone[props.type]} />
       </span>
       <Show when={props.onEdit || props.onDelete}>
-        <div class="flex items-center gap-0.5 ml-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-[160ms]">
+        <div class="flex items-center gap-0.5 ml-1 opacity-100 md:ml-0 md:absolute md:right-0 md:p-0.5 md:rounded-[10px] md:bg-surface md:border md:border-border md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto transition-opacity duration-[160ms]">
           <Show when={props.onEdit}>
             <button type="button" onClick={(e) => { e.stopPropagation(); props.onEdit!(); }}
               aria-label="Edit transaction"

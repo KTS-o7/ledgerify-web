@@ -63,8 +63,8 @@ export const Sidebar: Component = (): JSX.Element => {
         class="flex items-center gap-2.5 h-9 px-2.5 rounded-[10px] border border-border-strong bg-surface text-muted text-[13px] text-left hover:border-signal transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
       >
         <Search size={15} />
-        <span class="flex-1">Search or jump to…</span>
-        <Kbd>{modKey.trim()}K</Kbd>
+        <span class="flex-1 truncate whitespace-nowrap">Search or jump to…</span>
+        <Kbd class="shrink-0">{isMac ? "⌘K" : "Ctrl K"}</Kbd>
       </button>
       <nav class="flex-1 flex flex-col gap-4 overflow-y-auto -mx-1 px-1" aria-label="Primary">
         <For each={navGroups}>

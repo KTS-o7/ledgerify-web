@@ -78,16 +78,7 @@ export function utilisation(balance: number, limit?: number | null): number | nu
   return (Math.max(0, -balance) / limit) * 100;
 }
 
-/** Compact amount for the totals strip, e.g. ₹16.9L, $6,240. */
-export function compactMoney(value: number, currency: string): string {
-  const abs = Math.abs(value);
-  const s = new Intl.NumberFormat("en-IN", {
-    style: "currency", currency,
-    notation: abs >= 100000 ? "compact" : "standard",
-    maximumFractionDigits: abs >= 100000 ? 1 : 0,
-  }).format(abs);
-  return value < 0 ? `−${s}` : s;
-}
+export { compactMoney } from "../../lib/format";
 
 /** pgtype.UUID can arrive as a string or a wrapped object. */
 export function idOf(id: unknown): string {

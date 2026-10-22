@@ -170,9 +170,7 @@ export function sampleLabels(points: NetWorthPoint[], max = 12): string[] {
   return points.filter((_, i) => (points.length - 1 - i) % step === 0).map((p) => monthShort(p.month));
 }
 
-export function compactMoney(n: number, currency = "INR"): string {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency, notation: "compact", maximumSignificantDigits: 3 }).format(n);
-}
+export { compactMoney } from "../../lib/format";
 
 export function daysLeftInMonth(ym: string): number | null {
   const now = new Date();

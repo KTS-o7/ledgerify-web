@@ -42,7 +42,7 @@ export function SegmentedControl<T extends string>(props: SegmentedControlProps<
               onClick={() => props.onChange(opt.value)}
               onKeyDown={(e) => onKey(e, i())}
               class={cn(
-                "flex-1 inline-flex items-center justify-center rounded-[8px] font-body font-medium transition-[background-color,color] duration-[160ms] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
+                "flex-1 inline-flex items-center justify-center px-2.5 whitespace-nowrap rounded-[8px] font-body font-medium transition-[background-color,color] duration-[160ms] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
                 size() === "sm" ? "text-[12px]" : "text-[13px]",
                 active() ? cn("bg-raised", opt.activeClass ?? "text-text") : "text-muted hover:text-text"
               )}
