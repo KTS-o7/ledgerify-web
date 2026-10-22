@@ -1,6 +1,6 @@
 import { createResource, createSignal, createEffect, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug, Clock } from "lucide-solid";
+import { ChevronRight, LogOut, Trash2, FileDown, FileUp, KeyRound, Mail, Globe, Calendar, Sparkles, User2, Plug, Clock, SunMoon } from "lucide-solid";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -10,6 +10,10 @@ import { Sheet } from "../components/ui/sheet";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { getCurrency, getDateFormat } from "../lib/format";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { SegmentedControl } from "../components/ui/segmented-control";
+import { theme, setTheme, type Theme } from "../lib/pwa";
+import { cn } from "../lib/utils";
 
 function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () => void; trailing?: any }) {
   const Icon = props.icon;
@@ -17,12 +21,15 @@ function Row(props: { icon: any; label: string; danger?: boolean; onClick?: () =
     <button
       type="button"
       onClick={props.onClick}
-      class="w-full h-14 flex items-center gap-3 px-2 -mx-2 rounded-input text-left hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+      disabled={!props.onClick}
+      class="w-full min-h-12 flex items-center gap-3 px-2 -mx-2 rounded-[10px] text-left enabled:hover:bg-raised transition-colors duration-[160ms] disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
     >
-      <Icon size={18} class={props.danger ? "text-accent" : "text-muted"} />
-      <span class={`flex-1 font-body text-base ${props.danger ? "text-accent" : "text-text"}`}>{props.label}</span>
+      <Icon size={17} class={cn("shrink-0", props.danger ? "text-neg" : "text-muted")} />
+      <span class={cn("flex-1 min-w-0 truncate text-[14.5px]", props.danger ? "text-neg" : "text-text")}>{props.label}</span>
       {props.trailing}
-      <ChevronRight size={16} class="text-muted" />
+      <Show when={props.onClick}>
+        <ChevronRight size={16} class="text-faint" />
+      </Show>
     </button>
   );
 }
@@ -248,46 +255,66 @@ export default function Settings() {
     <>
       <PageHeader title="Settings" />
       {/* Desktop: 2-col — left has account + prefs stacked, right has data */}
-      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+      <div class="px-5 md:px-7 py-5 md:py-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[1100px]">
 
         {/* Left column */}
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-4">
           <BentoBlock>
-            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Account</span>
+            <Eyebrow as="h2" class="mb-3">Appearance</Eyebrow>
+            <div class="flex items-center gap-3 min-h-12">
+              <SunMoon size={17} class="text-muted shrink-0" />
+              <span id="settings-theme-label" class="flex-1 text-[14.5px] text-text">Theme</span>
+              <SegmentedControl<Theme>
+                ariaLabel="Theme"
+                size="sm"
+                class="w-[220px]"
+                value={theme()}
+                onChange={setTheme}
+                options={[
+                  { value: "system", label: "System" },
+                  { value: "light", label: "Light" },
+                  { value: "dark", label: "Dark" },
+                ]}
+              />
+            </div>
+            <p class="text-[12.5px] text-muted mt-2">System follows your device. Saved on this device only.</p>
+          </BentoBlock>
+          <BentoBlock>
+            <Eyebrow as="h2" class="mb-3">Account</Eyebrow>
             <Row icon={User2} label={profile()?.name || user()?.name || "Set your name"} onClick={() => { setNameValue(profile()?.name || user()?.name || ""); setNameSheetOpen(true); }} />
             <Row icon={Mail} label={profile()?.email || user()?.email || "Email"} />
             <Row icon={KeyRound} label="Change password" onClick={openPwSheet} />
-            <Row icon={LogOut} label="Logout" danger onClick={handleLogout} />
+            <Row icon={LogOut} label="Sign out" danger onClick={handleLogout} />
           </BentoBlock>
           <BentoBlock>
-            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Preferences</span>
-            <div class="flex items-center gap-3 h-14">
-              <Globe size={18} class="text-muted" />
-              <label for="settings-currency" class="flex-1 font-body text-base text-text">Currency</label>
-              <Select id="settings-currency" value={currency()} onChange={onCurrencyChange} class="w-32">
+            <Eyebrow as="h2" class="mb-3">Preferences</Eyebrow>
+            <div class="flex items-center gap-3 min-h-12 py-1">
+              <Globe size={17} class="text-muted shrink-0" />
+              <label for="settings-currency" class="flex-1 text-[14.5px] text-text">Currency</label>
+              <Select id="settings-currency" value={currency()} onChange={onCurrencyChange} class="w-36 h-9 text-[14px]">
                 <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
               </Select>
             </div>
-            <div class="flex items-center gap-3 h-14">
-              <Calendar size={18} class="text-muted" />
-              <label for="settings-date-format" class="flex-1 font-body text-base text-text">Date format</label>
-              <Select id="settings-date-format" class="w-32" value={dateFormat()} onChange={(e) => {
+            <div class="flex items-center gap-3 min-h-12 py-1">
+              <Calendar size={17} class="text-muted shrink-0" />
+              <label for="settings-date-format" class="flex-1 text-[14.5px] text-text">Date format</label>
+              <Select id="settings-date-format" class="w-36 h-9 text-[14px] font-mono" value={dateFormat()} onChange={(e) => {
                 const v = (e.currentTarget as HTMLSelectElement).value;
                 setDateFormat(v);
-                if (typeof localStorage !== "undefined") localStorage.setItem("ledgerify.dateformat", v);
+                if (typeof localStorage !== "undefined") localStorage.setItem("ledgerify.dateFormat", v);
               }}>
                 <option value="MMM DD">MMM DD</option>
                 <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                 <option value="YYYY-MM-DD">YYYY-MM-DD</option>
               </Select>
             </div>
-            <div class="flex items-center gap-3 h-14">
-              <Clock size={18} class="text-muted" />
-              <label for="settings-timezone" class="flex-1 font-body text-base text-text">Timezone</label>
-              <Select id="settings-timezone" class="w-44" value={timezone()} onChange={onTimezoneChange}>
+            <div class="flex items-center gap-3 min-h-12 py-1">
+              <Clock size={17} class="text-muted shrink-0" />
+              <label for="settings-timezone" class="flex-1 text-[14.5px] text-text">Timezone</label>
+              <Select id="settings-timezone" class="w-44 h-9 text-[14px]" value={timezone()} onChange={onTimezoneChange}>
                 <option value="UTC">UTC</option>
                 <option value="Asia/Kolkata">Asia/Kolkata</option>
                 <option value="America/New_York">America/New_York</option>
@@ -305,7 +332,7 @@ export default function Settings() {
 
         {/* Right column */}
         <BentoBlock>
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">Data</span>
+          <Eyebrow as="h2" class="mb-3">Data</Eyebrow>
           <Row icon={FileDown} label="Export all data" onClick={() => navigate("/export")} />
           <Row icon={FileUp} label="Import" onClick={() => navigate("/import")} />
           <Row icon={Plug} label="MCP Connect" onClick={() => navigate("/mcp")} />
@@ -335,10 +362,10 @@ export default function Settings() {
       </div>
 
       {/* Change Password Sheet */}
-      <Sheet open={pwSheetOpen()} onClose={() => setPwSheetOpen(false)} title="Change Password">
+      <Sheet open={pwSheetOpen()} onClose={() => setPwSheetOpen(false)} title="Change password">
         <form onSubmit={handleChangePassword} class="flex flex-col gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="cp-current">Current Password</label>
+            <label class="text-[12.5px] font-medium text-muted" for="cp-current">Current password</label>
             <Input
               id="cp-current"
               type="password"
@@ -350,7 +377,7 @@ export default function Settings() {
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="cp-new">New Password</label>
+            <label class="text-[12.5px] font-medium text-muted" for="cp-new">New password</label>
             <Input
               id="cp-new"
               type="password"
@@ -363,7 +390,7 @@ export default function Settings() {
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="cp-confirm">Confirm New Password</label>
+            <label class="text-[12.5px] font-medium text-muted" for="cp-confirm">Confirm new password</label>
             <Input
               id="cp-confirm"
               type="password"
@@ -375,23 +402,23 @@ export default function Settings() {
           </div>
 
           <Show when={pwError()}>
-            <p class="text-accent text-sm">{pwError()}</p>
+            <p role="alert" class="text-neg text-[13.5px]">{pwError()}</p>
           </Show>
           <Show when={pwSuccess()}>
-            <p class="text-primary text-sm font-medium">Password updated.</p>
+            <p role="status" class="text-pos text-[13.5px] font-medium">Password updated.</p>
           </Show>
 
           <Button type="submit" disabled={pwSubmitting()} class="w-full mt-2">
-            {pwSubmitting() ? "Updating…" : "Update Password"}
+            {pwSubmitting() ? "Updating…" : "Update password"}
           </Button>
         </form>
       </Sheet>
 
       {/* Edit Name Sheet */}
-      <Sheet open={nameSheetOpen()} onClose={() => setNameSheetOpen(false)} title="Edit Name">
+      <Sheet open={nameSheetOpen()} onClose={() => setNameSheetOpen(false)} title="Edit name">
         <form onSubmit={handleUpdateName} class="flex flex-col gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="name-input">Display Name</label>
+            <label class="text-[12.5px] font-medium text-muted" for="name-input">Display name</label>
             <Input
               id="name-input"
               type="text"
@@ -402,23 +429,23 @@ export default function Settings() {
             />
           </div>
           <Show when={nameError()}>
-            <p class="text-accent text-sm">{nameError()}</p>
+            <p role="alert" class="text-neg text-[13.5px]">{nameError()}</p>
           </Show>
           <Button type="submit" disabled={nameSubmitting()} class="w-full mt-2">
-            {nameSubmitting() ? "Saving…" : "Save Name"}
+            {nameSubmitting() ? "Saving…" : "Save name"}
           </Button>
         </form>
       </Sheet>
 
       {/* Delete Account Sheet */}
-      <Sheet open={deleteSheetOpen()} onClose={() => setDeleteSheetOpen(false)} title="Delete Account">
+      <Sheet open={deleteSheetOpen()} onClose={() => setDeleteSheetOpen(false)} title="Delete account">
         <form onSubmit={handleDeleteAccount} class="flex flex-col gap-4">
-          <p class="text-sm text-text">
+          <p class="text-[14px] text-text text-pretty">
             This will permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.
           </p>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-muted" for="delete-confirm">
-              Type <span class="font-mono font-bold text-accent">DELETE</span> to confirm
+            <label class="text-[12.5px] font-medium text-muted" for="delete-confirm">
+              Type <span class="font-mono font-medium text-neg">DELETE</span> to confirm
             </label>
             <Input
               id="delete-confirm"
@@ -430,14 +457,15 @@ export default function Settings() {
             />
           </div>
           <Show when={deleteError()}>
-            <p class="text-accent text-sm">{deleteError()}</p>
+            <p role="alert" class="text-neg text-[13.5px]">{deleteError()}</p>
           </Show>
           <Button
             type="submit"
             disabled={deleteSubmitting() || deleteConfirmText() !== "DELETE"}
-            class="w-full mt-2 bg-accent text-white hover:opacity-90 disabled:opacity-50"
+            variant="destructive"
+            class="w-full mt-2"
           >
-            {deleteSubmitting() ? "Deleting…" : "Delete My Account"}
+            {deleteSubmitting() ? "Deleting…" : "Delete my account"}
           </Button>
         </form>
       </Sheet>

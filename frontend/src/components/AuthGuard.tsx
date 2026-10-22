@@ -1,4 +1,4 @@
-import { Show, type JSX } from "solid-js";
+import { Show } from "solid-js";
 import { useNavigate, type RouteSectionProps } from "@solidjs/router";
 import { useAuth } from "../lib/store";
 
