@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.468.0/font/lucide.css">
+<style>body{margin:0;background:#000}a{color:#CCFF00}a:hover{color:#FAFAFA}</style>
+</helmet>
+<section style="display:flex;flex-direction:column;gap:32px;padding:64px;font-family:'DM Sans',sans-serif;color:#FAFAFA">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#A1A1AA;letter-spacing:.08em">REFERENCE · CURRENT UI (KTS-o7/ledgerify-web@main)</span>
+    <span style="font:700 40px/1.1 'Space Grotesk',sans-serif">Minimalist Bento — as shipped</span>
+    <span style="font:400 15px/1.5 'DM Sans',sans-serif;color:#A1A1AA">Recreated from custom.css tokens, nav.tsx, page-header.tsx, Dashboard.tsx, Transactions.tsx. <a href="Ledgerify Redesign.dc.html">See the redesign →</a></span>
+  </div>
+  <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- Desktop dashboard -->
+    <div data-screen-label="Current Desktop Dashboard" style="position:relative;width:1280px;height:820px;background:#09090B;border:1px solid #27272A;border-radius:12px;overflow:hidden">
+      <aside style="position:absolute;top:0;left:0;bottom:0;width:240px;display:flex;flex-direction:column;background:#09090B;border-right:1px solid #27272A">
+        <div style="padding:16px;display:flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;border-radius:6px;background:#CCFF00;display:flex;align-items:center;justify-content:center;color:#09090B;font:700 18px/1 'Space Grotesk',sans-serif">L</div>
+          <span style="font:700 18px/1 'Space Grotesk',sans-serif">Ledgerify</span>
+        </div>
+        <nav style="flex:1;padding:8px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;background:#18181B;font:600 14px/20px 'DM Sans',sans-serif"><i class="icon-layout-dashboard" style="font-size:20px"></i>Home</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;color:rgba(250,250,250,.7);font:500 14px/20px 'DM Sans',sans-serif"><i class="icon-wallet" style="font-size:20px"></i>Accounts</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;color:rgba(250,250,250,.7);font:500 14px/20px 'DM Sans',sans-serif"><i class="icon-chart-pie" style="font-size:20px"></i>Analytics</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;color:rgba(250,250,250,.7);font:500 14px/20px 'DM Sans',sans-serif"><i class="icon-receipt" style="font-size:20px"></i>Activity</div>
+          </div>
+          <div style="height:1px;background:#27272A;margin:8px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;color:rgba(250,250,250,.7);font:500 14px/20px 'DM Sans',sans-serif"><span style="display:flex;align-items:center;gap:12px"><i class="icon-grid-3x3" style="font-size:20px"></i>More</span><i class="icon-chevron-down" style="font-size:16px"></i></div>
+        </nav>
+        <div style="padding:8px;border-top:1px solid #27272A"><div style="display:flex;align-items:center;gap:12px;padding:8px 12px;color:rgba(250,250,250,.7);font:500 14px/20px 'DM Sans',sans-serif"><i class="icon-log-out" style="font-size:18px"></i>Logout</div></div>
+      </aside>
+      <main style="position:absolute;top:0;left:240px;right:0;bottom:0">
+        <header style="height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid #27272A">
+          <h1 style="margin:0;font:700 24px/1 'Space Grotesk',sans-serif;letter-spacing:-.025em">Dashboard</h1>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="display:flex;align-items:center;gap:4px;color:#A1A1AA"><i class="icon-chevron-left" style="width:32px;text-align:center;font-size:16px"></i><span style="min-width:96px;text-align:center;font:500 14px/1 'DM Sans',sans-serif;color:#FAFAFA">Oct 2026</span><i class="icon-chevron-right" style="width:32px;text-align:center;font-size:16px;opacity:.3"></i></div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#18181B;display:flex;align-items:center;justify-content:center"><i class="icon-plus" style="font-size:20px"></i></div>
+          </div>
+        </header>
+        <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:#18181B;border:1px solid #3F3F46;font:400 14px/1 'DM Sans',sans-serif"><i class="icon-triangle-alert" style="font-size:14px;color:#FACC15"></i>Dining is 98% used</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:#18181B;border:1px solid #3F3F46;font:400 14px/1 'DM Sans',sans-serif"><i class="icon-triangle-alert" style="font-size:14px;color:#FACC15"></i>Car loan payment due 5 Nov 2026</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:16px">
+            <div style="grid-column:span 8;display:flex;flex-direction:column;gap:16px;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font:500 13px/1.4 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase;letter-spacing:.025em">Total Balance</span>
+                <span style="font:700 48px/1 'Space Grotesk',sans-serif;letter-spacing:-.025em;color:#CCFF00">₹2,06,200</span>
+                <span style="font:500 14px/1.4 'DM Sans',sans-serif;color:#CCFF00">↑ +₹2,06,200 this month</span>
+              </div>
+              <svg width="100%" height="56" viewBox="0 0 240 56" preserveAspectRatio="none"><path d="M0 50 L22 44 L44 46 L66 36 L88 34 L110 26 L132 30 L154 22 L176 18 L198 16 L220 12 L240 4" fill="none" stroke="#CCFF00" stroke-width="2" vector-effect="non-scaling-stroke"></path></svg>
+            </div>
+            <div style="grid-column:span 4;display:flex;flex-direction:column;gap:12px">
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><i class="icon-trending-up" style="font-size:16px;color:#CCFF00"></i><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase;letter-spacing:.025em">Income</span></div><span style="font:700 24px/1.3 'Space Grotesk',sans-serif;color:#CCFF00">₹2,84,600</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><i class="icon-trending-down" style="font-size:16px;color:#A1A1AA"></i><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase;letter-spacing:.025em">Expenses</span></div><span style="font:700 24px/1.3 'Space Grotesk',sans-serif">₹78,400</span></div>
+            </div>
+            <div style="grid-column:span 12;border-radius:24px;background:#18181B;border:1px solid #27272A;overflow:hidden">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #27272A"><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase;letter-spacing:.025em">Recent transactions</span><span style="font:500 14px/1 'DM Sans',sans-serif;color:#CCFF00">View all →</span></div>
+              <div style="padding:0 20px">
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:16px;height:72px;border-bottom:1px solid #27272A">
+                    <div style="width:40px;height:40px;border-radius:8px;background:#09090B;display:flex;align-items:center;justify-content:center;color:#A1A1AA"><i class="{{ r.ic }}" style="font-size:20px"></i></div>
+                    <div style="flex:1"><div style="font:400 16px/1.4 'DM Sans',sans-serif">{{ r.m }}</div><div style="font:500 13px/1.4 'DM Sans',sans-serif;color:#A1A1AA;margin-top:2px">{{ r.c }} · {{ r.d }}</div></div>
+                    <div style="font:600 18px/1 'Space Grotesk',sans-serif;color:{{ r.col }}">{{ r.a }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Mobile dashboard -->
+    <div data-screen-label="Current Mobile Dashboard" style="position:relative;width:390px;height:820px;background:#09090B;border:1px solid #27272A;border-radius:40px;overflow:hidden">
+      <header style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #27272A;margin-top:36px">
+        <h1 style="margin:0;font:700 20px/1 'Space Grotesk',sans-serif;letter-spacing:-.025em">Dashboard</h1>
+        <div style="display:flex;align-items:center;gap:4px;color:#A1A1AA"><i class="icon-chevron-left" style="font-size:16px;width:28px;text-align:center"></i><span style="font:500 14px/1 'DM Sans',sans-serif;color:#FAFAFA;min-width:72px;text-align:center">Oct 2026</span><i class="icon-chevron-right" style="font-size:16px;width:28px;text-align:center;opacity:.3"></i><div style="width:40px;height:40px;border-radius:50%;background:#18181B;display:flex;align-items:center;justify-content:center;color:#FAFAFA;margin-left:4px"><i class="icon-plus" style="font-size:20px"></i></div></div>
+      </header>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:4px;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A">
+          <span style="font:500 13px/1.4 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase;letter-spacing:.025em">Total Balance</span>
+          <span style="font:700 48px/1 'Space Grotesk',sans-serif;letter-spacing:-.025em;color:#CCFF00">₹2,06,200</span>
+          <span style="font:500 14px/1.4 'DM Sans',sans-serif;color:#CCFF00">↑ +₹2,06,200 this month</span>
+        </div>
+        <div style="display:flex;flex-direction:column;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><i class="icon-trending-up" style="font-size:16px;color:#CCFF00"></i><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase">Income</span></div><span style="font:700 24px/1.3 'Space Grotesk',sans-serif;color:#CCFF00">₹2,84,600</span></div>
+        <div style="display:flex;flex-direction:column;padding:20px;border-radius:24px;background:#18181B;border:1px solid #27272A"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><i class="icon-trending-down" style="font-size:16px;color:#A1A1AA"></i><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase">Expenses</span></div><span style="font:700 24px/1.3 'Space Grotesk',sans-serif">₹78,400</span></div>
+        <div style="border-radius:24px;background:#18181B;border:1px solid #27272A;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #27272A"><span style="font:500 13px/1 'DM Sans',sans-serif;color:#A1A1AA;text-transform:uppercase">Recent transactions</span><span style="font:500 14px/1 'DM Sans',sans-serif;color:#CCFF00">View all →</span></div>
+          <div style="padding:0 20px">
+            <sc-for list="{{ rows2 }}" as="r" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:16px;height:72px;border-bottom:1px solid #27272A">
+                <div style="width:40px;height:40px;border-radius:8px;background:#09090B;display:flex;align-items:center;justify-content:center;color:#A1A1AA"><i class="{{ r.ic }}" style="font-size:20px"></i></div>
+                <div style="flex:1"><div style="font:400 16px/1.4 'DM Sans',sans-serif">{{ r.m }}</div><div style="font:500 13px/1.4 'DM Sans',sans-serif;color:#A1A1AA">{{ r.c }} · {{ r.d }}</div></div>
+                <div style="font:600 18px/1 'Space Grotesk',sans-serif;color:{{ r.col }}">{{ r.a }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <nav style="position:absolute;left:0;right:0;bottom:0;height:64px;padding-bottom:20px;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(9,9,11,.95);border-top:1px solid #27272A">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><i class="icon-layout-dashboard" style="font-size:22px"></i><span style="font:500 11px/1 'DM Sans',sans-serif">Home</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#A1A1AA"><i class="icon-wallet" style="font-size:22px"></i><span style="font:500 11px/1 'DM Sans',sans-serif">Accounts</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#A1A1AA"><i class="icon-chart-pie" style="font-size:22px"></i><span style="font:500 11px/1 'DM Sans',sans-serif">Analytics</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#A1A1AA"><i class="icon-receipt" style="font-size:22px"></i><span style="font:500 11px/1 'DM Sans',sans-serif">Activity</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#A1A1AA"><i class="icon-grid-3x3" style="font-size:22px"></i><span style="font:500 11px/1 'DM Sans',sans-serif">More</span></div>
+      </nav>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      { ic: 'icon-coffee', m: 'Blue Tokai Coffee', c: 'Dining', d: 'Oct 22', a: '-₹420', col: '#FAFAFA' },
+      { ic: 'icon-bus', m: 'Uber', c: 'Transport', d: 'Oct 22', a: '-₹286', col: '#FAFAFA' },
+      { ic: 'icon-banknote', m: 'Salary · Acme Labs', c: 'Income', d: 'Oct 21', a: '+₹2,10,000', col: '#CCFF00' },
+      { ic: 'icon-shopping-cart', m: 'Swiggy Instamart', c: 'Groceries', d: 'Oct 21', a: '-₹1,842', col: '#FAFAFA' },
+      { ic: 'icon-receipt', m: 'Netflix', c: 'Entertainment', d: 'Oct 18', a: '-₹649', col: '#FAFAFA' },
+    ];
+    return { rows, rows2: rows.slice(0, 3) };
+  }
+}
+</script>
+</body>
+</html>

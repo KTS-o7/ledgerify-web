@@ -1,15 +1,18 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { PiggyBank, Plus, Pencil, Trash2 } from "lucide-solid";
+import { PiggyBank } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
+import { numericToFloat, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
-import { CategoryBar } from "../components/ui/category-bar";
+import { ProgressBar } from "../components/ui/progress-bar";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { Money } from "../components/ui/money";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
 import { SavingsForm } from "../components/forms/savings-form";
+import { AddButton, RowActions, shortDate } from "../components/wealth/common";
 
 interface SavingsGoal {
   id: string;
@@ -47,40 +50,50 @@ export default function Savings() {
     }
   }
 
-  function statusBadgeVariant(s: string): "success" | "outline" {
-    if (s === "active" || s === "achieved") return "success";
+  function statusBadgeVariant(s: string): "success" | "default" | "outline" {
+    if (s === "achieved") return "success";
+    if (s === "active") return "default";
     return "outline";
   }
 
+  const totals = () => {
+    const active = (goals() ?? []).filter((g) => g.status !== "abandoned");
+    return {
+      saved: active.reduce((n, g) => n + numericToFloat(g.current_amount), 0),
+      target: active.reduce((n, g) => n + numericToFloat(g.target_amount), 0),
+    };
+  };
+
   return (
     <>
-      <PageHeader
-        title="Savings Goals"
-        actions={
-          <button
-            type="button"
-            aria-label="Add savings goal"
-            onClick={openSheet}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Plus size={20} />
-          </button>
-        }
-      />
+      <PageHeader title="Savings goals" actions={<AddButton label="New goal" onClick={openSheet} />} />
 
-      <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-4">
+        <Show when={(goals() ?? []).length > 0 && totals().target > 0}>
+          <BentoBlock class="flex flex-col gap-3">
+            <Eyebrow>Saved across goals</Eyebrow>
+            <div class="flex items-baseline gap-2 flex-wrap">
+              <Money value={totals().saved} mutedSymbol class="text-[30px] leading-none tracking-[-0.04em]" />
+              <span class="font-mono tabular text-[13px] text-muted">of <Money value={totals().target} tone="muted" /></span>
+            </div>
+            <ProgressBar
+              pct={(totals().saved / totals().target) * 100}
+              tone={totals().saved >= totals().target ? "bg-pos" : "bg-signal"}
+              label="Saved across all goals"
+            />
+          </BentoBlock>
+        </Show>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Show when={goals.loading}>
             <SkeletonBlock class="min-h-[160px]" />
             <SkeletonBlock class="min-h-[160px]" />
           </Show>
           <Show when={goals.error}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <p class="text-accent text-sm py-6 text-center">Failed to load savings goals.</p>
-            </div>
+            <p class="md:col-span-2 lg:col-span-3 text-neg text-[14px] py-6 text-center">Failed to load savings goals.</p>
           </Show>
           <Show when={!goals.loading && !goals.error && (goals() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+            <div class="md:col-span-2 lg:col-span-3">
               <EmptyState
                 icon={PiggyBank}
                 title="No savings goals yet"
@@ -93,70 +106,48 @@ export default function Savings() {
             {(g) => {
               const target = () => numericToFloat(g.target_amount);
               const current = () => numericToFloat(g.current_amount);
-              const progress = () => target() > 0 ? Math.min(current() / target(), 1) : 0;
+              const progress = () => (target() > 0 ? (current() / target()) * 100 : 0);
               const deadlineStr = () => pgDateToString(g.deadline);
-              const barColor = () =>
-                g.status === "achieved"
-                  ? "var(--color-primary)"
-                  : "var(--color-primary)";
               return (
-                <div class="group relative">
-                  <BentoBlock variant="pressable">
-                    <div class="flex flex-col gap-2">
-                      <div class="flex items-start justify-between gap-2">
-                        <span class="font-display text-lg font-bold text-text leading-tight">{g.name}</span>
-                        <Badge variant={statusBadgeVariant(g.status)} class="shrink-0 capitalize">
-                          {g.status}
-                        </Badge>
-                      </div>
-                      <div class="flex items-baseline justify-between text-sm">
-                        <span class="text-muted">
-                          {formatCurrency(current(), g.currency)}
-                          {" / "}
-                          {formatCurrency(target(), g.currency)}
-                        </span>
-                        <span class="text-muted">{(progress() * 100).toFixed(0)}%</span>
-                      </div>
-                      <CategoryBar
-                        value={progress()}
-                        color={barColor()}
-                        trackColor="bg-bg"
-                      />
-                      <Show when={deadlineStr()}>
-                        <span class="text-[12px] text-muted font-body">Due {deadlineStr()}</span>
+                <BentoBlock class={`group flex flex-col gap-3 ${g.status === "abandoned" ? "opacity-60" : ""}`}>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="text-[15px] font-medium text-text leading-snug">{g.name}</div>
+                      <Show when={g.description?.Valid && g.description.String}>
+                        <div class="text-[12.5px] text-muted mt-0.5 line-clamp-2">{g.description.String}</div>
                       </Show>
                     </div>
-                  </BentoBlock>
-                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditGoal(g); setEditSheetOpen(true); }}
-                      aria-label={`Edit ${g.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(g.id, g.name); }}
-                      aria-label={`Delete ${g.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <Badge variant={statusBadgeVariant(g.status)} class="capitalize">{g.status}</Badge>
+                      <RowActions name={g.name} onEdit={() => { setEditGoal(g); setEditSheetOpen(true); }} onDelete={() => handleDelete(g.id, g.name)} class="-mr-2" />
+                    </div>
                   </div>
-                </div>
+                  <div class="flex items-baseline justify-between gap-2">
+                    <span class="font-mono tabular text-[13px] text-muted">
+                      <Money value={current()} currency={g.currency} class="text-[17px] tracking-[-0.03em]" /> of <Money value={target()} currency={g.currency} tone="muted" />
+                    </span>
+                    <span class="font-mono tabular text-[12px] text-muted">{Math.min(999, Math.round(progress()))}%</span>
+                  </div>
+                  <ProgressBar
+                    pct={progress()}
+                    tone={progress() >= 100 || g.status === "achieved" ? "bg-pos" : "bg-signal"}
+                    label={`${g.name} progress`}
+                  />
+                  <Show when={deadlineStr()}>
+                    <span class="font-mono tabular text-[12px] text-muted">due {shortDate(deadlineStr())}</span>
+                  </Show>
+                </BentoBlock>
               );
             }}
           </For>
         </div>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={closeSheet} title="New Savings Goal">
+      <Sheet open={sheetOpen()} onClose={closeSheet} title="New savings goal">
         <SavingsForm onSuccess={handleSuccess} onClose={closeSheet} />
       </Sheet>
 
-      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Savings Goal">
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit savings goal">
         <Show when={editGoal()}>
           {(g) => (
             <SavingsForm

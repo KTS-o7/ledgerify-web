@@ -102,7 +102,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       {/* Name */}
       <div>
-        <label for="inv-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-name" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Name
         </label>
         <Input
@@ -117,7 +117,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       {/* Asset Type */}
       <div>
-        <label for="inv-asset-type" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-asset-type" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Asset Type
         </label>
         <Select
@@ -142,7 +142,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       {/* Currency */}
       <div>
-        <label for="inv-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-currency" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Currency
         </label>
         <Select
@@ -160,10 +160,10 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       {/* Quantity */}
       <div>
-        <label for="inv-quantity" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-quantity" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Quantity
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="inv-quantity"
           type="number"
           min="0"
@@ -176,10 +176,10 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       {/* Buy Price */}
       <div>
-        <label for="inv-buy-price" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-buy-price" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Buy Price
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="inv-buy-price"
           type="number"
           min="0"
@@ -192,10 +192,10 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       {/* Current Price */}
       <div>
-        <label for="inv-current-price" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="inv-current-price" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Current Price
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="inv-current-price"
           type="number"
           min="0"
@@ -208,10 +208,10 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       <Show when={showRate()}>
         <div>
-          <label for="inv-interest-rate" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="inv-interest-rate" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Interest Rate (% p.a.)
           </label>
-          <Input
+          <Input class="font-mono tabular"
             id="inv-interest-rate"
             type="number"
             min="0"
@@ -225,7 +225,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       <Show when={showCompounding()}>
         <div>
-          <label for="inv-compounding" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="inv-compounding" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Compounding Frequency
           </label>
           <Select
@@ -243,7 +243,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
 
       <Show when={showMaturity()}>
         <div>
-          <label for="inv-maturity-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="inv-maturity-date" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Maturity Date
           </label>
           <Input
@@ -256,7 +256,7 @@ export function InvestmentForm(props: InvestmentFormProps) {
       </Show>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]">{error()}</p>
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>

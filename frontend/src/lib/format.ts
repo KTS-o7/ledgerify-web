@@ -79,3 +79,20 @@ export function formatDateGroup(iso: string): string {
   if (dStart.getTime() === yesterday.getTime()) return "Yesterday";
   return SHORT_DATE.format(d);
 }
+
+/**
+ * Compact amount for tight tiles: full digits below 1 lakh (₹55,138), then
+ * lakh/crore for INR (₹2.2L, ₹1.5Cr) and K/M for other currencies ($120K).
+ * en-IN alone would print thousands as "T" (₹55.1T), which reads as trillion.
+ */
+export function compactMoney(value: number, currency = getCurrency()): string {
+  const abs = Math.abs(value);
+  const compact = abs >= 100000;
+  const s = new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
+    style: "currency", currency,
+    notation: compact ? "compact" : "standard",
+    maximumFractionDigits: compact ? 1 : 0,
+    minimumFractionDigits: 0,
+  }).format(abs);
+  return value < 0 ? `−${s}` : s;
+}

@@ -10,19 +10,10 @@ export const CategoryBar: Component<CategoryBarProps> = (props) => {
     return Math.max(0, Math.min(100, v));
   };
   return (
-    <div
-      class={cn(
-        "h-1 w-full rounded-full overflow-hidden",
-        props.trackColor ?? "bg-surface-hover",
-        props.class
-      )}
-    >
+    <div class={cn("h-[5px] w-full rounded-pill overflow-hidden", props.trackColor ?? "bg-sunken", props.class)}>
       <div
-        class="h-full rounded-full transition-all duration-200 motion-reduce:transition-none"
-        style={{
-          width: `${pct()}%`,
-          "background-color": props.color ?? "var(--color-text)",
-        }}
+        class="h-full rounded-pill transition-[width] duration-[800ms] ease-[var(--ease-standard)] motion-reduce:transition-none"
+        style={{ width: `${pct()}%`, "background-color": props.color ?? "var(--color-signal)" }}
       />
     </div>
   );

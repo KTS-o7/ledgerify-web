@@ -96,7 +96,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       {/* Policy Name */}
       <div>
-        <label for="ins-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-name" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Policy Name
         </label>
         <Input
@@ -111,7 +111,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Type */}
       <div>
-        <label for="ins-type" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-type" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Type
         </label>
         <Select
@@ -131,7 +131,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Provider */}
       <div>
-        <label for="ins-provider" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-provider" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Provider
         </label>
         <Input
@@ -145,7 +145,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Premium Frequency */}
       <div>
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Premium Frequency
         </label>
         <SegmentedControl
@@ -158,10 +158,10 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Premium Amount */}
       <div>
-        <label for="ins-premium-amount" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-premium-amount" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Premium Amount
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="ins-premium-amount"
           type="number"
           min="0"
@@ -174,10 +174,10 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Coverage Amount */}
       <div>
-        <label for="ins-coverage-amount" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-coverage-amount" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Coverage Amount
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="ins-coverage-amount"
           type="number"
           min="0"
@@ -190,7 +190,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Currency */}
       <div>
-        <label for="ins-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-currency" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Currency
         </label>
         <Select
@@ -208,7 +208,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Renewal Date */}
       <div>
-        <label for="ins-renewal-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-renewal-date" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Renewal Date
         </label>
         <Input
@@ -221,7 +221,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Start Date */}
       <div>
-        <label for="ins-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-start-date" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Start Date
         </label>
         <Input
@@ -234,7 +234,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Nominee */}
       <div>
-        <label for="ins-nominee" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-nominee" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Nominee
         </label>
         <Input
@@ -248,7 +248,7 @@ export function InsuranceForm(props: InsuranceFormProps) {
 
       {/* Notes */}
       <div>
-        <label for="ins-notes" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="ins-notes" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Notes
         </label>
         <textarea
@@ -257,11 +257,11 @@ export function InsuranceForm(props: InsuranceFormProps) {
           placeholder="Any additional notes…"
           value={notes()}
           onInput={(e) => setNotes(e.currentTarget.value)}
-          class="w-full rounded-input border border-border bg-surface px-3 py-2 text-base text-text font-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg resize-none"
+          class="w-full rounded-input border border-border-strong bg-surface px-3.5 py-2.5 text-[15px] text-text font-body placeholder:text-faint transition-colors duration-[160ms] focus:outline-none focus:border-signal resize-none"
         /></div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]">{error()}</p>
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>

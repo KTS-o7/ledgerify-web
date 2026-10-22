@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { formatCurrency, formatDate, formatDateGroup } from "../format";
+import { compactMoney, formatCurrency, formatDate, formatDateGroup } from "../format";
 
 describe("formatCurrency", () => {
   beforeEach(() => localStorage.clear());
@@ -26,4 +26,14 @@ describe("formatDateGroup", () => {
     expect(formatDateGroup(y.toISOString().slice(0, 10))).toBe("Yesterday");
   });
   it("returns 'Mon DD' for older dates", () => { expect(formatDateGroup("2026-10-12")).toBe("Oct 12"); });
+});
+
+describe("compactMoney", () => {
+  it("keeps full digits below one lakh", () => { expect(compactMoney(55138, "INR")).toBe("₹55,138"); });
+  it("uses lakh and crore for INR", () => {
+    expect(compactMoney(220000, "INR")).toBe("₹2.2L");
+    expect(compactMoney(15000000, "INR")).toBe("₹1.5Cr");
+  });
+  it("uses K/M for other currencies", () => { expect(compactMoney(120000, "USD")).toBe("$120K"); });
+  it("signs negatives with a minus", () => { expect(compactMoney(-3150, "INR")).toBe("−₹3,150"); });
 });

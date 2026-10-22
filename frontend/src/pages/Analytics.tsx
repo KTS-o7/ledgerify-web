@@ -1,162 +1,158 @@
-import { createMemo, createSignal, createResource, For, Show } from "solid-js";
-import { ShoppingCart, Coffee, Bus, Film, Utensils, ShoppingBag, Home, Zap, Heart, MoreHorizontal } from "lucide-solid";
+import { createMemo, createResource, createSignal, Match, Show, Switch } from "solid-js";
+import { A } from "@solidjs/router";
+import { ChartPie, Target } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
+import { onDataChanged } from "../lib/events";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { DonutChart, type DonutSegment } from "../components/ui/donut-chart";
 import { SegmentedControl } from "../components/ui/segmented-control";
-import { CategoryBar } from "../components/ui/category-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonBlock } from "../components/ui/skeleton";
-import { cn } from "../lib/utils";
-import { MonthPicker } from "../components/ui/month-picker";
+import { MonthPicker, addMonths, currentMonth } from "../components/ui/month-picker";
+import { Stat } from "../components/ui/stat";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { formatCurrency } from "../lib/format";
+import { CategoryBreakdown, type CategoryTotal } from "../components/insights/category-breakdown";
+import { BudgetList, BudgetSummary, type Budget } from "../components/insights/budget-list";
+import { pctChange } from "../components/insights/budget-math";
 
-type Mode = "expense" | "income";
+type Mode = "spending" | "income" | "budgets";
 
 interface SummaryData {
   total_income: number;
   total_expenses: number;
-  category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
-  income_category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
+  category_spending: CategoryTotal[] | null;
+  income_category_spending: CategoryTotal[] | null;
 }
 
-function categoryIcon(name: string) {
-  const n = name.toLowerCase();
-  if (n.includes("groceries") || n.includes("supermarket")) return ShoppingCart;
-  if (n.includes("dining") || n.includes("restaurant") || n.includes("food")) return Utensils;
-  if (n.includes("coffee") || n.includes("cafe")) return Coffee;
-  if (n.includes("transport") || n.includes("fuel") || n.includes("travel")) return Bus;
-  if (n.includes("entertainment") || n.includes("movie") || n.includes("film")) return Film;
-  if (n.includes("shopping") || n.includes("clothing")) return ShoppingBag;
-  if (n.includes("rent") || n.includes("home") || n.includes("housing")) return Home;
-  if (n.includes("electricity") || n.includes("utility") || n.includes("bill")) return Zap;
-  if (n.includes("health") || n.includes("medical") || n.includes("doctor")) return Heart;
-  return MoreHorizontal;
-}
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+function monthShort(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" });
 }
 
 export default function Analytics() {
-  const [mode, setMode] = createSignal<Mode>("expense");
-  const [highlight, setHighlight] = createSignal<number | null>(null);
+  const [mode, setMode] = createSignal<Mode>("spending");
   const [month, setMonth] = createSignal(currentMonth());
 
-  const [summary] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
+  const [summary, { refetch }] = createResource(month, (m) => api.get<SummaryData>(`/v1/summary?month=${m}`));
+  // Previous month only feeds the delta under the donut; a failure just hides it.
+  const [prev, { refetch: refetchPrev }] = createResource(month, (m) =>
+    api.get<SummaryData>(`/v1/summary?month=${addMonths(m, -1)}`).catch(() => null),
+  );
+  const [budgets, { refetch: refetchBudgets }] = createResource(
+    () => (mode() === "budgets" ? true : undefined),
+    () => api.get<Budget[]>("/v1/budgets"),
+  );
+  onDataChanged(() => { refetch(); refetchPrev(); if (mode() === "budgets") refetchBudgets(); });
 
-  const segments = createMemo((): Array<DonutSegment & { icon: ReturnType<typeof categoryIcon> }> => {
-    const data = summary();
-    if (!data) return [];
-    const rows = mode() === "income"
-      ? (data.income_category_spending ?? [])
-      : (data.category_spending ?? []);
-    return rows.map((r) => ({
-      label: r.category_name,
-      value: r.total,
-      color: r.color || undefined,
-      icon: categoryIcon(r.category_name),
-    }));
+  const isIncome = () => mode() === "income";
+  const rows = createMemo(() => {
+    const s = summary();
+    if (!s) return [];
+    return (isIncome() ? s.income_category_spending : s.category_spending) ?? [];
   });
 
-  const total = createMemo(() => segments().reduce((s, x) => s + x.value, 0));
+  const trend = createMemo(() => {
+    const cur = summary(), p = prev();
+    if (!cur || !p) return undefined;
+    const change = isIncome() ? pctChange(cur.total_income, p.total_income) : pctChange(cur.total_expenses, p.total_expenses);
+    if (change === null || !isFinite(change)) return undefined;
+    const up = change > 0;
+    // Spending down is good; income up is good.
+    const good = isIncome() ? up : !up;
+    return {
+      dir: (up ? "up" : "down") as "up" | "down",
+      value: `${up ? "+" : "−"}${Math.abs(Math.round(change))}% vs ${monthShort(addMonths(month(), -1))}`,
+      tone: (good ? "pos" : "neg") as "pos" | "neg",
+    };
+  });
+
+  const savedPct = () => {
+    const s = summary();
+    if (!s || s.total_income <= 0) return null;
+    return Math.round(((s.total_income - s.total_expenses) / s.total_income) * 100);
+  };
 
   return (
     <>
-      <PageHeader title="Analytics" actions={<MonthPicker value={month()} onChange={setMonth} />} />
-      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
-        <div class="col-span-1 md:col-span-12">
-          <SegmentedControl<Mode>
-            options={[{ value: "expense", label: "Expense" }, { value: "income", label: "Income" }]}
-            value={mode()}
-            onChange={setMode}
-            ariaLabel="Analytics mode"
-          />
-        </div>
-        <Show when={summary.loading}>
-          <SkeletonBlock class="col-span-1 md:col-span-5 min-h-[400px]" />
-          <SkeletonBlock class="col-span-1 md:col-span-7 min-h-[400px]" />
-        </Show>
-        <Show when={summary.error}>
-          <p class="text-accent text-sm py-6 text-center col-span-1 md:col-span-12">Failed to load analytics data.</p>
-        </Show>
-        <Show when={!summary.loading && summary()}>
-          <BentoBlock class="col-span-1 md:col-span-5 flex flex-col items-center justify-center min-h-[360px]">
-            <Show
-              when={segments().length > 0}
-              fallback={
-                <EmptyState
-                  icon={MoreHorizontal}
-                  title={mode() === "income" ? "No income data" : "No spending data"}
-                  body={mode() === "income" ? "Add income transactions to see category breakdown." : "Add transactions to see category breakdown."}
-                />
-              }
-            >
-              <DonutChart
-                segments={segments()}
-                centerLabel={mode() === "expense" ? "Total Spent" : "Total Income"}
-                centerValue={formatCurrency(mode() === "expense" ? (summary()?.total_expenses ?? 0) : (summary()?.total_income ?? 0))}
-                centerTrend={undefined}
-                highlightIndex={highlight()}
-                onSegmentHover={setHighlight}
-                size={300}
-                thickness={36}
-              />
+      <PageHeader title="Insights" actions={<Show when={mode() !== "budgets"}><MonthPicker value={month()} onChange={setMonth} /></Show>} />
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-4">
+        <SegmentedControl<Mode>
+          class="md:max-w-[420px]"
+          options={[
+            { value: "spending", label: "Spending" },
+            { value: "income", label: "Income" },
+            { value: "budgets", label: "Budgets" },
+          ]}
+          value={mode()}
+          onChange={setMode}
+          ariaLabel="Insights view"
+        />
+
+        <Switch>
+          <Match when={mode() === "budgets"}>
+            <Show when={!budgets.loading} fallback={<><SkeletonBlock class="h-[150px]" /><SkeletonBlock class="h-[240px]" /></>}>
+              <Show when={!budgets.error} fallback={<p class="text-neg text-sm py-6 text-center">Failed to load budgets.</p>}>
+                <Show
+                  when={(budgets() ?? []).length > 0}
+                  fallback={<EmptyState icon={Target} title="No budgets yet" body="Set spending limits to stay on track." />}
+                >
+                  <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div class="md:col-span-5"><BudgetSummary budgets={budgets() ?? []} /></div>
+                    <div class="md:col-span-7"><BudgetList budgets={budgets() ?? []} /></div>
+                  </div>
+                </Show>
+                <A href="/budgets" class="self-start text-[13.5px] font-medium">Manage budgets →</A>
+              </Show>
             </Show>
-          </BentoBlock>
-          <BentoBlock class="col-span-1 md:col-span-7 flex flex-col min-h-[360px]">
-            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-4 block">By Category</span>
-            <Show
-              when={segments().length > 0}
-              fallback={
-                <p class="text-sm text-muted py-4 text-center">
-                  {mode() === "income" ? "No income categories this month." : "No categories yet."}
-                </p>
-              }
-            >
-              <ul class="flex flex-col gap-4 flex-1">
-                <For each={segments()}>
-                  {(seg, i) => {
-                    const Icon = seg.icon;
-                    const pct = () => total() > 0 ? (seg.value / total()) * 100 : 0;
-                    const isActive = () => highlight() === null || highlight() === i();
-                    return (
-                      <li
-                        onMouseEnter={() => setHighlight(i())}
-                        onMouseLeave={() => setHighlight(null)}
-                        class={cn(
-                          "flex items-center gap-3 transition-opacity motion-reduce:transition-none",
-                          !isActive() && "opacity-30"
-                        )}
-                      >
-                        <div class="w-9 h-9 rounded-lg bg-bg flex items-center justify-center text-muted flex-shrink-0">
-                          <Icon size={18} />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center justify-between mb-1.5">
-                            <span class="font-body text-sm text-text">{seg.label}</span>
-                            <span class="font-display text-sm font-semibold text-text">{formatCurrency(seg.value)}</span>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <CategoryBar
-                              value={pct() / 100}
-                              color={isActive() ? "var(--color-primary)" : "var(--color-muted)"}
-                              trackColor="bg-bg"
-                              class="flex-1"
-                            />
-                            <span class="text-[12px] font-mono text-muted w-10 text-right">{pct().toFixed(0)}%</span>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  }}
-                </For>
-              </ul>
-            </Show>
-          </BentoBlock>
-        </Show>
+          </Match>
+
+          <Match when={summary.loading}>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <SkeletonBlock class="md:col-span-8 min-h-[300px]" />
+              <SkeletonBlock class="md:col-span-4 min-h-[300px]" />
+            </div>
+          </Match>
+
+          <Match when={summary.error}>
+            <p class="text-neg text-sm py-6 text-center">Failed to load insights.</p>
+          </Match>
+
+          <Match when={summary()}>
+            {(s) => (
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <BentoBlock class="md:col-span-8">
+                  <Eyebrow as="h2" class="mb-5 block">{isIncome() ? "Income by category" : "Spending by category"}</Eyebrow>
+                  <Show
+                    when={rows().some((r) => r.total > 0)}
+                    fallback={
+                      <EmptyState
+                        icon={ChartPie}
+                        title={isIncome() ? "No income yet" : "Nothing spent yet"}
+                        body={isIncome() ? "Income you record this month shows up here by category." : "Spending you record this month shows up here by category."}
+                      />
+                    }
+                  >
+                    <CategoryBreakdown rows={rows()} centerLabel={isIncome() ? "Earned" : "Spent"} trend={trend()} />
+                  </Show>
+                </BentoBlock>
+                <BentoBlock class="md:col-span-4 flex flex-col gap-5">
+                  <Eyebrow as="h2">This month</Eyebrow>
+                  <div class="grid grid-cols-3 md:grid-cols-1 gap-4 md:gap-5">
+                    <Stat label="In" value={formatCurrency(s().total_income)} tone="pos" />
+                    <Stat label="Out" value={formatCurrency(s().total_expenses)} />
+                    <Stat
+                      label="Saved"
+                      value={savedPct() === null ? "—" : `${savedPct()}%`}
+                      tone={savedPct() !== null && savedPct()! < 0 ? "neg" : "default"}
+                    />
+                  </div>
+                  <A href="/reports/cashflow" class="mt-auto text-[13.5px] font-medium">Cash flow report →</A>
+                </BentoBlock>
+              </div>
+            )}
+          </Match>
+        </Switch>
       </div>
     </>
   );

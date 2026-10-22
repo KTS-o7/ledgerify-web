@@ -18,18 +18,18 @@ type SparklineProps = {
   values: number[];
   width?: number;
   height?: number;
-  tone?: "primary" | "text" | "muted" | "accent";
+  tone?: "signal" | "text" | "muted" | "pos" | "neg";
   class?: string;
 };
 
-const toneMap = { primary: "var(--color-primary)", text: "var(--color-text)", muted: "var(--color-muted)", accent: "var(--color-accent)" };
+const toneMap = { signal: "var(--color-signal)", text: "var(--color-text)", muted: "var(--color-muted)", pos: "var(--color-pos)", neg: "var(--color-neg)" };
 
 export const Sparkline: Component<SparklineProps> = (props) => {
   const width = () => props.width ?? 240;
   const height = () => props.height ?? 40;
   return (
-    <svg class={cn("block", props.class)} width={width()} height={height()} viewBox={`0 0 ${width()} ${height()}`} role="img" aria-label="Trend sparkline">
-      <path d={buildSparklinePath(props.values, width(), height())} fill="none" stroke={toneMap[props.tone ?? "primary"]} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <svg class={cn("block", props.class)} width={width()} height={height()} viewBox={`0 0 ${width()} ${height()}`} preserveAspectRatio="none" role="img" aria-label="Trend sparkline">
+      <path d={buildSparklinePath(props.values, width(), height())} fill="none" stroke={toneMap[props.tone ?? "signal"]} stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   );
 };

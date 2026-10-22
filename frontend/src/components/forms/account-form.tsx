@@ -1,9 +1,8 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { api } from "../../lib/api";
 import { Input } from "../ui/input";
 import { Select } from "../ui/select";
 import { Button } from "../ui/button";
-import { Show } from "solid-js";
 
 type AccountFormProps = {
   onSuccess: () => void;
@@ -18,6 +17,8 @@ type AccountFormProps = {
     payment_due_day?: number | null;
   };
 };
+
+const labelClass = "text-[12.5px] font-medium text-muted mb-1.5 block";
 
 export function AccountForm(props: AccountFormProps) {
   const [name, setName] = createSignal(props.existing?.name ?? "");
@@ -85,7 +86,7 @@ export function AccountForm(props: AccountFormProps) {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div>
-        <label for="account-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="account-name" class={labelClass}>
           Name
         </label>
         <Input
@@ -99,7 +100,7 @@ export function AccountForm(props: AccountFormProps) {
       </div>
 
       <div>
-        <label for="account-type" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="account-type" class={labelClass}>
           Type
         </label>
         <Select
@@ -117,7 +118,7 @@ export function AccountForm(props: AccountFormProps) {
       </div>
 
       <div>
-        <label for="account-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="account-currency" class={labelClass}>
           Currency
         </label>
         <Select
@@ -134,12 +135,14 @@ export function AccountForm(props: AccountFormProps) {
 
       <Show when={!props.existing}>
         <div>
-          <label for="account-opening-balance" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="account-opening-balance" class={labelClass}>
             Opening Balance
           </label>
           <Input
             id="account-opening-balance"
+            class="font-mono tabular"
             type="number"
+            inputmode="decimal"
             min="0"
             step="0.01"
             placeholder="0"
@@ -150,12 +153,14 @@ export function AccountForm(props: AccountFormProps) {
       </Show>
 
       <Show when={type() === "credit_card"}>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-3">
         <div>
-          <label for="account-credit-limit" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="account-credit-limit" class={labelClass}>
             Credit Limit
           </label>
           <Input
             id="account-credit-limit"
+            class="font-mono tabular"
             type="number"
             min="0"
             step="0.01"
@@ -165,11 +170,12 @@ export function AccountForm(props: AccountFormProps) {
           />
         </div>
         <div>
-          <label for="account-statement-day" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="account-statement-day" class={labelClass}>
             Statement Day
           </label>
           <Input
             id="account-statement-day"
+            class="font-mono tabular"
             type="number"
             min="1"
             max="31"
@@ -180,11 +186,12 @@ export function AccountForm(props: AccountFormProps) {
           />
         </div>
         <div>
-          <label for="account-payment-due-day" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="account-payment-due-day" class={labelClass}>
             Payment Due Day
           </label>
           <Input
             id="account-payment-due-day"
+            class="font-mono tabular"
             type="number"
             min="1"
             max="31"
@@ -194,14 +201,15 @@ export function AccountForm(props: AccountFormProps) {
             onInput={(e) => setPaymentDueDay(e.currentTarget.value)}
           />
         </div>
+        </div>
       </Show>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]" role="alert">{error()}</p>
       </Show>
 
-      <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
+      <Button type="submit" size="lg" class="w-full mt-1" disabled={submitting()}>
+        {submitting() ? "Saving…" : props.existing ? "Save changes" : "Add account"}
       </Button>
     </form>
   );

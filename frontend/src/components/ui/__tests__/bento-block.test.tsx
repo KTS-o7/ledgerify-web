@@ -12,14 +12,14 @@ describe("BentoBlock", () => {
     const { container } = render(() => <BentoBlock>x</BentoBlock>);
     const el = container.firstChild as HTMLElement;
     expect(el).toHaveClass("bg-surface");
-    expect(el).toHaveClass("rounded-[24px]");
+    expect(el).toHaveClass("rounded-card");
     expect(el).toHaveClass("border");
     expect(el).toHaveClass("border-border");
   });
   it("scales on press when variant is pressable", () => {
     const { container } = render(() => <BentoBlock variant="pressable">x</BentoBlock>);
     const el = container.firstChild as HTMLElement;
-    expect(el).toHaveClass("active:scale-[0.96]");
+    expect(el).toHaveClass("active:scale-[0.97]");
     expect(el).toHaveClass("cursor-pointer");
   });
   it("uses dashed border for dashed variant", () => {

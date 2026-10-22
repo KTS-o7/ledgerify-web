@@ -103,7 +103,7 @@ export function CategoryForm(props: CategoryFormProps) {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div>
-        <label for="category-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="category-name" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Name
         </label>
         <Input
@@ -117,9 +117,9 @@ export function CategoryForm(props: CategoryFormProps) {
       </div>
 
       <div>
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <span id="category-type-label" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Type
-        </label>
+        </span>
         <SegmentedControl
           options={[
             { value: "expense", label: "Expense" },
@@ -132,23 +132,23 @@ export function CategoryForm(props: CategoryFormProps) {
       </div>
 
       <div>
-        <label for="category-color" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="category-color" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Color
         </label>
         <input
           id="category-color"
           type="color"
-          class="h-12 w-full rounded-input cursor-pointer border border-border bg-surface"
+          class="h-11 w-full rounded-input cursor-pointer border border-border-strong bg-surface p-1"
           value={color()}
           onInput={(e) => setColor(e.currentTarget.value)}
         />
       </div>
 
       <div>
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <span id="category-icon-label" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Icon
-        </label>
-        <div class="grid grid-cols-5 gap-1.5">
+        </span>
+        <div class="grid grid-cols-5 gap-1.5" role="group" aria-labelledby="category-icon-label">
           {/* None option */}
           <button
             type="button"
@@ -156,9 +156,9 @@ export function CategoryForm(props: CategoryFormProps) {
             aria-label="No icon"
             aria-pressed={icon() === ""}
             class={cn(
-              "h-10 flex items-center justify-center rounded-lg border text-xs text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+              "h-10 flex items-center justify-center rounded-[10px] border text-[12px] text-muted transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
               icon() === ""
-                ? "border-primary bg-primary/10 text-primary"
+                ? "border-signal bg-signal-soft text-signal"
                 : "border-border bg-surface hover:border-border-strong hover:text-text"
             )}
           >
@@ -174,9 +174,9 @@ export function CategoryForm(props: CategoryFormProps) {
                   aria-label={opt.name}
                   aria-pressed={selected()}
                   class={cn(
-                    "h-10 flex items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                    "h-10 flex items-center justify-center rounded-[10px] border transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
                     selected()
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-signal bg-signal-soft text-signal"
                       : "border-border bg-surface text-muted hover:border-border-strong hover:text-text"
                   )}
                 >
@@ -189,11 +189,11 @@ export function CategoryForm(props: CategoryFormProps) {
       </div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p role="alert" class="text-neg text-[13.5px]">{error()}</p>
       </Show>
 
-      <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
+      <Button type="submit" size="lg" class="w-full" disabled={submitting()}>
+        {submitting() ? "Saving…" : props.existing ? "Save changes" : "Save"}
       </Button>
     </form>
   );

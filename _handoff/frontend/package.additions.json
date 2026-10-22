@@ -1,0 +1,8 @@
+{
+  "_note": "Merge into frontend/package.json devDependencies; remove @fontsource/space-grotesk, @fontsource/dm-sans, @fontsource/jetbrains-mono once nothing imports them.",
+  "devDependencies": {
+    "@fontsource/instrument-sans": "^5.1.0",
+    "@fontsource/instrument-serif": "^5.1.0",
+    "@fontsource/geist-mono": "^5.1.0"
+  }
+}

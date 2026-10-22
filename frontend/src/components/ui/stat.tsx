@@ -2,11 +2,11 @@ import { type JSX, splitProps, type Component } from "solid-js";
 import { cn } from "../../lib/utils";
 import { formatCurrency } from "../../lib/format";
 
-type Tone = "default" | "primary" | "accent";
+type Tone = "default" | "signal" | "pos" | "neg" | "warn";
 type Size = "sm" | "md" | "lg" | "xl";
 type Format = "currency" | "percent" | "number" | "raw";
-const sizeMap: Record<Size, string> = { sm: "text-base", md: "text-xl", lg: "text-3xl", xl: "text-5xl" };
-const toneMap: Record<Tone, string> = { default: "text-text", primary: "text-primary", accent: "text-accent" };
+const sizeMap: Record<Size, string> = { sm: "text-[15px]", md: "text-[21px]", lg: "text-[30px]", xl: "text-[38px] md:text-[46px]" };
+const toneMap: Record<Tone, string> = { default: "text-text", signal: "text-signal", pos: "text-pos", neg: "text-neg", warn: "text-warn" };
 const numberFmt = new Intl.NumberFormat("en-IN");
 
 function formatValue(value: string | number, format?: Format): string {
@@ -28,16 +28,17 @@ type StatProps = JSX.HTMLAttributes<HTMLDivElement> & {
   format?: Format;
 };
 
+/** Mono eyebrow + mono tabular value. */
 export const Stat: Component<StatProps> = (props) => {
   const [local, others] = splitProps(props, ["label", "value", "trend", "tone", "size", "layout", "format", "class"]);
   const layout = () => local.layout ?? "vertical";
   return (
-    <div class={cn(layout() === "inline" ? "flex flex-row items-baseline justify-between" : "flex flex-col gap-1", local.class)} {...others}>
-      <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">{local.label}</span>
-      <span class={cn("font-display font-bold tracking-tight", sizeMap[local.size ?? "md"], toneMap[local.tone ?? "default"])}>{formatValue(local.value, local.format)}</span>
+    <div class={cn(layout() === "inline" ? "flex flex-row items-baseline justify-between" : "flex flex-col gap-1.5", local.class)} {...others}>
+      <span class="font-mono font-medium text-[11px] uppercase tracking-[0.1em] text-muted">{local.label}</span>
+      <span class={cn("font-mono font-normal tabular tracking-[-0.03em] leading-none", sizeMap[local.size ?? "md"], toneMap[local.tone ?? "default"])}>{formatValue(local.value, local.format)}</span>
       {local.trend && (
-        <span class={cn("inline-flex items-center gap-1 text-sm font-medium",
-          local.trend.dir === "up" ? "text-primary" : local.trend.dir === "down" ? "text-accent" : "text-muted")}>
+        <span class={cn("inline-flex items-center gap-1 font-mono text-[12px] tabular",
+          local.trend.dir === "up" ? "text-pos" : local.trend.dir === "down" ? "text-neg" : "text-muted")}>
           <span aria-hidden="true">{local.trend.dir === "up" ? "↑" : local.trend.dir === "down" ? "↓" : "→"}</span>
           <span>{local.trend.value}</span>
         </span>

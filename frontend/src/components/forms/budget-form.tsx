@@ -94,7 +94,7 @@ export function BudgetForm(props: BudgetFormProps) {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div>
-        <label for="budget-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-name" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Name
         </label>
         <Input
@@ -108,12 +108,14 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label for="budget-amount" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-amount" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Amount
         </label>
         <Input
           id="budget-amount"
+          class="font-mono tabular"
           type="number"
+          inputmode="decimal"
           min="1"
           step="0.01"
           value={amount()}
@@ -123,9 +125,9 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <span id="budget-period-label" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Period
-        </label>
+        </span>
         <SegmentedControl
           options={[
             { value: "monthly", label: "Monthly" },
@@ -138,7 +140,7 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label for="budget-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-currency" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Currency
         </label>
         <Select
@@ -154,7 +156,7 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label for="budget-category" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-category" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Category
         </label>
         <Select
@@ -170,23 +172,24 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label class="flex items-center gap-3 h-12 cursor-pointer">
+        <label class="flex items-center gap-3 h-11 cursor-pointer">
           <input
             type="checkbox"
-            class="w-4 h-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-bg"
+            class="w-4 h-4 rounded accent-signal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
             checked={rollover()}
             onChange={(e) => setRollover(e.currentTarget.checked)}
           />
-          <span class="text-base text-text font-body">Roll over unused budget</span>
+          <span class="text-[14.5px] text-text">Roll over unused budget</span>
         </label>
       </div>
 
       <div>
-        <label for="budget-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-start-date" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Start Date
         </label>
         <Input
           id="budget-start-date"
+          class="font-mono tabular"
           type="date"
           value={startDate()}
           onInput={(e) => setStartDate(e.currentTarget.value)}
@@ -195,11 +198,12 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <div>
-        <label for="budget-end-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="budget-end-date" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           End Date (optional)
         </label>
         <Input
           id="budget-end-date"
+          class="font-mono tabular"
           type="date"
           value={endDate()}
           onInput={(e) => setEndDate(e.currentTarget.value)}
@@ -207,11 +211,11 @@ export function BudgetForm(props: BudgetFormProps) {
       </div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]" role="alert">{error()}</p>
       </Show>
 
-      <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
+      <Button type="submit" size="lg" class="w-full mt-1" disabled={submitting()}>
+        {submitting() ? "Saving…" : props.existing ? "Save changes" : "Save budget"}
       </Button>
     </form>
   );
