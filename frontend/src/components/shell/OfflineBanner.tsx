@@ -10,10 +10,10 @@ export const OfflineBanner: Component = () => (
         <CloudOff size={18} class="text-warn shrink-0" />
       </Show>
       <div class="min-w-0">
-        <div class="text-[14px] font-medium text-text">{online() ? "Back online · syncing" : "You're offline"}</div>
+        <div class="text-[14px] font-medium text-text">{online() ? "Waiting to sync" : "You're offline"}</div>
         <div class="text-[12.5px] text-muted">
           <Show when={queued() > 0} fallback="Showing the last data saved on this device.">
-            <span class="font-mono tabular">{queued()}</span> change{queued() === 1 ? "" : "s"} saved on this device. {online() ? "Sending now." : "They sync when you reconnect."}
+            <span class="font-mono tabular">{queued()}</span> change{queued() === 1 ? "" : "s"} saved on this device. {online() ? "Retrying automatically." : "They sync when you reconnect."}
           </Show>
         </div>
       </div>

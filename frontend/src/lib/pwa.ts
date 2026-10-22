@@ -123,6 +123,8 @@ export function initPWA() {
       post({ type: "outbox-count" });
       if (navigator.onLine) flushOutbox();
     }).catch(() => { /* SW unsupported or blocked */ });
+    // The device can be online while the server is not; keep retrying queued writes.
+    setInterval(() => { if (queued() > 0 && navigator.onLine) flushOutbox(); }, 30_000);
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.type === "outbox") setQueued(e.data.count ?? 0);
       if (e.data?.type === "outbox-rejected") setRejectedWrites((n) => n + 1);
