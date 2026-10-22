@@ -14,8 +14,6 @@
   "dependencies": {
     "@solidjs/router": "^0.16.1",
     "@tanstack/solid-query": "^5.100.14",
-    "chart.js": "^4.5.1",
-    "chartjs-adapter-date-fns": "^3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
