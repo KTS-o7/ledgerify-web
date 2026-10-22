@@ -36,7 +36,7 @@ export default function ReportsNetworth() {
           {(d) => (
             <>
               <BentoBlock class="col-span-1 md:col-span-4">
-                <Stat label="Net Worth" value={formatCurrency(d().networth)} size="xl" tone={d().networth >= 0 ? "primary" : "accent"} />
+                <Stat label="Net Worth" value={formatCurrency(d().networth)} size="xl" tone={d().networth >= 0 ? "signal" : "neg"} />
               </BentoBlock>
               <BentoBlock class="col-span-1 md:col-span-8 min-h-[200px]">
                 <div class="flex items-center justify-between mb-3">
@@ -51,7 +51,7 @@ export default function ReportsNetworth() {
                     values={(summary()?.monthly_networth ?? []).map((r) => r.total_balance)}
                     width={undefined}
                     height={120}
-                    tone={d().networth >= 0 ? "primary" : "accent"}
+                    tone={d().networth >= 0 ? "signal" : "neg"}
                     class="w-full"
                   />
                 </Show>

@@ -2,13 +2,15 @@ import { For, type JSX } from "solid-js";
 import { cn } from "../../lib/utils";
 
 type SegmentedControlProps<T extends string> = {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; /** Tailwind text class for the active label, e.g. type colours. */ activeClass?: string }[];
   value: T;
   onChange: (v: T) => void;
   size?: "sm" | "md";
   ariaLabel?: string;
+  class?: string;
 };
 
+/** Segmented control: sunken track, raised active pill, mono-free sans labels. */
 export function SegmentedControl<T extends string>(props: SegmentedControlProps<T>): JSX.Element {
   const size = () => props.size ?? "md";
   const onKey = (e: KeyboardEvent, i: number) => {
@@ -24,7 +26,7 @@ export function SegmentedControl<T extends string>(props: SegmentedControlProps<
   };
   return (
     <div
-      class={cn("flex w-full bg-surface p-1 rounded-pill", size() === "sm" ? "h-9" : "h-11")}
+      class={cn("flex w-full bg-sunken p-[3px] rounded-[10px]", size() === "sm" ? "h-8" : "h-10", props.class)}
       role="tablist"
       aria-label={props.ariaLabel}
     >
@@ -40,8 +42,9 @@ export function SegmentedControl<T extends string>(props: SegmentedControlProps<
               onClick={() => props.onChange(opt.value)}
               onKeyDown={(e) => onKey(e, i())}
               class={cn(
-                "flex-1 inline-flex items-center justify-center rounded-pill text-sm font-display font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                active() ? "bg-text text-bg" : "text-muted hover:text-text"
+                "flex-1 inline-flex items-center justify-center rounded-[8px] font-body font-medium transition-[background-color,color] duration-[160ms] ease-[var(--ease-standard)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal",
+                size() === "sm" ? "text-[12px]" : "text-[13px]",
+                active() ? cn("bg-raised", opt.activeClass ?? "text-text") : "text-muted hover:text-text"
               )}
             >
               {opt.label}

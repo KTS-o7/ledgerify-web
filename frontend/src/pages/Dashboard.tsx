@@ -218,11 +218,11 @@ export default function Dashboard() {
                       label="Total Balance"
                       value={formatCurrency(balance())}
                       size="xl"
-                      tone={balance() >= 0 ? "primary" : "accent"}
+                      tone={balance() >= 0 ? "signal" : "neg"}
                       trend={{ dir: balance() >= 0 ? "up" : "down", value: `${balance() >= 0 ? "+" : ""}${formatCurrency(Math.abs(balance()))} this month` }}
                     />
                     <Show when={hasSpark()}>
-                      <Sparkline values={sparkValues()} height={56} class="w-full" tone={balance() >= 0 ? "primary" : "accent"} />
+                      <Sparkline values={sparkValues()} height={56} class="w-full" tone={balance() >= 0 ? "signal" : "neg"} />
                     </Show>
                   </BentoBlock>
 

@@ -14,9 +14,9 @@ describe("Stat", () => {
     render(() => <Stat label="x" value="1" trend={{ dir: "up", value: "+2.4%" }} />);
     expect(screen.getByText("+2.4%")).toBeInTheDocument();
   });
-  it("uses display font for value", () => {
+  it("uses mono tabular figures for value", () => {
     render(() => <Stat label="x" value="42" size="lg" />);
-    expect(screen.getByText("42")).toHaveClass("font-display");
+    expect(screen.getByText("42")).toHaveClass("font-mono");
   });
   it("renders inline layout", () => {
     const { container } = render(() => <Stat label="x" value="y" layout="inline" />);

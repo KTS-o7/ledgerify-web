@@ -115,7 +115,7 @@ export default function NetWorth() {
                     label="Net Worth"
                     value={formatCurrency(d().networth)}
                     size="xl"
-                    tone={isPositive() ? "primary" : "accent"}
+                    tone={isPositive() ? "signal" : "neg"}
                   />
                   <div class="flex flex-col gap-4 pt-2 border-t border-border">
                     <div class="flex items-center justify-between">
@@ -160,7 +160,7 @@ export default function NetWorth() {
                       <Sparkline
                         values={sparkValues()}
                         height={160}
-                        tone={isPositive() ? "primary" : "accent"}
+                        tone={isPositive() ? "signal" : "neg"}
                         class="w-full"
                       />
                     </div>

@@ -29,6 +29,8 @@ type TxType = "expense" | "income" | "transfer";
 
 type TransactionFormProps = {
   onSuccess: () => void;
+  /** Starting type for a new transaction (quick-add from Income / Transfer). */
+  initialType?: TxType;
   onClose: () => void;
   existing?: {
     id: string;
@@ -54,7 +56,7 @@ export function TransactionForm(props: TransactionFormProps) {
   const [categories] = createResource(() => api.get<Category[]>("/v1/categories"));
   const [availableTags] = createResource(() => api.get<Tag[]>("/v1/tags"));
 
-  const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? "expense");
+  const [txType, setTxType] = createSignal<TxType>(props.existing?.type ?? props.initialType ?? "expense");
   const [amount, setAmount] = createSignal(props.existing?.amount ?? "");
   const [accountId, setAccountId] = createSignal(props.existing?.account_id ?? "");
   const [transferToId, setTransferToId] = createSignal(props.existing?.transfer_to_id ?? "");
