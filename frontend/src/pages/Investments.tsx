@@ -1,14 +1,21 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, TrendingUp, Calendar, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-solid";
+import { A } from "@solidjs/router";
+import { TrendingUp, Calendar, ArrowRight } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
+import { numericToFloat, pgDateToString } from "../lib/format";
+import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { Badge } from "../components/ui/badge";
-import { SkeletonBlock } from "../components/ui/skeleton";
+import { SkeletonBlock, SkeletonRow } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { Money } from "../components/ui/money";
+import { NumberRoll } from "../components/ui/number-roll";
 import { InvestmentForm } from "../components/forms/investment-form";
+import { WealthTabs } from "../components/wealth/WealthTabs";
+import { AddButton, DisclosureButton, RowActions, inlineField, pct, shortDate } from "../components/wealth/common";
+import { nextDebit, type SipSummary } from "../components/wealth/sip";
 
 interface Holding {
   id: string;
@@ -34,18 +41,35 @@ interface InvestmentTransaction {
   note: string;
 }
 
+const ASSET_LABEL: Record<string, string> = {
+  stock: "Stock", mf: "Mutual fund", crypto: "Crypto", fd: "Fixed deposit", ppf: "PPF", nps: "NPS",
+  gold: "Gold", silver: "Silver", real_estate: "Real estate", savings: "Savings", other: "Other",
+};
+
 function compoundingLabel(cf: { CompoundingFrequency: string; Valid: boolean } | undefined): string {
   if (!cf || !cf.Valid) return "";
   switch (cf.CompoundingFrequency) {
-    case "monthly": return "Monthly";
-    case "quarterly": return "Quarterly";
-    case "semi_annual": return "Semi-Annual";
-    case "annual": return "Annual";
+    case "monthly": return "monthly";
+    case "quarterly": return "quarterly";
+    case "semi_annual": return "semi-annual";
+    case "annual": return "annual";
     default: return cf.CompoundingFrequency;
   }
 }
 
-function InvestmentTransactions(props: { investmentId: string; currency: string }) {
+/** Current value, cost and return for one holding. */
+function holdingFigures(h: Holding) {
+  const qty = numericToFloat(h.quantity);
+  const buy = numericToFloat(h.buy_price);
+  const price = numericToFloat(h.current_price);
+  const computed = numericToFloat(h.computed_value);
+  const value = computed > 0 ? computed : qty * price;
+  const invested = qty > 0 && buy > 0 ? qty * buy : 0;
+  const ret = invested > 0 ? value - invested : 0;
+  return { qty, buy, price, value, invested, ret, retPct: invested > 0 ? (ret / invested) * 100 : null };
+}
+
+function InvestmentTransactions(props: { investmentId: string; currency: string; id: string }) {
   const [txns, { refetch }] = createResource(
     () => props.investmentId,
     (id) => api.get<InvestmentTransaction[]>(`/v1/investments/${id}/transactions`).catch(() => [] as InvestmentTransaction[])
@@ -87,100 +111,70 @@ function InvestmentTransactions(props: { investmentId: string; currency: string 
   }
 
   return (
-    <div class="mt-3 border-t border-surface-hover pt-3 space-y-2">
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-[12px] font-body font-medium text-muted uppercase tracking-wide">Transactions</span>
+    <div id={props.id} class="mt-2 mb-3 rounded-[14px] bg-sunken p-3 flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <Eyebrow as="h3">Transactions</Eyebrow>
         <button
           type="button"
           onClick={() => setShowForm((s) => !s)}
-          class="text-[12px] text-primary font-medium hover:underline"
+          aria-expanded={showForm()}
+          class="text-[12.5px] text-signal font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal rounded"
         >
-          {showForm() ? "Cancel" : "+ Add"}
+          {showForm() ? "Cancel" : "Add transaction"}
         </button>
       </div>
       <Show when={showForm()}>
-        <form onSubmit={handleAdd} class="flex flex-wrap gap-2 items-end bg-bg rounded-input p-2">
-          <select
-            value={txType()}
-            onChange={(e) => setTxType(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
-          >
+        <form onSubmit={handleAdd} class="grid grid-cols-2 md:grid-cols-3 gap-2" aria-label="Add investment transaction">
+          <select aria-label="Type" value={txType()} onChange={(e) => setTxType(e.currentTarget.value)} class={inlineField}>
             <option value="buy">Buy</option>
             <option value="sell">Sell</option>
             <option value="dividend">Dividend</option>
             <option value="interest">Interest</option>
             <option value="bonus">Bonus</option>
           </select>
-          <input
-            type="number"
-            placeholder="Amount"
-            step="0.01"
-            required
-            value={txAmount()}
-            onInput={(e) => setTxAmount(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
-          />
-          <input
-            type="number"
-            placeholder="Quantity"
-            step="any"
-            value={txQuantity()}
-            onInput={(e) => setTxQuantity(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-24"
-          />
-          <input
-            type="number"
-            placeholder="Price per unit"
-            step="0.01"
-            value={txPrice()}
-            onInput={(e) => setTxPrice(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
-          />
-          <input
-            type="text"
-            placeholder="Note"
-            value={txNote()}
-            onInput={(e) => setTxNote(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-36"
-          />
-          <input
-            type="date"
-            value={txDate()}
-            onInput={(e) => setTxDate(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
-          />
+          <input aria-label="Amount" type="number" placeholder="Amount" step="0.01" required value={txAmount()}
+            onInput={(e) => setTxAmount(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <input aria-label="Quantity" type="number" placeholder="Quantity" step="any" value={txQuantity()}
+            onInput={(e) => setTxQuantity(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <input aria-label="Price per unit" type="number" placeholder="Price per unit" step="0.01" value={txPrice()}
+            onInput={(e) => setTxPrice(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <input aria-label="Date" type="date" value={txDate()} onInput={(e) => setTxDate(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <input aria-label="Note" type="text" placeholder="Note" value={txNote()} onInput={(e) => setTxNote(e.currentTarget.value)} class={inlineField} />
           <button
             type="submit"
             disabled={submitting()}
-            class="text-sm px-3 py-1 rounded-input bg-primary text-bg font-medium hover:opacity-90 disabled:opacity-50"
+            class="col-span-2 md:col-span-3 h-9 rounded-[10px] bg-btn text-btn-text text-[13.5px] font-semibold hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
           >
-            {submitting() ? "…" : "Add"}
+            {submitting() ? "Saving…" : "Add"}
           </button>
         </form>
       </Show>
       <Show when={txns.loading}>
-        <p class="text-xs text-muted">Loading…</p>
+        <p class="text-[12.5px] text-muted">Loading…</p>
       </Show>
       <Show when={!txns.loading && (txns() ?? []).length === 0}>
-        <p class="text-xs text-muted">No transactions yet.</p>
+        <p class="text-[12.5px] text-muted">No transactions yet.</p>
       </Show>
-      <For each={txns() ?? []}>
-        {(t) => (
-          <div class="flex items-center justify-between text-sm py-1">
-            <div class="flex items-center gap-2">
-              <Badge variant="outline" class="text-[11px] uppercase">{t.type}</Badge>
-              <span class="text-muted text-xs">{t.date}</span>
-            </div>
-            <span class="font-mono text-text">{formatCurrency(numericToFloat(t.amount), props.currency)}</span>
-          </div>
-        )}
-      </For>
+      <ul class="flex flex-col">
+        <For each={txns() ?? []}>
+          {(t) => (
+            <li class="flex items-center justify-between gap-2 h-9 text-[13px]">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted w-16">{t.type}</span>
+                <span class="font-mono tabular text-[12px] text-muted">{shortDate(t.date)}</span>
+              </div>
+              <Money value={numericToFloat(t.amount)} currency={props.currency} />
+            </li>
+          )}
+        </For>
+      </ul>
     </div>
   );
 }
 
 export default function Investments() {
   const [holdings, { refetch }] = createResource(() => api.get<Holding[]>("/v1/investments"));
+  const [sips] = createResource(() => api.get<SipSummary[]>("/v1/sips").catch(() => [] as SipSummary[]));
   const [sheetOpen, setSheetOpen] = createSignal(false);
   const [editHolding, setEditHolding] = createSignal<Holding | null>(null);
   const [editSheetOpen, setEditSheetOpen] = createSignal(false);
@@ -209,195 +203,178 @@ export default function Investments() {
     }
   }
 
-  function toggleExpand(id: string) {
-    setExpandedId((cur) => cur === id ? null : id);
-  }
-
   // ── Portfolio summary (client-side aggregation) ────────────────────────
-  const portfolioSummary = () => {
+  const portfolio = () => {
     const list = holdings() ?? [];
     if (list.length === 0) return null;
-
-    let totalInvested = 0;
-    let currentValue = 0;
-
+    let invested = 0, value = 0, valueWithCost = 0;
     for (const h of list) {
-      const qty = numericToFloat(h.quantity);
-      const buyPrice = numericToFloat(h.buy_price);
-      const currentPrice = numericToFloat(h.current_price);
-      const computed = numericToFloat(h.computed_value);
-
-      if (qty > 0 && buyPrice > 0) {
-        totalInvested += qty * buyPrice;
-      }
-      // Use computed_value when available, otherwise qty * current_price
-      if (computed > 0) {
-        currentValue += computed;
-      } else if (qty > 0 && currentPrice > 0) {
-        currentValue += qty * currentPrice;
-      }
+      const f = holdingFigures(h);
+      value += f.value;
+      if (f.invested > 0) { invested += f.invested; valueWithCost += f.value; }
     }
-
-    const gainLoss = currentValue - totalInvested;
-    const gainPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
-
-    return { totalInvested, currentValue, gainLoss, gainPct };
+    const gain = valueWithCost - invested;
+    return { invested, value, gain, gainPct: invested > 0 ? (gain / invested) * 100 : 0 };
   };
 
   return (
     <>
-      <PageHeader title="Investments" actions={
-        <button
-          type="button"
-          aria-label="Add investment"
-          onClick={() => setSheetOpen(true)}
-          class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-        >
-          <Plus size={20} />
-        </button>
-      } />
-      <div class="p-4 md:p-6 flex flex-col gap-4">
-        {/* Portfolio summary bento */}
-        <Show when={!holdings.loading && portfolioSummary()}>
-          {(ps) => {
-            const isGain = () => ps().gainLoss >= 0;
-            return (
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <BentoBlock class="flex flex-col gap-1">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Total invested</span>
-                  <span class="font-display font-bold text-xl text-text">{formatCurrency(ps().totalInvested)}</span>
-                </BentoBlock>
-                <BentoBlock class="flex flex-col gap-1">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Current value</span>
-                  <span class="font-display font-bold text-xl text-text">{formatCurrency(ps().currentValue)}</span>
-                </BentoBlock>
-                <BentoBlock class="flex flex-col gap-1">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Overall gain/loss</span>
-                  <span class={`font-display font-bold text-xl ${isGain() ? "text-primary" : "text-accent"}`}>
-                    {isGain() ? "+" : ""}{formatCurrency(ps().gainLoss)}
-                  </span>
-                </BentoBlock>
-                <BentoBlock class="flex flex-col gap-1">
-                  <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Return</span>
-                  <span class={`font-display font-bold text-xl ${isGain() ? "text-primary" : "text-accent"}`}>
-                    {isGain() ? "+" : ""}{ps().gainPct.toFixed(2)}%
-                  </span>
-                </BentoBlock>
-              </div>
-            );
-          }}
+      <PageHeader title="Investments" actions={<AddButton label="Add holding" onClick={() => setSheetOpen(true)} />} />
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-4">
+        <WealthTabs />
+
+        <Show when={holdings.loading}>
+          <div class="grid grid-cols-2 gap-4">
+            <SkeletonBlock class="h-[104px]" />
+            <SkeletonBlock class="h-[104px]" />
+          </div>
+          <SkeletonRow />
+          <SkeletonRow />
         </Show>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <Show when={holdings.loading}>
-            <SkeletonBlock class="min-h-[120px]" />
-            <SkeletonBlock class="min-h-[120px]" />
-          </Show>
-          <Show when={holdings.error}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <p class="text-accent text-sm py-6 text-center">Failed to load investments.</p>
+        <Show when={holdings.error}>
+          <p class="text-neg text-[14px] py-6 text-center">Failed to load investments.</p>
+        </Show>
+
+        <Show when={!holdings.loading && portfolio()}>
+          {(p) => (
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <BentoBlock class="flex flex-col gap-2">
+                <Eyebrow>Current value</Eyebrow>
+                <NumberRoll value={p().value} mutedSymbol class="text-[24px] md:text-[30px] leading-none tracking-[-0.04em]" />
+              </BentoBlock>
+              <BentoBlock class="flex flex-col gap-2">
+                <Eyebrow>Total return</Eyebrow>
+                <span class={cn("font-mono tabular text-[24px] md:text-[30px] leading-none tracking-[-0.04em]", p().gain >= 0 ? "text-pos" : "text-neg")}>
+                  {p().gain >= 0 ? "+" : "−"}<Money value={Math.abs(p().gain)} tone={p().gain >= 0 ? "pos" : "neg"} />
+                </span>
+                <span class={cn("font-mono tabular text-[12px]", p().gain >= 0 ? "text-pos" : "text-neg")}>{pct(p().gainPct, 2)}</span>
+              </BentoBlock>
+              <BentoBlock class="hidden md:flex flex-col gap-2">
+                <Eyebrow>Invested</Eyebrow>
+                <Money value={p().invested} mutedSymbol class="text-[30px] leading-none tracking-[-0.04em]" />
+              </BentoBlock>
             </div>
+          )}
+        </Show>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          {/* Holdings list */}
+          <Show when={!holdings.loading && !holdings.error}>
+            <BentoBlock class={cn("p-0 overflow-hidden", (sips() ?? []).length > 0 ? "md:col-span-8" : "md:col-span-12")}>
+              <div class="flex items-center justify-between px-5 h-12 border-b border-border">
+                <Eyebrow as="h2">Holdings</Eyebrow>
+                <span class="font-mono tabular text-[12px] text-muted">{(holdings() ?? []).length}</span>
+              </div>
+              <Show
+                when={(holdings() ?? []).length > 0}
+                fallback={
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="No holdings yet"
+                    body="Track stocks, funds, deposits and gold in one place."
+                    action={{ label: "Add holding", onClick: () => setSheetOpen(true) }}
+                  />
+                }
+              >
+                <ul class="divide-y divide-border">
+                  <For each={holdings() ?? []}>
+                    {(h) => {
+                      const f = holdingFigures(h);
+                      const rate = numericToFloat(h.interest_rate);
+                      const maturity = pgDateToString(h.maturity_date);
+                      const isExpanded = () => expandedId() === h.id;
+                      const sub = () => {
+                        const parts = [ASSET_LABEL[h.asset_type] ?? h.asset_type];
+                        if (f.qty > 0 && f.price > 0) parts.push(`${f.qty} @ ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(f.price)}`);
+                        if (rate > 0) parts.push(`${rate.toFixed(2)}% p.a.${compoundingLabel(h.compounding_frequency) ? " " + compoundingLabel(h.compounding_frequency) : ""}`);
+                        return parts.join(" · ");
+                      };
+                      return (
+                        <li class="group px-5">
+                          <div class="flex items-center gap-3 min-h-[60px] py-2">
+                            <div class="flex-1 min-w-0">
+                              <div class="text-[14.5px] font-medium text-text truncate">{h.name}</div>
+                              <div class="text-[12.5px] text-muted truncate mt-0.5">{sub()}</div>
+                              <Show when={maturity}>
+                                <div class="flex items-center gap-1 font-mono tabular text-[11.5px] text-faint mt-0.5">
+                                  <Calendar size={11} aria-hidden="true" /> matures {shortDate(maturity)}
+                                </div>
+                              </Show>
+                            </div>
+                            <div class="text-right shrink-0">
+                              <Money value={f.value} currency={h.currency} class="text-[14.5px]" />
+                              <Show when={f.retPct !== null}>
+                                <div class={cn("font-mono tabular text-[12px] mt-0.5", f.ret >= 0 ? "text-pos" : "text-neg")}>{pct(f.retPct!)}</div>
+                              </Show>
+                            </div>
+                            <RowActions
+                              name={h.name}
+                              onEdit={() => { setEditHolding(h); setEditSheetOpen(true); }}
+                              onDelete={() => handleDelete(h.id, h.name)}
+                            />
+                          </div>
+                          <div class="-mt-1 mb-1.5">
+                            <DisclosureButton open={isExpanded()} controls={`inv-tx-${h.id}`} onClick={() => setExpandedId((c) => (c === h.id ? null : h.id))}>
+                              {isExpanded() ? "Hide transactions" : "Transactions"}
+                            </DisclosureButton>
+                          </div>
+                          <Show when={isExpanded()}>
+                            <InvestmentTransactions id={`inv-tx-${h.id}`} investmentId={h.id} currency={h.currency} />
+                          </Show>
+                        </li>
+                      );
+                    }}
+                  </For>
+                </ul>
+              </Show>
+            </BentoBlock>
           </Show>
-          <Show when={!holdings.loading && !holdings.error && (holdings() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <EmptyState
-                icon={TrendingUp}
-                title="No investments yet"
-                body="Track your portfolio across stocks, ETFs, and funds."
-                action={{ label: "Add holding", onClick: () => setSheetOpen(true) }}
-              />
-            </div>
-          </Show>
-          <For each={holdings() ?? []}>
-            {(h) => {
-              const qty = numericToFloat(h.quantity);
-              const price = numericToFloat(h.current_price);
-              const buyPrice = numericToFloat(h.buy_price);
-              const marketValue = qty * price;
-              const gain = price - buyPrice;
-              const gainPct = buyPrice > 0 ? ((gain / buyPrice) * 100) : 0;
-              const rate = numericToFloat(h.interest_rate);
-              const computed = numericToFloat(h.computed_value);
-              const maturityStr = pgDateToString(h.maturity_date);
-              const isExpanded = () => expandedId() === h.id;
-              return (
-                <div class="group relative">
-                  <BentoBlock variant="pressable">
-                    <div class="flex items-start gap-3">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between">
-                          <span class="font-display text-lg font-bold text-text truncate">{h.name}</span>
-                          <span class="font-mono text-xs text-muted uppercase ml-2 flex-shrink-0">{h.asset_type}</span>
+
+          {/* SIP cards */}
+          <Show when={(sips() ?? []).length > 0}>
+            <section class="md:col-span-4 flex flex-col gap-3" aria-labelledby="sip-heading">
+              <div class="flex items-center justify-between h-6">
+                <Eyebrow as="h2"><span id="sip-heading">SIPs</span></Eyebrow>
+                <A href="/sips" class="inline-flex items-center gap-1 text-[12.5px] font-medium">
+                  Manage <ArrowRight size={13} />
+                </A>
+              </div>
+              <For each={sips() ?? []}>
+                {(s) => {
+                  const next = nextDebit(s.start_date);
+                  return (
+                    <A href="/sips" class="block rounded-card bg-surface border border-border p-4 hover:bg-raised transition-colors duration-[160ms] !text-text" aria-label={`${s.name} SIP`}>
+                      <div class="flex items-start justify-between gap-2">
+                        <span class="text-[14.5px] font-medium truncate">{s.name}</span>
+                        <span class="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted shrink-0">{s.sip_type}</span>
+                      </div>
+                      <div class="mt-3 flex items-end justify-between gap-2">
+                        <div>
+                          <Money value={numericToFloat(s.monthly_amount)} currency={s.currency} class="text-[18px] tracking-[-0.03em]" />
+                          <span class="font-mono text-[12px] text-muted">/mo</span>
                         </div>
-                        <div class="font-mono text-sm text-muted mt-0.5">{qty} units @ {formatCurrency(price, h.currency)}</div>
-                        <Show when={computed > 0}>
-                          <div class="font-mono text-xs text-muted mt-0.5">computed: {formatCurrency(computed, h.currency)}</div>
-                        </Show>
-                        <div class="flex items-center justify-between mt-2">
-                          <span class="font-display text-lg font-bold text-text">{formatCurrency(marketValue, h.currency)}</span>
-                          <Show when={buyPrice > 0}>
-                            <span class={`text-sm font-medium ${gainPct >= 0 ? "text-primary" : "text-accent"}`}>
-                              {gainPct >= 0 ? "+" : ""}{gainPct.toFixed(1)}%
-                            </span>
-                          </Show>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5 mt-2">
-                          <Show when={rate > 0}>
-                            <Badge variant="outline" class="font-mono">{rate.toFixed(2)}% p.a.</Badge>
-                          </Show>
-                          <Show when={compoundingLabel(h.compounding_frequency)}>
-                            <span class="font-mono text-[11px] text-muted uppercase">{compoundingLabel(h.compounding_frequency)}</span>
-                          </Show>
-                          <Show when={maturityStr}>
-                            <Badge variant="outline" class="font-mono inline-flex items-center gap-1">
-                              <Calendar size={10} /> {maturityStr}
-                            </Badge>
-                          </Show>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(h.id)}
-                          class="mt-2 flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
-                        >
-                          {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {isExpanded() ? "Hide transactions" : "View transactions"}
-                        </button>
-                        <Show when={isExpanded()}>
-                          <InvestmentTransactions investmentId={h.id} currency={h.currency} />
+                        <Show when={next}>
+                          <div class="text-right">
+                            <div class="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted">Next debit</div>
+                            <div class="font-mono tabular text-[12.5px] text-text mt-0.5">{shortDate(next!)}</div>
+                          </div>
                         </Show>
                       </div>
-                    </div>
-                  </BentoBlock>
-                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditHolding(h); setEditSheetOpen(true); }}
-                      aria-label={`Edit ${h.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(h.id, h.name); }}
-                      aria-label={`Delete ${h.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              );
-            }}
-          </For>
+                    </A>
+                  );
+                }}
+              </For>
+            </section>
+          </Show>
         </div>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Investment">
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add holding">
         <InvestmentForm onSuccess={handleSuccess} onClose={() => setSheetOpen(false)} />
       </Sheet>
 
-      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Investment">
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit holding">
         <Show when={editHolding()}>
           {(h) => (
             <InvestmentForm
