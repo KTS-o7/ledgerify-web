@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.468.0/font/lucide.css">
+<style>
+@keyframes lgSpin { to { transform: rotate(360deg); } }
+@keyframes lgPulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+</style>
+</helmet>
+<div style="display:grid;grid-template-columns:1440px 630px;gap:40px;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--tx);-webkit-font-smoothing:antialiased">
+
+  <!-- ============ DESKTOP IMPORT ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Desktop Import">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">12 — DESKTOP · IMPORT · click the steps</div>
+    <div style="position:relative;width:1440px;height:900px;border-radius:16px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh);display:grid;grid-template-columns:240px 1fr;grid-template-rows:100%">
+      <aside style="display:flex;flex-direction:column;border-right:1px solid var(--ln);background:var(--rail);padding:20px 14px 14px;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px"><div style="width:28px;height:28px;border-radius:8px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 20px/1 'Instrument Serif',serif">L</div><span style="font:400 24px/1 'Instrument Serif',serif">Ledgerify</span></div>
+        <div style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;border:1px solid var(--ln2);background:var(--s1);color:var(--mu);font:400 13px/1 'Instrument Sans',sans-serif"><i class="icon-search" style="font-size:15px"></i><span style="flex:1">Search or jump to…</span><span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;background:var(--s2)">⌘K</span></div>
+        <nav style="display:flex;flex-direction:column;gap:16px">
+          <sc-for list="{{ railImport }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <div style="font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding:0 10px 7px">{{ g.title }}</div>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:8px;background:{{ it.bg }};color:{{ it.col }};font:500 13.5px/1 'Instrument Sans',sans-serif"><i class="{{ it.ic }}" style="font-size:15px;width:16px"></i><span>{{ it.label }}</span></div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </nav>
+      </aside>
+      <main style="display:flex;flex-direction:column;min-width:0;min-height:0">
+        <header style="display:flex;align-items:center;gap:20px;height:68px;padding:0 28px;border-bottom:1px solid var(--ln)">
+          <h1 style="margin:0;font:400 30px/1 'Instrument Serif',serif">Import</h1>
+          <div style="display:flex;padding:3px;border-radius:9px;background:var(--bg2)"><span style="font:600 12.5px/1 'Instrument Sans',sans-serif;padding:7px 12px;border-radius:7px;background:var(--s2)">Import</span><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;padding:7px 12px;color:var(--mu)">Export</span></div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+              <div onClick="{{ s.go }}" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 12px 0 6px;border-radius:999px;background:{{ s.bg }};color:{{ s.col }};font:500 13px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:background 160ms cubic-bezier(.2,.7,.2,1)" style-hover="background:var(--s2)">
+                <span style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{ s.dotBg }};color:{{ s.dotFg }};font:600 11px/1 'Geist Mono',monospace">{{ s.n }}</span>{{ s.label }}
+              </div>
+            </sc-for>
+          </div>
+        </header>
+
+        <div style="flex:1;min-height:0;padding:24px 28px;opacity:{{ stOp }};transform:{{ stTf }};transition:{{ stTr }}">
+          <!-- STEP 1 -->
+          <sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;height:100%">
+              <div onClick="{{ next }}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;border-radius:20px;border:1.5px dashed var(--ln2);background:var(--s1);cursor:pointer;transition:border-color 160ms" style-hover="border-color:var(--ac)">
+                <div style="width:64px;height:64px;border-radius:18px;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center"><i class="icon-file-up" style="font-size:28px"></i></div>
+                <span style="font:400 34px/1 'Instrument Serif',serif">Drop a statement here</span>
+                <span style="font:400 15px/1.5 'Instrument Sans',sans-serif;color:var(--mu);text-align:center;max-width:420px">CSV from any bank or card. We'll match the columns, skip duplicates and suggest categories before anything is saved.</span>
+                <div style="display:flex;gap:8px;margin-top:6px"><button style="height:40px;padding:0 16px;border:none;border-radius:10px;background:var(--btn);color:var(--btnx);font:600 14px/1 'Instrument Sans',sans-serif">Choose file</button><button style="height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:500 14px/1 'Instrument Sans',sans-serif">Paste from clipboard</button></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+                  <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Saved mappings</span>
+                  <sc-for list="{{ savedMaps }}" as="m" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:12px;height:40px"><i class="icon-landmark" style="font-size:16px;color:var(--mu)"></i><span style="flex:1;font:500 14px/1 'Instrument Sans',sans-serif">{{ m.n }}</span><span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">{{ m.d }}</span></div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln);font:400 13.5px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">
+                  <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase">Recent imports</span>
+                  <span>Sep 30 · hdfc_sep.csv · <span style="color:var(--tx)">388 added</span>, 9 skipped</span>
+                  <span>Sep 02 · icici_card_aug.csv · <span style="color:var(--tx)">64 added</span></span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 2 -->
+          <sc-if value="{{ s2 }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;height:100%">
+              <div style="display:flex;flex-direction:column;border-radius:18px;background:var(--s1);border:1px solid var(--ln);overflow:hidden">
+                <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--ln)">
+                  <i class="icon-file-spreadsheet" style="font-size:18px;color:var(--ac)"></i>
+                  <span style="font:500 14.5px/1 'Instrument Sans',sans-serif">hdfc_statement_oct2026.csv</span>
+                  <span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">186 KB · 412 rows · 6 columns</span>
+                  <div style="flex:1"></div>
+                  <span style="display:flex;align-items:center;gap:6px;font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--pos)"><i class="icon-check" style="font-size:14px"></i>Matched saved mapping “HDFC Savings”</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.1fr 32px 1fr 1.6fr;gap:12px;padding:10px 20px;border-bottom:1px solid var(--ln);font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)"><span>CSV column</span><span></span><span>Ledgerify field</span><span>Sample</span></div>
+                <sc-for list="{{ mapping }}" as="m" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:1.1fr 32px 1fr 1.6fr;gap:12px;align-items:center;height:54px;padding:0 20px;border-bottom:1px solid var(--ln)">
+                    <span style="font:500 13px/1 'Geist Mono',monospace">{{ m.src }}</span>
+                    <i class="icon-arrow-right" style="font-size:14px;color:var(--mu)"></i>
+                    <span style="display:flex;align-items:center;justify-content:space-between;height:34px;padding:0 12px;border-radius:9px;border:1px solid {{ m.bd }};background:var(--bg);font:500 13.5px/1 'Instrument Sans',sans-serif;color:{{ m.col }}">{{ m.dst }}<i class="icon-chevron-down" style="font-size:13px;color:var(--mu)"></i></span>
+                    <span style="font:400 12.5px/1 'Geist Mono',monospace;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.ex }}</span>
+                  </div>
+                </sc-for>
+                <div style="display:flex;align-items:center;gap:16px;padding:14px 20px;margin-top:auto;border-top:1px solid var(--ln);font:400 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">
+                  <span>Date format <span style="font:500 12.5px/1 'Geist Mono',monospace;color:var(--tx);padding:4px 7px;border-radius:6px;background:var(--bg2)">DD/MM/YY</span></span>
+                  <span>Currency <span style="font:500 12.5px/1 'Geist Mono',monospace;color:var(--tx);padding:4px 7px;border-radius:6px;background:var(--bg2)">INR</span></span>
+                  <span>Debit / credit split into one signed amount</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+                  <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Import into</span>
+                  <div style="display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--ac);background:var(--acs)"><i class="icon-landmark" style="font-size:16px;color:var(--ac)"></i><span style="flex:1;font:500 14px/1 'Instrument Sans',sans-serif">HDFC Savings</span><span style="font:500 11px/1 'Geist Mono',monospace;color:var(--mu)">INR</span></div>
+                  <span style="font:400 12.5px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">Closing balance on Oct 21 matches ₹4,82,350 in Ledgerify.</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+                  <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Save mapping</span>
+                  <div style="display:flex;align-items:center;gap:10px;font:500 14px/1 'Instrument Sans',sans-serif"><span style="width:34px;height:20px;border-radius:10px;background:var(--ac);position:relative"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--bg)"></span></span>Remember for HDFC files</div>
+                </div>
+                <div style="flex:1"></div>
+                <button onClick="{{ next }}" style="height:48px;border:none;border-radius:12px;background:var(--btn);color:var(--btnx);font:600 15px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:transform 90ms" style-active="transform:scale(.97)">Continue to review</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 3 -->
+          <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;height:100%">
+              <div style="display:flex;flex-direction:column;border-radius:18px;background:var(--s1);border:1px solid var(--ln);overflow:hidden">
+                <div style="display:flex;gap:6px;padding:14px 16px;border-bottom:1px solid var(--ln)">
+                  <span style="height:30px;padding:0 12px;display:flex;align-items:center;gap:7px;border-radius:999px;background:var(--tx);color:var(--bg);font:600 12.5px/1 'Instrument Sans',sans-serif">Needs review <span style="font:500 11.5px/1 'Geist Mono',monospace">23</span></span>
+                  <span style="height:30px;padding:0 12px;display:flex;align-items:center;gap:7px;border-radius:999px;border:1px solid var(--ln2);color:var(--mu);font:500 12.5px/1 'Instrument Sans',sans-serif">Ready <span style="font:500 11.5px/1 'Geist Mono',monospace">375</span></span>
+                  <span style="height:30px;padding:0 12px;display:flex;align-items:center;gap:7px;border-radius:999px;border:1px solid var(--ln2);color:var(--mu);font:500 12.5px/1 'Instrument Sans',sans-serif">Duplicates <span style="font:500 11.5px/1 'Geist Mono',monospace">14</span></span>
+                  <div style="flex:1"></div>
+                  <span style="font:400 12px/30px 'Geist Mono',monospace;color:var(--mu)">↵ accept · 1–9 pick · S skip</span>
+                </div>
+                <div style="display:grid;grid-template-columns:64px minmax(0,1.6fr) minmax(0,1.4fr) 110px;gap:12px;padding:10px 20px;border-bottom:1px solid var(--ln);font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)"><span>Date</span><span>Title</span><span>Suggested category</span><span style="text-align:right">Amount</span></div>
+                <sc-for list="{{ review }}" as="r" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:64px minmax(0,1.6fr) minmax(0,1.4fr) 110px;gap:12px;align-items:center;min-height:58px;padding:0 20px;border-bottom:1px solid var(--ln);background:{{ r.bg }}">
+                    <span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">{{ r.d }}</span>
+                    <div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font:500 14px/1 'Instrument Sans',sans-serif">{{ r.t }}</span><span style="font:400 11.5px/1 'Geist Mono',monospace;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.raw }}</span></div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="display:flex;align-items:center;gap:7px;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--ln2);font:500 13px/1 'Instrument Sans',sans-serif"><span style="width:7px;height:7px;border-radius:2px;background:{{ r.cc }}"></span>{{ r.cat }}</span>
+                      <span style="font:500 11px/1 'Geist Mono',monospace;color:{{ r.srcCol }}">{{ r.src }}</span>
+                    </div>
+                    <span style="text-align:right;font:500 13.5px/1 'Geist Mono',monospace;color:{{ r.col }}">{{ r.amt }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+                  <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Summary</span>
+                  <div style="display:flex;justify-content:space-between;font:500 14px/1 'Instrument Sans',sans-serif"><span>New transactions</span><span style="font-family:'Geist Mono',monospace">398</span></div>
+                  <div style="display:flex;justify-content:space-between;font:500 14px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span>Duplicates skipped</span><span style="font-family:'Geist Mono',monospace">14</span></div>
+                  <div style="display:flex;justify-content:space-between;font:500 14px/1 'Instrument Sans',sans-serif;color:var(--warn)"><span>Need a category</span><span style="font-family:'Geist Mono',monospace">23</span></div>
+                  <div style="height:1px;background:var(--ln)"></div>
+                  <div style="display:flex;justify-content:space-between;font:500 14px/1 'Instrument Sans',sans-serif"><span>Money in</span><span style="font-family:'Geist Mono',monospace;color:var(--pos)">+₹2,84,600</span></div>
+                  <div style="display:flex;justify-content:space-between;font:500 14px/1 'Instrument Sans',sans-serif"><span>Money out</span><span style="font-family:'Geist Mono',monospace">−₹78,400</span></div>
+                </div>
+                <div style="display:flex;gap:10px;padding:14px 16px;border-radius:14px;background:var(--acs);font:400 13px/1.5 'Instrument Sans',sans-serif"><i class="icon-sparkles" style="font-size:15px;color:var(--ac);margin-top:2px"></i><span>Keyword rules matched 251 rows. AI suggested 124 more. Accepting a suggestion can save it as a rule.</span></div>
+                <div style="flex:1"></div>
+                <button onClick="{{ next }}" style="height:48px;border:none;border-radius:12px;background:var(--btn);color:var(--btnx);font:600 15px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:transform 90ms" style-active="transform:scale(.97)">Import 398 transactions</button>
+                <span style="text-align:center;font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">The 23 uncategorised rows import as “Uncategorized”</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- STEP 4 -->
+          <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;height:100%;text-align:center">
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:32px"></i></div>
+              <span style="font:400 44px/1 'Instrument Serif',serif">398 transactions added</span>
+              <span style="font:400 15px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">HDFC Savings now runs through Oct 21. 14 duplicates were skipped.</span>
+              <div style="display:flex;gap:8px;margin-top:8px"><button style="height:42px;padding:0 18px;border:none;border-radius:10px;background:var(--btn);color:var(--btnx);font:600 14px/1 'Instrument Sans',sans-serif">View in Activity</button><button onClick="{{ restart }}" style="height:42px;padding:0 18px;border-radius:10px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:500 14px/1 'Instrument Sans',sans-serif;cursor:pointer">Import another</button><button style="height:42px;padding:0 18px;border-radius:10px;border:1px solid var(--ln2);background:transparent;color:var(--mu);font:500 14px/1 'Instrument Sans',sans-serif">Undo import</button></div>
+            </div>
+          </sc-if>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ MOTION PANEL ============ -->
+  <div style="grid-row:span 2;display:flex;flex-direction:column;gap:12px" data-screen-label="Motion system">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">00 — MOTION SYSTEM · click any card to replay</div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:32px;border-radius:16px;background:var(--bg);border:1px solid var(--ln2)">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 40px/1 'Instrument Serif',serif">Quiet, physical, fast</span>
+        <p style="margin:0;font:400 14px/1.55 'Instrument Sans',sans-serif;color:var(--mu);text-wrap:pretty">Motion explains where things came from and where they went. Nothing moves on its own except data arriving. Under reduced motion, every move becomes a 120 ms fade and numbers jump straight to their value.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">90 ms</span>press, toggle</div>
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">160 ms</span>hover, chips, tabs</div>
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">220 ms</span>page, palette</div>
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">340 ms</span>sheets, drawers</div>
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">700–900 ms</span>charts, numbers</div>
+        <div style="display:flex;flex-direction:column;gap:5px;padding:12px;border-radius:10px;background:var(--s1)"><span style="color:var(--tx)">1200 ms</span>new-row glow</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <!-- page -->
+        <div onClick="{{ playPg }}" style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln);cursor:pointer">
+          <div style="position:relative;height:150px;border-radius:10px;background:var(--bg);overflow:hidden">
+            <div style="position:absolute;inset:12px;display:flex;flex-direction:column;gap:8px;opacity:{{ pgA.op }};transform:{{ pgA.tf }};transition:opacity 220ms cubic-bezier(.2,.7,.2,1), transform 220ms cubic-bezier(.2,.7,.2,1)"><span style="font:400 20px/1 'Instrument Serif',serif">Overview</span><div style="height:44px;border-radius:8px;background:var(--s2)"></div><div style="height:20px;width:70%;border-radius:6px;background:var(--s2)"></div></div>
+            <div style="position:absolute;inset:12px;display:flex;flex-direction:column;gap:8px;opacity:{{ pgB.op }};transform:{{ pgB.tf }};transition:opacity 220ms cubic-bezier(.2,.7,.2,1), transform 220ms cubic-bezier(.2,.7,.2,1)"><span style="font:400 20px/1 'Instrument Serif',serif">Activity</span><div style="height:16px;border-radius:5px;background:var(--s2)"></div><div style="height:16px;border-radius:5px;background:var(--s2)"></div><div style="height:16px;border-radius:5px;background:var(--s2)"></div></div>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">Page change</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">fade + 8 px rise · 220 ms · (.2,.7,.2,1)</span>
+        </div>
+        <!-- sheet -->
+        <div onClick="{{ playSh }}" style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln);cursor:pointer">
+          <div style="position:relative;height:150px;border-radius:10px;background:var(--bg);overflow:hidden">
+            <div style="position:absolute;inset:12px;display:flex;flex-direction:column;gap:8px"><div style="height:16px;border-radius:5px;background:var(--s2)"></div><div style="height:16px;width:60%;border-radius:5px;background:var(--s2)"></div></div>
+            <div style="position:absolute;inset:0;background:var(--scrim);opacity:{{ shOp }};transition:opacity 340ms cubic-bezier(.32,.72,0,1)"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:104px;border-radius:16px 16px 0 0;background:var(--s2);border-top:1px solid var(--ln2);transform:{{ shTf }};transition:transform 340ms cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:8px"><div style="width:28px;height:4px;border-radius:2px;background:var(--ln2)"></div><span style="font:500 28px/1 'Geist Mono',monospace">₹420</span></div>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">Sheet / drawer</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">slide from edge · 340 ms · (.32,.72,0,1)</span>
+        </div>
+        <!-- ticker -->
+        <div onClick="{{ playNv }}" style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln);cursor:pointer">
+          <div style="height:150px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center">
+            <div style="display:flex;align-items:flex-start;font:500 30px/1 'Geist Mono',monospace;letter-spacing:-.04em;height:30px;overflow:hidden">
+              <span style="color:var(--mu)">₹</span>
+              <sc-for list="{{ roller }}" as="c" hint-placeholder-count="9">
+                <span style="display:inline-block;height:30px;overflow:hidden">
+                  <sc-if value="{{ c.sep }}" hint-placeholder-val="{{ false }}"><span>,</span></sc-if>
+                  <sc-if value="{{ c.dig }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;transform:{{ c.tf }};transition:transform 900ms cubic-bezier(.2,.7,.2,1) {{ c.dl }}"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></span></sc-if>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">Number roll</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">per digit, 40 ms stagger · 900 ms</span>
+        </div>
+        <!-- insert -->
+        <div onClick="{{ playIns }}" style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln);cursor:pointer">
+          <div style="height:150px;border-radius:10px;background:var(--bg);display:flex;flex-direction:column;padding:8px 12px;overflow:hidden">
+            <div style="max-height:{{ insH }};opacity:{{ insOp }};overflow:hidden;transition:max-height 260ms cubic-bezier(.2,.7,.2,1), opacity 220ms 80ms"><div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 8px;border-radius:8px;background:{{ insBg }};transition:background 1200ms 300ms;font:500 13px/1 'Instrument Sans',sans-serif"><span>Blue Tokai Coffee</span><span style="font-family:'Geist Mono',monospace">−₹420</span></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 8px;border-top:1px solid var(--ln);font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span>Uber</span><span style="font-family:'Geist Mono',monospace">−₹286</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 8px;border-top:1px solid var(--ln);font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span>Swiggy Instamart</span><span style="font-family:'Geist Mono',monospace">−₹1,842</span></div>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">New row arrives</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">expand 260 ms · accent glow fades 1.2 s</span>
+        </div>
+        <!-- fill -->
+        <div onClick="{{ playFill }}" style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln);cursor:pointer">
+          <div style="height:150px;border-radius:10px;background:var(--bg);display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 16px">
+            <div style="display:flex;flex-direction:column;gap:7px"><div style="display:flex;justify-content:space-between;font:500 12.5px/1 'Instrument Sans',sans-serif"><span>Groceries</span><span style="font-family:'Geist Mono',monospace;color:var(--mu)">78%</span></div><div style="height:6px;border-radius:3px;background:var(--bg2)"><div style="height:100%;width:{{ fillA }};border-radius:3px;background:var(--ac);transition:width 700ms cubic-bezier(.2,.7,.2,1)"></div></div></div>
+            <div style="display:flex;flex-direction:column;gap:7px"><div style="display:flex;justify-content:space-between;font:500 12.5px/1 'Instrument Sans',sans-serif"><span>Dining</span><span style="font-family:'Geist Mono',monospace;color:var(--warn)">98%</span></div><div style="height:6px;border-radius:3px;background:var(--bg2)"><div style="height:100%;width:{{ fillB }};border-radius:3px;background:{{ fillBCol }};transition:width 700ms cubic-bezier(.2,.7,.2,1) 60ms, background 200ms 500ms"></div></div></div>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">Progress fill</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">700 ms ease-out · turns amber past 90%</span>
+        </div>
+        <!-- press -->
+        <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln)">
+          <div style="height:150px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center">
+            <button style="height:48px;padding:0 22px;border:none;border-radius:12px;background:var(--btn);color:var(--btnx);font:600 15px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:transform 90ms cubic-bezier(.2,.7,.2,1)" style-active="transform:scale(.96)">Hold me</button>
+          </div>
+          <span style="font:600 13.5px/1 'Instrument Sans',sans-serif">Press</span>
+          <span style="font:400 11.5px/1.4 'Geist Mono',monospace;color:var(--mu)">scale .96 · 90 ms · plus haptic tick on mobile</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:16px;border-top:1px solid var(--ln);font:400 13px/1.55 'Instrument Sans',sans-serif;color:var(--mu)">
+        <span>· Exits run at 70% of the enter time with ease-in (.4,0,1,1).</span>
+        <span>· Use View Transitions for page changes. The net worth number morphs between Home and Wealth.</span>
+        <span>· Skeletons pulse at 1.6 s. Nothing shimmers.</span>
+        <span>· Pull to refresh only on Activity. It springs back over 340 ms.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESKTOP MCP ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Desktop MCP">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">13 — DESKTOP · MCP CONNECT · try Copy and Test</div>
+    <div style="position:relative;width:1440px;height:900px;border-radius:16px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh);display:grid;grid-template-columns:240px 1fr;grid-template-rows:100%">
+      <aside style="display:flex;flex-direction:column;border-right:1px solid var(--ln);background:var(--rail);padding:20px 14px 14px;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px"><div style="width:28px;height:28px;border-radius:8px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 20px/1 'Instrument Serif',serif">L</div><span style="font:400 24px/1 'Instrument Serif',serif">Ledgerify</span></div>
+        <div style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;border:1px solid var(--ln2);background:var(--s1);color:var(--mu);font:400 13px/1 'Instrument Sans',sans-serif"><i class="icon-search" style="font-size:15px"></i><span style="flex:1">Search or jump to…</span><span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;background:var(--s2)">⌘K</span></div>
+        <nav style="display:flex;flex-direction:column;gap:16px">
+          <sc-for list="{{ railMcp }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <div style="font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding:0 10px 7px">{{ g.title }}</div>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:8px;background:{{ it.bg }};color:{{ it.col }};font:500 13.5px/1 'Instrument Sans',sans-serif"><i class="{{ it.ic }}" style="font-size:15px;width:16px"></i><span>{{ it.label }}</span></div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </nav>
+      </aside>
+      <main style="display:flex;flex-direction:column;min-width:0;min-height:0">
+        <header style="display:flex;align-items:center;gap:16px;height:68px;padding:0 28px;border-bottom:1px solid var(--ln)">
+          <h1 style="margin:0;font:400 30px/1 'Instrument Serif',serif">MCP connect</h1>
+          <span style="display:flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:999px;background:var(--s1);border:1px solid var(--ln);font:500 12px/1 'Instrument Sans',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:var(--pos)"></span>Server online</span>
+          <div style="flex:1"></div>
+          <span style="font:400 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">Model Context Protocol over SSE</span>
+        </header>
+        <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;padding:20px 28px">
+          <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+            <!-- URL -->
+            <div style="display:flex;flex-direction:column;gap:12px;padding:18px 20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 11px/1 'Geist Mono',monospace">1</span><span style="font:600 14.5px/1 'Instrument Sans',sans-serif;flex:1">Server URL</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Never changes</span></div>
+              <div style="display:flex;gap:8px"><code style="flex:1;display:flex;align-items:center;height:40px;padding:0 14px;border-radius:10px;background:var(--bg);border:1px solid var(--ln);font:500 13px/1 'Geist Mono',monospace">https://money.shenthar.me/api/v1/mcp/sse</code><button onClick="{{ copyUrl }}" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--ln2);background:{{ cpUrl.bg }};color:{{ cpUrl.col }};font:500 13px/1 'Instrument Sans',sans-serif;cursor:pointer;min-width:96px;justify-content:center;transition:background 160ms, color 160ms"><i class="{{ cpUrl.ic }}" style="font-size:14px"></i>{{ cpUrl.t }}</button></div>
+            </div>
+            <!-- token -->
+            <div style="display:flex;flex-direction:column;gap:12px;padding:18px 20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 11px/1 'Geist Mono',monospace">2</span><span style="font:600 14.5px/1 'Instrument Sans',sans-serif;flex:1">Access token</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu)">expires in 6 days</span></div>
+              <div style="display:flex;gap:8px"><code style="flex:1;display:flex;align-items:center;height:40px;padding:0 14px;border-radius:10px;background:var(--bg);border:1px solid var(--ln);font:500 12.5px/1 'Geist Mono',monospace;color:var(--mu);overflow:hidden;white-space:nowrap">{{ tokText }}</code><button onClick="{{ toggleTok }}" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--ln2);background:transparent;color:var(--tx);cursor:pointer"><i class="{{ tokIc }}" style="font-size:15px"></i></button><button onClick="{{ copyTok }}" style="display:flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--ln2);background:{{ cpTok.bg }};color:{{ cpTok.col }};font:500 13px/1 'Instrument Sans',sans-serif;cursor:pointer;min-width:96px;justify-content:center;transition:background 160ms"><i class="{{ cpTok.ic }}" style="font-size:14px"></i>{{ cpTok.t }}</button><button style="display:flex;align-items:center;gap:7px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:500 13px/1 'Instrument Sans',sans-serif"><i class="icon-refresh-cw" style="font-size:14px"></i>Regenerate</button></div>
+              <span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Full read/write access. Regenerating disconnects every client.</span>
+            </div>
+            <!-- config -->
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:16px 20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:22px;height:22px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 11px/1 'Geist Mono',monospace">3</span><span style="font:600 14.5px/1 'Instrument Sans',sans-serif;flex:1">Add to your client</span>
+                <div style="display:flex;padding:3px;border-radius:9px;background:var(--bg2)">
+                  <sc-for list="{{ clients }}" as="c" hint-placeholder-count="3"><span onClick="{{ c.go }}" style="font:500 12.5px/1 'Instrument Sans',sans-serif;padding:7px 12px;border-radius:7px;background:{{ c.bg }};color:{{ c.col }};cursor:pointer;transition:background 160ms">{{ c.n }}</span></sc-for>
+                </div>
+              </div>
+              <span style="font:400 12.5px/1.4 'Instrument Sans',sans-serif;color:var(--mu)">{{ clientNote }}</span>
+              <div style="position:relative;flex:1;min-height:0;border-radius:12px;background:var(--bg);border:1px solid var(--ln);padding:12px 16px;font:400 12.5px/1.5 'Geist Mono',monospace;white-space:pre;overflow:hidden">
+                <sc-for list="{{ cfgLines }}" as="l" hint-placeholder-count="9"><div><span style="color:var(--mu2)">{{ l.ind }}</span><span style="color:var(--ac)">{{ l.k }}</span><span style="color:var(--mu)">{{ l.p }}</span><span style="color:var(--pos)">{{ l.v }}</span><span style="color:var(--mu)">{{ l.e }}</span></div></sc-for>
+                <button onClick="{{ copyCfg }}" style="position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ln2);background:{{ cpCfg.bg }};color:{{ cpCfg.col }};font:500 12.5px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:background 160ms"><i class="{{ cpCfg.ic }}" style="font-size:13px"></i>{{ cpCfg.t }}</button>
+              </div>
+            </div>
+            <!-- test -->
+            <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <span style="width:22px;height:22px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 11px/1 'Geist Mono',monospace">4</span>
+              <button onClick="{{ runTest }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 16px;border:none;border-radius:10px;background:var(--btn);color:var(--btnx);font:600 13.5px/1 'Instrument Sans',sans-serif;cursor:pointer;transition:transform 90ms" style-active="transform:scale(.97)"><i class="icon-plug" style="font-size:14px"></i>Test connection</button>
+              <span style="display:flex;align-items:center;gap:8px;font:500 13.5px/1 'Instrument Sans',sans-serif;color:{{ test.col }}">{{ spinner }}<i class="{{ test.ic }}" style="font-size:15px"></i>{{ test.t }}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+            <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">What your assistant can reach</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu)">~55 tools</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ domains }}" as="d" hint-placeholder-count="11"><span style="display:flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--ln2);font:500 12.5px/1 'Instrument Sans',sans-serif"><i class="{{ d.ic }}" style="font-size:13px;color:var(--mu)"></i>{{ d.n }}</span></sc-for>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+              <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Try asking</span>
+              <sc-for list="{{ prompts }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;gap:12px;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--ln);font:400 18px/1.4 'Instrument Serif',serif"><i class="icon-message-square-quote" style="font-size:15px;color:var(--ac);margin-top:4px"></i><span>{{ p }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,390px);gap:40px">
+
+    <!-- share target -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Import share">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">14 — SHARE A STATEMENT TO LEDGERIFY</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg2);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:10px 20px;opacity:.5">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:var(--s1)"><i class="icon-mail" style="font-size:18px;color:var(--mu)"></i><div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 14px/1 'Instrument Sans',sans-serif">HDFC Bank</span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Your October statement is ready</span></div></div>
+          <div style="height:120px;border-radius:14px;background:var(--s1)"></div>
+        </div>
+        <div style="position:absolute;inset:0;background:var(--scrim)"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;border-radius:28px 28px 0 0;background:var(--s1);border-top:1px solid var(--ln2);padding:10px 20px 34px;display:flex;flex-direction:column;gap:18px">
+          <div style="width:40px;height:5px;border-radius:3px;background:var(--ln2);align-self:center"></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--bg)"><i class="icon-file-spreadsheet" style="font-size:24px;color:var(--ac)"></i><div style="display:flex;flex-direction:column;gap:5px"><span style="font:500 14.5px/1 'Instrument Sans',sans-serif">hdfc_statement_oct2026.csv</span><span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">186 KB</span></div></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:60px;height:60px;border-radius:16px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 34px/1 'Instrument Serif',serif;box-shadow:0 0 0 3px var(--s1), 0 0 0 5px var(--ac)">L</div><span style="font:500 12px/1 'Instrument Sans',sans-serif">Ledgerify</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:60px;height:60px;border-radius:16px;background:var(--s2);display:flex;align-items:center;justify-content:center"><i class="icon-folder" style="font-size:24px;color:var(--mu)"></i></div><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Files</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:60px;height:60px;border-radius:16px;background:var(--s2);display:flex;align-items:center;justify-content:center"><i class="icon-mail" style="font-size:24px;color:var(--mu)"></i></div><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Mail</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:60px;height:60px;border-radius:16px;background:var(--s2);display:flex;align-items:center;justify-content:center"><i class="icon-ellipsis" style="font-size:24px;color:var(--mu)"></i></div><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">More</span></div>
+          </div>
+          <span style="font:400 13px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">The installed app registers as a share target for CSV files, so statements go straight from mail or files into import.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- processing -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Import processing">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">15 — IMPORT · READING</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:22px;padding:6px 20px">
+          <div style="display:flex;align-items:center;gap:10px"><i class="icon-x" style="font-size:22px;color:var(--mu)"></i><span style="font:400 34px/1 'Instrument Serif',serif">Import</span></div>
+          <div style="display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 14.5px/1 'Instrument Sans',sans-serif">hdfc_statement_oct2026.csv</span><span style="font:500 13px/1 'Geist Mono',monospace;color:var(--ac)">64%</span></div>
+            <div style="height:6px;border-radius:3px;background:var(--bg2)"><div style="width:64%;height:100%;border-radius:3px;background:var(--ac)"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:14px;height:56px;border-bottom:1px solid var(--ln)"><i class="icon-circle-check" style="font-size:19px;color:var(--pos)"></i><span style="flex:1;font:500 15px/1 'Instrument Sans',sans-serif">Read 412 rows</span></div>
+            <div style="display:flex;align-items:center;gap:14px;height:56px;border-bottom:1px solid var(--ln)"><i class="icon-circle-check" style="font-size:19px;color:var(--pos)"></i><span style="flex:1;font:500 15px/1 'Instrument Sans',sans-serif">Matched “HDFC Savings” mapping</span></div>
+            <div style="display:flex;align-items:center;gap:14px;height:56px;border-bottom:1px solid var(--ln)"><i class="icon-circle-check" style="font-size:19px;color:var(--pos)"></i><span style="flex:1;font:500 15px/1 'Instrument Sans',sans-serif">Found 14 duplicates</span></div>
+            <div style="display:flex;align-items:center;gap:14px;height:56px;border-bottom:1px solid var(--ln)">{{ spinOn }}<span style="flex:1;font:500 15px/1 'Instrument Sans',sans-serif">Categorising</span><span style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu)">263 / 412</span></div>
+          </div>
+          <span style="font:400 13.5px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">You can leave this screen. We'll send a notification when it's ready to review.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- review -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Import review">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">16 — IMPORT · REVIEW</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:16px;padding:6px 20px">
+          <div style="display:flex;align-items:center;gap:10px"><i class="icon-chevron-left" style="font-size:22px;color:var(--mu)"></i><span style="font:400 34px/1 'Instrument Serif',serif">Review</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);border-radius:16px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;flex-direction:column;gap:7px;padding:14px"><span style="font:500 18px/1 'Geist Mono',monospace">398</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">new</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding:14px;border-left:1px solid var(--ln)"><span style="font:500 18px/1 'Geist Mono',monospace;color:var(--mu)">14</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">duplicates</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding:14px;border-left:1px solid var(--ln)"><span style="font:500 18px/1 'Geist Mono',monospace;color:var(--warn)">23</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">to review</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:20px;background:var(--s1);border:1px solid var(--ac)">
+            <div style="display:flex;justify-content:space-between;font:400 12px/1 'Geist Mono',monospace;color:var(--mu)"><span>1 of 23 · Oct 14</span><span style="color:var(--tx)">−₹3,499</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font:500 18px/1.2 'Instrument Sans',sans-serif">Decathlon Sports</span><span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">POS 4821XXXX DECATHLON BLR</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <span style="display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;background:var(--acs);border:1px solid var(--ac);font:600 13px/1 'Instrument Sans',sans-serif"><span style="width:7px;height:7px;border-radius:2px;background:var(--c4)"></span>Shopping</span>
+              <span style="display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--ln2);font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">Health</span>
+              <span style="display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--ln2);font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">Gifts</span>
+              <span style="display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px dashed var(--ln2);font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">Other…</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span style="width:18px;height:18px;border-radius:5px;background:var(--ac);color:var(--acx);display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:12px;color:var(--bg)"></i></span>Always file “Decathlon” here</div>
+          </div>
+          <div style="display:flex;flex-direction:column;opacity:.6">
+            <div style="display:flex;justify-content:space-between;height:48px;align-items:center;border-bottom:1px solid var(--ln);font:500 14px/1 'Instrument Sans',sans-serif"><span>UPI-9845XXXX21</span><span style="font-family:'Geist Mono',monospace">−₹2,000</span></div>
+            <div style="display:flex;justify-content:space-between;height:48px;align-items:center;border-bottom:1px solid var(--ln);font:500 14px/1 'Instrument Sans',sans-serif"><span>IMPS-P2A-RAHUL</span><span style="font-family:'Geist Mono',monospace;color:var(--pos)">+₹1,450</span></div>
+          </div>
+        </div>
+        <div style="position:absolute;left:20px;right:20px;bottom:34px;display:grid;grid-template-columns:1fr 1.6fr;gap:8px">
+          <button style="height:52px;border-radius:14px;border:1px solid var(--ln2);background:var(--bg);color:var(--tx);font:500 15px/1 'Instrument Sans',sans-serif">Skip all</button>
+          <button style="height:52px;border:none;border-radius:14px;background:var(--btn);color:var(--btnx);font:600 15px/1 'Instrument Sans',sans-serif">Import 398</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- mcp mobile -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile MCP">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">17 — MCP CONNECT</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:6px 20px">
+          <div style="display:flex;align-items:center;gap:10px"><i class="icon-chevron-left" style="font-size:22px;color:var(--mu)"></i><span style="font:400 34px/1 'Instrument Serif',serif">MCP connect</span></div>
+          <span style="font:400 14px/1.5 'Instrument Sans',sans-serif;color:var(--mu)">Let Claude, Cursor or any MCP client read and update your ledger.</span>
+          <div style="display:flex;flex-direction:column;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:16px;border-bottom:1px solid var(--ln)"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Server URL</span><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font:500 12.5px/1.3 'Geist Mono',monospace;word-break:break-all">money.shenthar.me/api/v1/mcp/sse</span><i class="icon-copy" style="font-size:17px;color:var(--ac)"></i></div></div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:16px"><div style="display:flex;justify-content:space-between"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Access token</span><span style="font:400 11.5px/1 'Geist Mono',monospace;color:var(--mu)">6 days left</span></div><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font:500 12.5px/1 'Geist Mono',monospace;color:var(--mu)">eyJhbGciOi••••••••••••</span><i class="icon-copy" style="font-size:17px;color:var(--ac)"></i></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)"><span style="width:8px;height:8px;border-radius:50%;background:var(--pos)"></span><div style="flex:1;display:flex;flex-direction:column;gap:5px"><span style="font:600 14.5px/1 'Instrument Sans',sans-serif">Connected</span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Server accepted the token · 84 ms</span></div><span style="font:500 13px/1 'Instrument Sans',sans-serif;color:var(--ac)">Retest</span></div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:var(--acs)">
+            <div style="display:flex;align-items:center;gap:10px"><i class="icon-monitor" style="font-size:18px;color:var(--ac)"></i><span style="font:600 14.5px/1 'Instrument Sans',sans-serif">Finish on your computer</span></div>
+            <span style="font:400 13.5px/1.5 'Instrument Sans',sans-serif">Desktop clients need a config file. Send yourself the ready-made config, or open MCP connect on desktop.</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button style="height:44px;border-radius:12px;border:1px solid var(--ln2);background:var(--s1);color:var(--tx);font:500 14px/1 'Instrument Sans',sans-serif">Copy config</button><button style="height:44px;border:none;border-radius:12px;background:var(--btn);color:var(--btnx);font:600 14px/1 'Instrument Sans',sans-serif">Share…</button></div>
+          </div>
+          <button style="display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:14px;border:1px solid var(--ln2);background:transparent;color:var(--neg);font:500 14.5px/1 'Instrument Sans',sans-serif"><i class="icon-refresh-cw" style="font-size:15px"></i>Regenerate token</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- export mobile -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Export">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">18 — EXPORT</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:18px;padding:6px 20px">
+          <div style="display:flex;align-items:center;gap:10px"><i class="icon-chevron-left" style="font-size:22px;color:var(--mu)"></i><span style="font:400 34px/1 'Instrument Serif',serif">Export</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Range</span>
+            <div style="display:flex;padding:4px;border-radius:12px;background:var(--s1);border:1px solid var(--ln)"><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13px/1 'Geist Mono',monospace;color:var(--mu)">1M</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--s2);font:600 13px/1 'Geist Mono',monospace">3M</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13px/1 'Geist Mono',monospace;color:var(--mu)">YTD</span><span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13px/1 'Geist Mono',monospace;color:var(--mu)">ALL</span></div>
+            <span style="font:400 12.5px/1 'Geist Mono',monospace;color:var(--mu)">22 Jul 2026 → 22 Oct 2026 · 1,184 rows</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Fields</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ fields }}" as="f" hint-placeholder-count="9"><span style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:999px;background:{{ f.bg }};border:1px solid {{ f.bd }};color:{{ f.col }};font:500 13px/1 'Instrument Sans',sans-serif"><i class="{{ f.ic }}" style="font-size:12px"></i>{{ f.n }}</span></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Format</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:14px;border:1px solid var(--ac);background:var(--acs)"><span style="font:600 14px/1 'Instrument Sans',sans-serif">CSV</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Sheets, Excel</span></div><div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:14px;border:1px solid var(--ln2)"><span style="font:600 14px/1 'Instrument Sans',sans-serif">JSON</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Full backup</span></div></div>
+          </div>
+        </div>
+        <div style="position:absolute;left:20px;right:20px;bottom:34px"><button style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border:none;border-radius:14px;background:var(--btn);color:var(--btnx);font:600 16px/1 'Instrument Sans',sans-serif"><i class="icon-share" style="font-size:17px"></i>Export &amp; share</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 2, enter: true, pg: 0, sh: false, nv: 0, ins: false, fill: false, client: 'claude', showTok: false, copied: '', test: 'idle' };
+  componentDidMount() {
+    this.t0 = setTimeout(() => this.setState({ sh: true, nv: 1, ins: true, fill: true, pg: 1 }), 500);
+  }
+  componentWillUnmount() { [this.t0, this.t1, this.t2, this.t3].forEach(clearTimeout); }
+  replay(key, on, off) {
+    this.setState({ [key]: off });
+    clearTimeout(this.t3);
+    this.t3 = setTimeout(() => this.setState({ [key]: on }), key === 'ins' || key === 'fill' ? 120 : 380);
+  }
+  goStep(n) {
+    this.setState({ step: n, enter: false });
+    clearTimeout(this.t1);
+    this.t1 = setTimeout(() => this.setState({ enter: true }), 30);
+  }
+  copy(k) {
+    this.setState({ copied: k });
+    clearTimeout(this.t2);
+    this.t2 = setTimeout(() => this.setState({ copied: '' }), 1600);
+  }
+  renderVals() {
+    const S = this.state;
+    const railDef = [
+      { title: 'Overview', items: [['icon-layout-dashboard', 'Overview'], ['icon-receipt-text', 'Activity'], ['icon-wallet', 'Accounts'], ['icon-chart-pie', 'Analytics']] },
+      { title: 'Plan', items: [['icon-target', 'Budgets'], ['icon-repeat', 'Recurring'], ['icon-piggy-bank', 'Savings goals'], ['icon-tag', 'Categories & tags']] },
+      { title: 'Wealth', items: [['icon-trending-up', 'Net worth'], ['icon-coins', 'Investments'], ['icon-landmark', 'Loans'], ['icon-shield-check', 'Insurance']] },
+      { title: 'Tools', items: [['icon-file-text', 'Reports'], ['icon-arrow-down-up', 'Import / Export'], ['icon-plug', 'MCP connect']] },
+    ];
+    const rail = (active) => railDef.map(g => ({ title: g.title, items: g.items.map(([ic, label]) => ({ ic, label, bg: label === active ? 'var(--s2)' : 'transparent', col: label === active ? 'var(--tx)' : 'var(--mu)' })) }));
+    const stepNames = ['Upload', 'Map columns', 'Review', 'Done'];
+    const steps = stepNames.map((label, i) => {
+      const n = i + 1, cur = n === S.step, done = n < S.step;
+      return { n: done ? '✓' : String(n), label, go: () => this.goStep(n), bg: cur ? 'var(--s1)' : 'transparent', col: cur ? 'var(--tx)' : 'var(--mu)', dotBg: cur ? 'var(--btn)' : done ? 'var(--acs)' : 'var(--bg2)', dotFg: cur ? 'var(--btnx)' : done ? 'var(--ac)' : 'var(--mu)' };
+    });
+    const a = '4862380', b = '4910215';
+    const val = S.nv ? b : a;
+    const fmt = (s) => { const x = s.slice(0, s.length - 3), last = s.slice(-3); return x.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last; };
+    const roller = []; let di = 0;
+    fmt(val).split('').forEach(ch => { if (ch === ',') roller.push({ sep: true, dig: false, tf: 'none', dl: '0ms' }); else { roller.push({ sep: false, dig: true, tf: `translateY(-${Number(ch) * 30}px)`, dl: (di * 40) + 'ms' }); di++; } });
+    const cp = (k, label) => S.copied === k ? { t: 'Copied', ic: 'icon-check', bg: 'var(--acs)', col: 'var(--ac)' } : { t: label, ic: 'icon-copy', bg: 'transparent', col: 'var(--tx)' };
+    const clientsDef = { claude: ['Claude Desktop', 'Paste into claude_desktop_config.json (Settings → Developer → Edit config), then restart Claude.'], cursor: ['Cursor', 'Open Settings → MCP → Add new server, or paste into ~/.cursor/mcp.json.'], other: ['Other', 'Any client that supports remote MCP over SSE. Send the token as a Bearer Authorization header.'] };
+    const testMap = { idle: { t: 'Not tested yet', ic: '', col: 'var(--mu)' }, run: { t: 'Connecting…', ic: '', col: 'var(--mu)' }, ok: { t: 'Connected · server accepted the token · 84 ms', ic: 'icon-circle-check', col: 'var(--pos)' } };
+    const reduce = false;
+    const fieldsOn = ['Date', 'Merchant', 'Amount', 'Category', 'Account'];
+    return {
+      railImport: rail('Import / Export'), railMcp: rail('MCP connect'),
+      steps, s1: S.step === 1, s2: S.step === 2, s3: S.step === 3, s4: S.step === 4,
+      stOp: S.enter ? 1 : 0, stTf: S.enter ? 'translateY(0)' : 'translateY(8px)', stTr: S.enter ? 'opacity 220ms cubic-bezier(.2,.7,.2,1), transform 220ms cubic-bezier(.2,.7,.2,1)' : 'none',
+      next: () => this.goStep(Math.min(4, S.step + 1)), restart: () => this.goStep(1),
+      savedMaps: [{ n: 'HDFC Savings', d: '6 columns' }, { n: 'ICICI Amazon Pay', d: '5 columns' }, { n: 'Wise (USD)', d: '8 columns' }],
+      mapping: [
+        { src: 'Date', dst: 'Date', ex: '21/10/26 · 20/10/26 · 19/10/26', bd: 'var(--ln2)', col: 'var(--tx)' },
+        { src: 'Narration', dst: 'Title', ex: 'NEFT CR-ACME LABS PVT LTD-SALARY OCT', bd: 'var(--ln2)', col: 'var(--tx)' },
+        { src: 'Withdrawal Amt.', dst: 'Amount (out)', ex: '420.00 · 286.00 · 1,842.00', bd: 'var(--ln2)', col: 'var(--tx)' },
+        { src: 'Deposit Amt.', dst: 'Amount (in)', ex: '2,10,000.00', bd: 'var(--ln2)', col: 'var(--tx)' },
+        { src: 'Chq./Ref.No.', dst: 'Note', ex: '0000429817361 · 0000429806652', bd: 'var(--ln2)', col: 'var(--tx)' },
+        { src: 'Closing Balance', dst: 'Ignore', ex: '4,82,350.00', bd: 'var(--ln)', col: 'var(--mu)' },
+      ],
+      review: [
+        { d: 'Oct 14', t: 'Decathlon Sports', raw: 'POS 4821XXXX DECATHLON BLR', cat: 'Shopping', cc: 'var(--c4)', src: 'AI · 0.71', srcCol: 'var(--warn)', amt: '−₹3,499', col: 'var(--tx)', bg: 'var(--acs)' },
+        { d: 'Oct 12', t: 'UPI to 9845XXXX21', raw: 'UPI-9845XXXX21@okhdfc-PAYMENT', cat: 'Choose…', cc: 'var(--mu2)', src: 'no match', srcCol: 'var(--warn)', amt: '−₹2,000', col: 'var(--tx)', bg: 'transparent' },
+        { d: 'Oct 11', t: 'Rahul (IMPS)', raw: 'IMPS-P2A-RAHUL S-SPLIT', cat: 'Reimbursement', cc: 'var(--pos)', src: 'AI · 0.64', srcCol: 'var(--warn)', amt: '+₹1,450', col: 'var(--pos)', bg: 'transparent' },
+        { d: 'Oct 09', t: 'Apollo Pharmacy', raw: 'POS 4821XXXX APOLLO PHARMA', cat: 'Health', cc: 'var(--c6)', src: 'AI · 0.88', srcCol: 'var(--mu)', amt: '−₹812', col: 'var(--tx)', bg: 'transparent' },
+        { d: 'Oct 07', t: 'Amazon', raw: 'POS 4821XXXX AMAZON PAY IN', cat: 'Shopping', cc: 'var(--c4)', src: 'AI · 0.82', srcCol: 'var(--mu)', amt: '−₹2,149', col: 'var(--tx)', bg: 'transparent' },
+        { d: 'Oct 05', t: 'Car loan EMI', raw: 'ACH D-HDFCLTD-AUTO LOAN', cat: 'Loan payment', cc: 'var(--c1)', src: 'rule', srcCol: 'var(--mu)', amt: '−₹14,820', col: 'var(--tx)', bg: 'transparent' },
+        { d: 'Oct 03', t: 'Shell', raw: 'POS 4821XXXX SHELL KORAMANGALA', cat: 'Transport', cc: 'var(--c4)', src: 'rule', srcCol: 'var(--mu)', amt: '−₹2,600', col: 'var(--tx)', bg: 'transparent' },
+        { d: 'Oct 01', t: 'Rent · October', raw: 'NEFT DR-PRESTIGE ESTATES-RENT', cat: 'Rent', cc: 'var(--c6)', src: 'rule', srcCol: 'var(--mu)', amt: '−₹32,000', col: 'var(--tx)', bg: 'transparent' },
+      ],
+      pgA: { op: S.pg ? 0 : 1, tf: S.pg ? 'translateY(-6px)' : 'translateY(0)' },
+      pgB: { op: S.pg ? 1 : 0, tf: S.pg ? 'translateY(0)' : 'translateY(8px)' },
+      playPg: () => this.setState(s => ({ pg: s.pg ? 0 : 1 })),
+      shOp: S.sh ? 1 : 0, shTf: S.sh ? 'translateY(0)' : 'translateY(110%)',
+      playSh: () => this.setState(s => ({ sh: !s.sh })),
+      roller, playNv: () => this.setState(s => ({ nv: s.nv ? 0 : 1 })),
+      insH: S.ins ? '40px' : '0px', insOp: S.ins ? 1 : 0, insBg: S.ins ? 'transparent' : 'var(--acs)',
+      playIns: () => this.replay('ins', true, false),
+      fillA: S.fill ? '78%' : '0%', fillB: S.fill ? '98%' : '0%', fillBCol: S.fill ? 'var(--warn)' : 'var(--ac)',
+      playFill: () => this.replay('fill', true, false),
+      cpUrl: cp('url', 'Copy'), cpTok: cp('tok', 'Copy'), cpCfg: cp('cfg', 'Copy config'),
+      copyUrl: () => this.copy('url'), copyTok: () => this.copy('tok'), copyCfg: () => this.copy('cfg'),
+      tokText: S.showTok ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1XzhmMmEiLCJleHAiOjE3OTE…' : 'eyJhbGciOi••••••••••••••••••••••••••••••••••••',
+      tokIc: S.showTok ? 'icon-eye-off' : 'icon-eye', toggleTok: () => this.setState(s => ({ showTok: !s.showTok })),
+      clients: Object.keys(clientsDef).map(k => ({ n: clientsDef[k][0], go: () => this.setState({ client: k }), bg: S.client === k ? 'var(--s2)' : 'transparent', col: S.client === k ? 'var(--tx)' : 'var(--mu)' })),
+      clientNote: clientsDef[S.client][1],
+      cfgLines: [
+        { ind: '', k: '', p: '{', v: '', e: '' },
+        { ind: '  ', k: '"mcpServers"', p: ': {', v: '', e: '' },
+        { ind: '    ', k: '"ledgerify"', p: ': {', v: '', e: '' },
+        { ind: '      ', k: '"url"', p: ': ', v: '"https://money.shenthar.me/api/v1/mcp/sse"', e: ',' },
+        { ind: '      ', k: '"headers"', p: ': {', v: '', e: '' },
+        { ind: '        ', k: '"Authorization"', p: ': ', v: '"Bearer eyJhbGciOi••••"', e: '' },
+        { ind: '      ', k: '', p: '}', v: '', e: '' },
+        { ind: '    ', k: '', p: '}', v: '', e: '' },
+        { ind: '  ', k: '', p: '}', v: '', e: '' },
+        { ind: '', k: '', p: '}', v: '', e: '' },
+      ],
+      test: testMap[S.test],
+      runTest: () => { this.setState({ test: 'run' }); clearTimeout(this.t2b); this.t2b = setTimeout(() => this.setState({ test: 'ok' }), 1300); },
+      spinOn: React.createElement('i', { className: 'icon-loader-circle', style: { display: 'inline-block', fontSize: 19, animation: 'lgSpin 900ms linear infinite', color: 'var(--ac)' } }),
+      spinner: true ? React.createElement('i', { className: 'icon-loader-circle', style: { display: S.test === 'run' ? 'inline-block' : 'none', fontSize: 15, animation: 'lgSpin 900ms linear infinite', color: 'var(--ac)' } }) : null,
+      domains: [['icon-receipt-text', 'Transactions'], ['icon-wallet', 'Accounts'], ['icon-tag', 'Categories'], ['icon-target', 'Budgets'], ['icon-piggy-bank', 'Savings goals'], ['icon-coins', 'Investments'], ['icon-landmark', 'Loans'], ['icon-calendar-sync', 'SIPs'], ['icon-shield-check', 'Insurance'], ['icon-arrow-left-right', 'Exchange rates'], ['icon-wand-sparkles', 'Keyword rules']].map(([ic, n]) => ({ ic, n })),
+      prompts: ['“How much did I spend on dining in October compared to September?”', '“Add ₹420 at Blue Tokai to HDFC, category Dining.”', '“Which budgets will I overshoot at this pace?”', '“When does my Star Health policy renew, and what’s the premium?”'],
+      fields: ['Date', 'Merchant', 'Amount', 'Category', 'Account', 'Note', 'Type', 'Currency', 'Tags'].map(n => { const on = fieldsOn.includes(n); return { n, ic: on ? 'icon-check' : 'icon-plus', bg: on ? 'var(--s1)' : 'transparent', bd: on ? 'var(--ln2)' : 'var(--ln)', col: on ? 'var(--tx)' : 'var(--mu)' }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>
