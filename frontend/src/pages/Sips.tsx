@@ -1,14 +1,17 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, Coins, Pencil, Trash2 } from "lucide-solid";
+import { Coins } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat, pgDateToString } from "../lib/format";
+import { numericToFloat, pgDateToString } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { Money } from "../components/ui/money";
 import { SipForm } from "../components/forms/sip-form";
+import { AddButton, Figure, RowActions, shortDate } from "../components/wealth/common";
+import { nextDebit } from "../components/wealth/sip";
 
 interface Sip {
   id: string;
@@ -53,38 +56,47 @@ export default function Sips() {
     }
   }
 
+  const totals = () => {
+    const list = sips() ?? [];
+    return {
+      monthly: list.reduce((n, s) => n + numericToFloat(s.monthly_amount), 0),
+      corpus: list.reduce((n, s) => n + numericToFloat(s.corpus_value), 0),
+    };
+  };
+
   return (
     <>
-      <PageHeader
-        title="SIPs"
-        actions={
-          <button
-            type="button"
-            aria-label="Add SIP"
-            onClick={() => setSheetOpen(true)}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Plus size={20} />
-          </button>
-        }
-      />
-      <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <PageHeader title="SIPs" actions={<AddButton label="Add SIP" onClick={() => setSheetOpen(true)} />} />
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-4">
+        <Show when={(sips() ?? []).length > 0}>
+          <div class="grid grid-cols-2 gap-4">
+            <BentoBlock class="flex flex-col gap-2">
+              <Eyebrow>Monthly</Eyebrow>
+              <span class="font-mono tabular text-[24px] md:text-[30px] leading-none tracking-[-0.04em]">
+                <Money value={totals().monthly} mutedSymbol /><span class="text-[13px] text-muted">/mo</span>
+              </span>
+            </BentoBlock>
+            <BentoBlock class="flex flex-col gap-2">
+              <Eyebrow>Corpus</Eyebrow>
+              <Money value={totals().corpus} mutedSymbol class="text-[24px] md:text-[30px] leading-none tracking-[-0.04em]" />
+            </BentoBlock>
+          </div>
+        </Show>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Show when={sips.loading}>
-            <SkeletonBlock class="min-h-[120px]" />
-            <SkeletonBlock class="min-h-[120px]" />
+            <SkeletonBlock class="min-h-[150px]" />
+            <SkeletonBlock class="min-h-[150px]" />
           </Show>
           <Show when={sips.error}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <p class="text-accent text-sm py-6 text-center">Failed to load SIPs.</p>
-            </div>
+            <p class="md:col-span-2 lg:col-span-3 text-neg text-[14px] py-6 text-center">Failed to load SIPs.</p>
           </Show>
           <Show when={!sips.loading && !sips.error && (sips() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+            <div class="md:col-span-2 lg:col-span-3">
               <EmptyState
                 icon={Coins}
                 title="No SIPs tracked"
-                body="Track systematic investment plans and watch your corpus grow."
+                body="Track systematic investment plans and watch the corpus grow."
                 action={{ label: "Add SIP", onClick: () => setSheetOpen(true) }}
               />
             </div>
@@ -95,52 +107,27 @@ export default function Sips() {
               const corpus = numericToFloat(s.corpus_value);
               const expectedReturn = numericToFloat(s.expected_return_rate);
               const startStr = pgDateToString(s.start_date);
+              const next = nextDebit(s.start_date);
               return (
-                <div class="group relative">
-                  <BentoBlock variant="pressable">
-                    <div class="flex items-start gap-3">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-2">
-                          <span class="font-display text-lg font-bold text-text truncate">{s.name}</span>
-                          <Badge variant="outline" class="shrink-0 capitalize">{s.sip_type}</Badge>
-                        </div>
-                        <div class="font-mono text-sm text-muted mt-0.5">
-                          {formatCurrency(monthly, s.currency)}/mo
-                        </div>
-                        <div class="flex items-center justify-between mt-2">
-                          <div>
-                            <div class="text-[12px] text-muted uppercase tracking-wide">Corpus</div>
-                            <div class="font-display text-lg font-bold text-text">{formatCurrency(corpus, s.currency)}</div>
-                          </div>
-                          <Show when={s.sip_type !== "equity" && expectedReturn > 0}>
-                            <span class="font-mono text-xs text-muted">@ {expectedReturn.toFixed(2)}% p.a.</span>
-                          </Show>
-                        </div>
-                        <Show when={startStr}>
-                          <div class="text-[12px] text-muted font-body mt-1">Started {startStr}</div>
-                        </Show>
-                      </div>
+                <BentoBlock class="group flex flex-col gap-4">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="text-[15px] font-medium text-text truncate">{s.name}</div>
+                      <div class="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted mt-1">{s.sip_type}</div>
                     </div>
-                  </BentoBlock>
-                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setEditSip(s); setEditSheetOpen(true); }}
-                      aria-label={`Edit ${s.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(s.id, s.name); }}
-                      aria-label={`Delete ${s.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <RowActions name={s.name} onEdit={() => { setEditSip(s); setEditSheetOpen(true); }} onDelete={() => handleDelete(s.id, s.name)} class="-mr-2 -mt-1" />
                   </div>
-                </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <Figure label="Per month"><Money value={monthly} currency={s.currency} /></Figure>
+                    <Figure label="Corpus" sub={s.sip_type !== "equity" && expectedReturn > 0 ? `@ ${expectedReturn.toFixed(2)}% p.a.` : undefined}>
+                      <Money value={corpus} currency={s.currency} />
+                    </Figure>
+                  </div>
+                  <div class="flex items-center justify-between pt-3 border-t border-border font-mono tabular text-[12px] text-muted">
+                    <span>{startStr ? `since ${shortDate(startStr)}` : ""}</span>
+                    <Show when={next}><span>next <span class="text-text">{shortDate(next!)}</span></span></Show>
+                  </div>
+                </BentoBlock>
               );
             }}
           </For>

@@ -87,7 +87,7 @@ export function SipForm(props: SipFormProps) {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div>
-        <label for="sip-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="sip-name" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Name
         </label>
         <Input
@@ -101,7 +101,7 @@ export function SipForm(props: SipFormProps) {
       </div>
 
       <div>
-        <label for="sip-type" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="sip-type" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           SIP Type
         </label>
         <Select
@@ -117,7 +117,7 @@ export function SipForm(props: SipFormProps) {
       </div>
 
       <div>
-        <label for="sip-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="sip-currency" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Currency
         </label>
         <Select
@@ -133,10 +133,10 @@ export function SipForm(props: SipFormProps) {
       </div>
 
       <div>
-        <label for="sip-monthly-amount" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="sip-monthly-amount" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Monthly Amount
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="sip-monthly-amount"
           type="number"
           min="0"
@@ -149,7 +149,7 @@ export function SipForm(props: SipFormProps) {
       </div>
 
       <div>
-        <label for="sip-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="sip-start-date" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Start Date
         </label>
         <Input
@@ -163,10 +163,10 @@ export function SipForm(props: SipFormProps) {
 
       <Show when={sipType() === "debt" || sipType() === "hybrid" || sipType() === "other"}>
         <div>
-          <label for="sip-expected-return" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="sip-expected-return" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Expected Return Rate (% p.a.)
           </label>
-          <Input
+          <Input class="font-mono tabular"
             id="sip-expected-return"
             type="number"
             min="0"
@@ -180,10 +180,10 @@ export function SipForm(props: SipFormProps) {
 
       <Show when={sipType() === "equity"}>
         <div>
-          <label for="sip-current-nav" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="sip-current-nav" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Current NAV (per unit)
           </label>
-          <Input
+          <Input class="font-mono tabular"
             id="sip-current-nav"
             type="number"
             min="0"
@@ -194,10 +194,10 @@ export function SipForm(props: SipFormProps) {
           />
         </div>
         <div>
-          <label for="sip-units-accumulated" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+          <label for="sip-units-accumulated" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
             Units Accumulated
           </label>
-          <Input
+          <Input class="font-mono tabular"
             id="sip-units-accumulated"
             type="number"
             min="0"
@@ -210,7 +210,7 @@ export function SipForm(props: SipFormProps) {
       </Show>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]">{error()}</p>
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>

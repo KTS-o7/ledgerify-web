@@ -1,6 +1,6 @@
 import { createResource, createSignal, For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Plus, Tag, Trash2, Pencil, ShoppingCart, House, Car, Utensils, Zap, Heart, Briefcase, Coffee, Plane, Music, Book, Gift, Smartphone, Dumbbell, Pill, GraduationCap, Wallet, TrendingUp, Film, Bus } from "lucide-solid";
+import { Plus, Tag, Trash2, Pencil, Tags, ShoppingCart, House, Car, Utensils, Zap, Heart, Briefcase, Coffee, Plane, Music, Book, Gift, Smartphone, Dumbbell, Pill, GraduationCap, Wallet, TrendingUp, Film, Bus } from "lucide-solid";
 import type { Component } from "solid-js";
 import { api } from "../lib/api";
 import { PageHeader } from "../components/ui/page-header";
@@ -9,6 +9,10 @@ import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
 import { CategoryForm } from "../components/forms/category-form";
+import { A } from "@solidjs/router";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 
 interface Category {
   id: string;
@@ -112,91 +116,87 @@ export default function Categories() {
     }
   }
 
+  const iconBtn = "w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal";
+
   return (
     <>
       <PageHeader
         title="Categories"
+        meta={userCategories().length > 0 ? String(userCategories().length) : undefined}
         actions={
-          <button
-            type="button"
-            aria-label="Add category"
-            onClick={openSheet}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Plus size={20} />
-          </button>
+          <>
+            <A href="/tags" class="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border border-border-strong text-[13px] font-semibold text-text hover:bg-raised transition-colors duration-[160ms]">
+              <Tags size={15} /> Tags
+            </A>
+            <Button size="sm" class="h-9" onClick={openSheet} aria-label="Add category">
+              <Plus size={16} /> <span class="hidden md:inline">New category</span>
+            </Button>
+          </>
         }
       />
-      <div class="p-4 md:p-6 space-y-6">
-        {/* Categories grid */}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Show when={categories.loading}>
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
-          </Show>
-          <Show when={!categories.loading && userCategories().length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-4">
-              <EmptyState
-                icon={Tag}
-                title="No categories yet"
-                body="Create categories to organize your transactions."
-                action={{ label: "Add Category", onClick: openSheet }}
-              />
-            </div>
-          </Show>
-          <For each={userCategories()}>
-            {(cat) => (
-              <div class="group relative">
-                <BentoBlock variant="default">
-                  <div class="flex items-center gap-3">
-                    <span
-                      class="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ "background-color": cat.color }}
-                    />
-                    <Show when={cat.icon && ICON_MAP[cat.icon]} fallback={null}>
-                      <Dynamic component={ICON_MAP[cat.icon]!} size={16} class="text-muted flex-shrink-0" />
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-6">
+        <A href="/tags" class="md:hidden inline-flex items-center gap-1.5 text-[13.5px] font-medium self-start">
+          <Tags size={15} /> Manage tags
+        </A>
+
+        <section aria-labelledby="cat-heading" class="flex flex-col gap-3">
+          <h2 id="cat-heading" class="font-mono font-medium text-[11px] leading-none uppercase tracking-[0.1em] text-muted">Your categories</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <Show when={categories.loading}>
+              <SkeletonBlock class="h-[64px]" />
+              <SkeletonBlock class="h-[64px]" />
+              <SkeletonBlock class="h-[64px]" />
+              <SkeletonBlock class="h-[64px]" />
+            </Show>
+            <Show when={!categories.loading && userCategories().length === 0}>
+              <div class="col-span-full">
+                <EmptyState
+                  icon={Tag}
+                  title="No categories yet"
+                  body="Create categories to organize your transactions."
+                  action={{ label: "Add category", onClick: openSheet }}
+                />
+              </div>
+            </Show>
+            <For each={userCategories()}>
+              {(cat) => (
+                <BentoBlock class="group flex items-center gap-3 py-3.5 px-4">
+                  <span
+                    class="w-[34px] h-[34px] rounded-[10px] bg-raised flex items-center justify-center shrink-0"
+                    style={{ color: cat.color }}
+                    aria-hidden="true"
+                  >
+                    <Show when={cat.icon && ICON_MAP[cat.icon]} fallback={<span class="w-2.5 h-2.5 rounded-full" style={{ "background-color": cat.color }} />}>
+                      <Dynamic component={ICON_MAP[cat.icon]!} size={16} />
                     </Show>
-                    <span class="font-display font-semibold text-text flex-1">{cat.name}</span>
-                    <span class="text-[12px] font-body uppercase tracking-wide text-muted">
-                      {cat.type}
-                    </span>
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[14.5px] font-medium text-text truncate">{cat.name}</div>
+                    <div class="font-mono text-[11px] uppercase tracking-[0.08em] text-muted mt-0.5">{cat.type}</div>
+                  </div>
+                  <div class="flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-[160ms]">
+                    <button type="button" onClick={() => { setEditCategory(cat); setEditSheetOpen(true); }} aria-label={`Edit ${cat.name}`} class={iconBtn}>
+                      <Pencil size={14} />
+                    </button>
+                    <button type="button" onClick={() => handleDeleteCategory(cat.id, cat.name)} aria-label={`Delete ${cat.name}`} class={`${iconBtn} hover:text-neg`}>
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </BentoBlock>
-                <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setEditCategory(cat); setEditSheetOpen(true); }}
-                    aria-label={`Edit ${cat.name}`}
-                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
-                    aria-label={`Delete ${cat.name}`}
-                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </For>
-        </div>
+              )}
+            </For>
+          </div>
+        </section>
 
         {/* Auto-categorization rules */}
-        <BentoBlock variant="default" class="max-w-2xl">
+        <BentoBlock class="max-w-2xl">
           <div class="mb-4">
-            <h2 class="font-display font-semibold text-text text-base">Auto-categorization Rules</h2>
-            <p class="text-sm text-muted mt-0.5">
+            <h2 class="font-display text-[24px] leading-none text-text">Auto-categorization rules</h2>
+            <p class="text-[13.5px] text-muted mt-2 text-pretty">
               Keywords matched against transaction titles before AI categorization.
             </p>
           </div>
 
-          {/* Keyword list */}
           <Show when={keywords.loading}>
             <SkeletonBlock class="h-10 mb-2" />
             <SkeletonBlock class="h-10 mb-2" />
@@ -205,69 +205,70 @@ export default function Categories() {
             <div class="mb-4">
               <Show
                 when={(keywords() ?? []).length > 0}
-                fallback={
-                  <p class="text-sm text-muted py-3">No rules yet. Add one below.</p>
-                }
+                fallback={<p class="text-[13.5px] text-muted py-3">No rules yet. Add one below.</p>}
               >
-                <For each={keywords() ?? []}>
-                  {(kw) => (
-                    <div class="flex items-center gap-3 h-12 border-b border-border last:border-0">
-                      <span class="flex-1 font-mono text-sm text-text">{kw.keyword}</span>
-                      <span class="text-sm text-muted">{kw.category_name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteKeyword(kw.id)}
-                        class="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-accent transition-colors"
-                        aria-label={`Delete rule for ${kw.keyword}`}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
-                </For>
+                <ul>
+                  <For each={keywords() ?? []}>
+                    {(kw) => (
+                      <li class="flex items-center gap-3 h-11 border-b border-border last:border-0">
+                        <span class="flex-1 min-w-0 truncate font-mono text-[13px] text-text">{kw.keyword}</span>
+                        <span class="text-[13px] text-muted truncate">→ {kw.category_name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteKeyword(kw.id)}
+                          class={`${iconBtn} hover:text-neg`}
+                          aria-label={`Delete rule for ${kw.keyword}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </Show>
             </div>
           </Show>
 
-          {/* Add keyword form */}
           <form onSubmit={handleAddKeyword} class="flex items-center gap-2 flex-wrap">
-            <input
+            <label class="sr-only" for="kw-input">Keyword</label>
+            <Input
+              id="kw-input"
               type="text"
               value={newKeyword()}
               onInput={(e) => setNewKeyword(e.currentTarget.value)}
-              placeholder="Keyword"
-              class="flex-1 min-w-[120px] h-9 px-3 rounded-lg border border-border bg-bg text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Keyword, e.g. swiggy"
+              class="flex-1 min-w-[140px] h-9 text-[14px] font-mono"
             />
-            <select
+            <label class="sr-only" for="kw-category">Category</label>
+            <Select
+              id="kw-category"
               value={newCategoryId()}
               onChange={(e) => setNewCategoryId(e.currentTarget.value)}
-              class="h-9 px-3 rounded-lg border border-border bg-bg text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-auto h-9 text-[14px]"
             >
               <option value="">Select category…</option>
               <For each={categories() ?? []}>
-                {(cat) => (
-                  <option value={cat.id}>{cat.name}</option>
-                )}
+                {(cat) => <option value={cat.id}>{cat.name}</option>}
               </For>
-            </select>
-            <button
+            </Select>
+            <Button
               type="submit"
+              variant="outline"
+              size="sm"
+              class="h-9"
               disabled={addingKeyword() || !newKeyword().trim() || !newCategoryId()}
-              class="h-9 px-4 rounded-lg bg-surface border border-border text-sm font-medium text-text hover:bg-surface-hover active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Show when={addingKeyword()} fallback="Add">
-                Adding…
-              </Show>
-            </button>
+              {addingKeyword() ? "Adding…" : "Add rule"}
+            </Button>
           </form>
         </BentoBlock>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={closeSheet} title="Add Category">
+      <Sheet open={sheetOpen()} onClose={closeSheet} title="New category">
         <CategoryForm onSuccess={handleSuccess} onClose={closeSheet} />
       </Sheet>
 
-      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Category">
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit category">
         <Show when={editCategory()}>
           {(cat) => (
             <CategoryForm

@@ -76,7 +76,7 @@ export function Sheet(props: SheetProps) {
       <Portal>
         {/* Backdrop */}
         <div
-          class="fixed inset-0 bg-bg/80 backdrop-blur-sm z-50"
+          class="fixed inset-0 bg-scrim backdrop-blur-[3px] z-50 animate-[fade-in_220ms_var(--ease-standard)] motion-reduce:animate-none"
           onClick={props.onClose}
           aria-hidden="true"
         />
@@ -87,25 +87,29 @@ export function Sheet(props: SheetProps) {
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          class="fixed bottom-0 left-0 right-0 md:left-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] bg-surface rounded-t-[24px] md:rounded-none md:rounded-l-[24px] border-t md:border-t-0 md:border-l border-border z-50 flex flex-col max-h-[90vh] md:max-h-none overflow-y-auto animate-[slide-up_200ms_ease-out] md:animate-[slide-right_200ms_ease-out] motion-reduce:animate-none"
+          class="fixed bottom-0 left-0 right-0 md:left-auto md:right-0 md:top-0 md:bottom-0 md:w-[440px] bg-surface rounded-t-[28px] md:rounded-none md:rounded-l-[18px] border-t md:border-t-0 md:border-l border-border-strong shadow-frame z-50 flex flex-col max-h-[92vh] md:max-h-none overflow-y-auto pb-[env(safe-area-inset-bottom)] animate-slide-up md:animate-slide-right motion-reduce:animate-[fade-in_120ms_linear]"
         >
+          {/* Grabber (mobile) */}
+          <div class="md:hidden flex justify-center pt-2.5" aria-hidden="true">
+            <span class="w-9 h-[5px] rounded-pill bg-border-strong" />
+          </div>
           {/* Header */}
-          <div class="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-            <h2 id={titleId} class="font-display font-bold text-lg text-text">
+          <div class="flex items-center justify-between px-5 pt-3 pb-3 md:py-4 md:border-b border-border shrink-0">
+            <h2 id={titleId} class="font-display font-normal text-[26px] leading-none text-text">
               {props.title}
             </h2>
             <button
               type="button"
               aria-label="Close"
               onClick={props.onClose}
-              class="w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-surface-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              class="w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Content */}
-          <div class="flex-1 p-5">
+          <div class="flex-1 px-5 pb-5 md:pt-5">
             {props.children}
           </div>
         </div>

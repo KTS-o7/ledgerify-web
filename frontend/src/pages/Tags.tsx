@@ -22,7 +22,7 @@ function TagForm(props: {
   existing?: { id: string; name: string; color: string };
 }) {
   const [name, setName] = createSignal(props.existing?.name ?? "");
-  const [color, setColor] = createSignal(props.existing?.color ?? "#CCFF00");
+  const [color, setColor] = createSignal(props.existing?.color ?? "#CDAE78");
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
@@ -52,7 +52,7 @@ function TagForm(props: {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div>
-        <label for="tag-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="tag-name" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Name
         </label>
         <Input
@@ -66,24 +66,24 @@ function TagForm(props: {
       </div>
 
       <div>
-        <label for="tag-color" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="tag-color" class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Color
         </label>
         <input
           id="tag-color"
           type="color"
-          class="h-12 w-full rounded-input cursor-pointer border border-border bg-surface"
+          class="h-11 w-full rounded-input cursor-pointer border border-border-strong bg-surface p-1"
           value={color()}
           onInput={(e) => setColor(e.currentTarget.value)}
         />
       </div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p role="alert" class="text-neg text-[13.5px]">{error()}</p>
       </Show>
 
-      <Button type="submit" class="w-full" disabled={submitting()}>
-        {submitting() ? "Saving…" : props.existing ? "Save Changes" : "Save"}
+      <Button type="submit" size="lg" class="w-full" disabled={submitting()}>
+        {submitting() ? "Saving…" : props.existing ? "Save changes" : "Save"}
       </Button>
     </form>
   );
@@ -116,83 +116,67 @@ export default function Tags() {
     <>
       <PageHeader
         title="Tags"
+        back
+        meta={(tags() ?? []).length > 0 ? String((tags() ?? []).length) : undefined}
         actions={
-          <button
-            type="button"
-            aria-label="Add tag"
-            onClick={openSheet}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-          >
-            <Plus size={20} />
-          </button>
+          <Button size="sm" class="h-9" onClick={openSheet} aria-label="Add tag">
+            <Plus size={16} /> <span class="hidden md:inline">New tag</span>
+          </Button>
         }
       />
-      <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="px-5 md:px-7 py-5 md:py-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <Show when={tags.loading}>
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
-            <SkeletonBlock class="min-h-[80px]" />
+            <SkeletonBlock class="h-[60px]" />
+            <SkeletonBlock class="h-[60px]" />
+            <SkeletonBlock class="h-[60px]" />
+            <SkeletonBlock class="h-[60px]" />
           </Show>
           <Show when={!tags.loading && (tags() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-4">
+            <div class="col-span-full">
               <EmptyState
                 icon={TagsIcon}
                 title="No tags yet"
                 body="Create tags to label and filter your transactions."
-                action={{ label: "Add Tag", onClick: openSheet }}
+                action={{ label: "Add tag", onClick: openSheet }}
               />
             </div>
           </Show>
           <For each={tags() ?? []}>
             {(tag) => (
-              <div class="group relative">
-                <BentoBlock variant="default">
-                  <div class="flex items-center gap-3">
-                    <span
-                      class="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ "background-color": tag.color || "#888888" }}
-                    />
-                    <span class="font-display font-semibold text-text flex-1">{tag.name}</span>
-                  </div>
-                </BentoBlock>
-                <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setEditTag(tag); setEditSheetOpen(true); }}
-                    aria-label={`Edit ${tag.name}`}
-                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
+              <BentoBlock class="group flex items-center gap-3 py-3.5 px-4">
+                <span
+                  class="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ "background-color": tag.color || "var(--color-muted)" }}
+                  aria-hidden="true"
+                />
+                <span class="text-[14.5px] font-medium text-text flex-1 min-w-0 truncate">{tag.name}</span>
+                <div class="flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-[160ms]">
+                  <button type="button" onClick={() => { setEditTag(tag); setEditSheetOpen(true); }} aria-label={`Edit ${tag.name}`} class="w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal">
                     <Pencil size={14} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(tag.id, tag.name); }}
-                    aria-label={`Delete ${tag.name}`}
-                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                  >
+                  <button type="button" onClick={() => handleDelete(tag.id, tag.name)} aria-label={`Delete ${tag.name}`} class="w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal hover:text-neg">
                     <Trash2 size={14} />
                   </button>
                 </div>
-              </div>
+              </BentoBlock>
             )}
           </For>
         </div>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={closeSheet} title="New Tag">
+      <Sheet open={sheetOpen()} onClose={closeSheet} title="New tag">
         <TagForm onSuccess={handleSuccess} onClose={closeSheet} />
       </Sheet>
 
-      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Tag">
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit tag">
         <Show when={editTag()}>
           {(tag) => (
             <TagForm
               existing={{
                 id: tag().id,
                 name: tag().name,
-                color: tag().color || "#888888",
+                color: tag().color || "#A39B8B",
               }}
               onSuccess={handleEditSuccess}
               onClose={closeEdit}

@@ -1,4 +1,5 @@
 import { createContext, useContext, createSignal, type JSX } from "solid-js";
+import { clearUserData } from "./pwa";
 
 interface User {
   id: string;
@@ -36,6 +37,7 @@ export function AuthProvider(props: { children: JSX.Element }) {
     localStorage.removeItem("jwt_token");
     localStorage.removeItem("user");
     setUser(null);
+    void clearUserData();
   };
 
   const updateUser = (patch: Partial<User>) => {

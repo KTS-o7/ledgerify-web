@@ -1,14 +1,21 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { Plus, ShieldCheck, Calendar, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-solid";
+import { ShieldCheck } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat, pgTextToString, pgDateToString } from "../lib/format";
+import { numericToFloat, pgTextToString, pgDateToString } from "../lib/format";
+import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Badge } from "../components/ui/badge";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
 import { Sheet } from "../components/ui/sheet";
+import { Eyebrow } from "../components/ui/eyebrow";
+import { Money } from "../components/ui/money";
 import { InsuranceForm } from "../components/forms/insurance-form";
+import { AddButton, DisclosureButton, Figure, RowActions, inlineField, paymentTone, shortDate } from "../components/wealth/common";
+
+const PER_YEAR: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, half_yearly: 2, annual: 1, yearly: 1 };
+const FREQ_SHORT: Record<string, string> = { monthly: "/mo", quarterly: "/qtr", annual: "/yr", yearly: "/yr", semi_annual: "/half", half_yearly: "/half" };
 
 interface Policy {
   id: string;
@@ -53,7 +60,7 @@ function renewalStatus(policy: Policy): "active" | "expiring" | "expired" {
   return "active";
 }
 
-function InsurancePayments(props: { policyId: string; currency: string }) {
+function InsurancePayments(props: { policyId: string; currency: string; id: string }) {
   const [payments, { refetch }] = createResource(
     () => props.policyId,
     (id) => api.get<InsurancePayment[]>(`/v1/insurance/${id}/payments`).catch(() => [] as InsurancePayment[])
@@ -84,42 +91,25 @@ function InsurancePayments(props: { policyId: string; currency: string }) {
     }
   }
 
-  const statusColor = (s: string) => s === "paid" ? "text-primary" : s === "missed" ? "text-accent" : "text-muted";
-
   return (
-    <div class="mt-3 border-t border-surface-hover pt-3 space-y-2">
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-[12px] font-body font-medium text-muted uppercase tracking-wide">Payments</span>
+    <div id={props.id} class="mt-2 rounded-[14px] bg-sunken p-3 flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <Eyebrow as="h3">Payments</Eyebrow>
         <button
           type="button"
           onClick={() => setShowForm((s) => !s)}
-          class="text-[12px] text-primary font-medium hover:underline"
+          aria-expanded={showForm()}
+          class="text-[12.5px] text-signal font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal rounded"
         >
-          {showForm() ? "Cancel" : "+ Add"}
+          {showForm() ? "Cancel" : "Record payment"}
         </button>
       </div>
       <Show when={showForm()}>
-        <form onSubmit={handleAdd} class="flex flex-wrap gap-2 items-end bg-bg rounded-input p-2">
-          <input
-            type="number"
-            placeholder="Amount"
-            step="0.01"
-            required
-            value={payAmount()}
-            onInput={(e) => setPayAmount(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text w-28"
-          />
-          <input
-            type="date"
-            value={payDate()}
-            onInput={(e) => setPayDate(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
-          />
-          <select
-            value={payStatus()}
-            onChange={(e) => setPayStatus(e.currentTarget.value)}
-            class="text-sm border border-surface-hover rounded-input px-2 py-1 bg-bg text-text"
-          >
+        <form onSubmit={handleAdd} class="grid grid-cols-2 md:grid-cols-4 gap-2" aria-label="Record premium payment">
+          <input aria-label="Amount" type="number" placeholder="Amount" step="0.01" required value={payAmount()}
+            onInput={(e) => setPayAmount(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <input aria-label="Date" type="date" value={payDate()} onInput={(e) => setPayDate(e.currentTarget.value)} class={cn(inlineField, "font-mono tabular")} />
+          <select aria-label="Status" value={payStatus()} onChange={(e) => setPayStatus(e.currentTarget.value)} class={inlineField}>
             <option value="paid">Paid</option>
             <option value="due">Due</option>
             <option value="missed">Missed</option>
@@ -127,29 +117,31 @@ function InsurancePayments(props: { policyId: string; currency: string }) {
           <button
             type="submit"
             disabled={submitting()}
-            class="text-sm px-3 py-1 rounded-input bg-primary text-bg font-medium hover:opacity-90 disabled:opacity-50"
+            class="h-9 rounded-[10px] bg-btn text-btn-text text-[13.5px] font-semibold hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
           >
-            {submitting() ? "…" : "Record"}
+            {submitting() ? "Saving…" : "Record"}
           </button>
         </form>
       </Show>
       <Show when={payments.loading}>
-        <p class="text-xs text-muted">Loading…</p>
+        <p class="text-[12.5px] text-muted">Loading…</p>
       </Show>
       <Show when={!payments.loading && (payments() ?? []).length === 0}>
-        <p class="text-xs text-muted">No payments recorded.</p>
+        <p class="text-[12.5px] text-muted">No payments recorded.</p>
       </Show>
-      <For each={payments() ?? []}>
-        {(p) => (
-          <div class="flex items-center justify-between text-sm py-1">
-            <div class="flex items-center gap-2">
-              <span class={`text-xs font-medium capitalize ${statusColor(p.status)}`}>{p.status}</span>
-              <span class="text-muted text-xs">{p.date}</span>
-            </div>
-            <span class="font-mono text-text">{formatCurrency(numericToFloat(p.amount), props.currency)}</span>
-          </div>
-        )}
-      </For>
+      <ul class="flex flex-col">
+        <For each={payments() ?? []}>
+          {(p) => (
+            <li class="flex items-center justify-between gap-2 h-9 text-[13px]">
+              <div class="flex items-center gap-2.5">
+                <span class={cn("font-mono text-[10.5px] uppercase tracking-[0.08em] w-16", paymentTone(p.status))}>{p.status}</span>
+                <span class="font-mono tabular text-[12px] text-muted">{shortDate(p.date)}</span>
+              </div>
+              <Money value={numericToFloat(p.amount)} currency={props.currency} />
+            </li>
+          )}
+        </For>
+      </ul>
     </div>
   );
 }
@@ -198,31 +190,43 @@ export default function Insurance() {
     setExpandedId((cur) => cur === id ? null : id);
   }
 
+  const totals = () => {
+    const list = policies() ?? [];
+    return {
+      yearly: list.reduce((n, p) => n + numericToFloat(p.premium_amount) * (PER_YEAR[p.premium_frequency] ?? 1), 0),
+      dueSoon: list.filter((p) => renewalStatus(p) === "expiring").length,
+    };
+  };
+
   return (
     <>
-      <PageHeader title="Insurance" actions={
-        <button
-          type="button"
-          aria-label="Add policy"
-          onClick={() => setSheetOpen(true)}
-          class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-        >
-          <Plus size={20} />
-        </button>
-      } />
-      <div class="p-4 md:p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <PageHeader title="Insurance" actions={<AddButton label="Add policy" onClick={() => setSheetOpen(true)} />} />
+      <div class="px-5 md:px-7 py-5 md:py-6 flex flex-col gap-4">
+        <Show when={(policies() ?? []).length > 0}>
+          <div class="grid grid-cols-2 gap-4">
+            <BentoBlock class="flex flex-col gap-2">
+              <Eyebrow>Premiums per year</Eyebrow>
+              <Money value={totals().yearly} mutedSymbol class="text-[24px] md:text-[30px] leading-none tracking-[-0.04em]" />
+            </BentoBlock>
+            <BentoBlock class="flex flex-col gap-2">
+              <Eyebrow>Renewing in 30 days</Eyebrow>
+              <span class={cn("font-mono tabular text-[24px] md:text-[30px] leading-none tracking-[-0.04em]", totals().dueSoon > 0 ? "text-warn" : "text-text")}>
+                {totals().dueSoon}
+              </span>
+            </BentoBlock>
+          </div>
+        </Show>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           <Show when={policies.loading}>
-            <SkeletonBlock class="min-h-[140px]" />
-            <SkeletonBlock class="min-h-[140px]" />
+            <SkeletonBlock class="min-h-[150px]" />
+            <SkeletonBlock class="min-h-[150px]" />
           </Show>
           <Show when={policies.error}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
-              <p class="text-accent text-sm py-6 text-center">Failed to load policies.</p>
-            </div>
+            <p class="md:col-span-2 text-neg text-[14px] py-6 text-center">Failed to load policies.</p>
           </Show>
           <Show when={!policies.loading && !policies.error && (policies() ?? []).length === 0}>
-            <div class="col-span-1 md:col-span-2 lg:col-span-3">
+            <div class="md:col-span-2">
               <EmptyState
                 icon={ShieldCheck}
                 title="No policies tracked"
@@ -238,78 +242,54 @@ export default function Insurance() {
               const renewalDate = pgDateToString(p.renewal_date || p.end_date);
               const isExpanded = () => expandedId() === p.id;
               return (
-                <div class="group relative">
-                  <BentoBlock variant="pressable">
-                    <div class="flex items-start gap-3">
-                      <div class="w-10 h-10 rounded-input bg-bg flex items-center justify-center text-muted flex-shrink-0">
-                        <ShieldCheck size={20} />
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1 flex-wrap">
-                          <span class="font-display text-lg font-bold text-text">{p.name}</span>
-                          <Show when={provider}>
-                            <Badge variant="outline">{provider}</Badge>
-                          </Show>
-                          <Badge variant={status === "active" ? "success" : "destructive"}>
-                            {status === "active" ? "Active" : status === "expiring" ? "Expiring soon" : "Expired"}
-                          </Badge>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mt-2">
-                          <div>
-                            <div class="text-[12px] text-muted uppercase tracking-wide">Premium</div>
-                            <div class="font-display text-base font-semibold text-text">
-                              {formatCurrency(numericToFloat(p.premium_amount), p.currency)}/{p.premium_frequency.slice(0, 2)}
-                            </div>
-                          </div>
-                          <div>
-                            <div class="flex items-center gap-1 text-[12px] text-muted uppercase tracking-wide"><Calendar size={12} /> Renews</div>
-                            <div class="font-display text-base font-semibold text-text">{renewalDate}</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(p.id)}
-                          class="mt-2 flex items-center gap-1 text-xs text-muted hover:text-text transition-colors"
-                        >
-                          {isExpanded() ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {isExpanded() ? "Hide payments" : "View payments"}
-                        </button>
-                        <Show when={isExpanded()}>
-                          <InsurancePayments policyId={p.id} currency={p.currency} />
-                        </Show>
+                <BentoBlock class="group flex flex-col gap-4">
+                  <div class="flex items-start gap-3">
+                    <div class="w-[38px] h-[38px] rounded-[10px] bg-raised flex items-center justify-center text-muted shrink-0">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[15px] font-medium text-text truncate">{p.name}</div>
+                      <div class="text-[12.5px] text-muted mt-0.5 truncate">
+                        <span class="capitalize">{p.policy_type.replace("_", " ")}</span>
+                        <Show when={provider}> · {provider}</Show>
                       </div>
                     </div>
-                  </BentoBlock>
-                  <div class="absolute top-3 right-3 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); openEdit(p.id); }}
-                      aria-label={`Edit ${p.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }}
-                      aria-label={`Delete ${p.name}`}
-                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <Badge variant={status === "active" ? "default" : status === "expiring" ? "warning" : "destructive"} class="shrink-0">
+                      {status === "active" ? "Active" : status === "expiring" ? "Renews soon" : "Expired"}
+                    </Badge>
+                    <RowActions name={p.name} onEdit={() => openEdit(p.id)} onDelete={() => handleDelete(p.id, p.name)} class="-mr-2 -mt-1" />
                   </div>
-                </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <Figure label="Premium">
+                      <Money value={numericToFloat(p.premium_amount)} currency={p.currency} />
+                      <span class="text-muted text-[12px]">{FREQ_SHORT[p.premium_frequency] ?? ""}</span>
+                    </Figure>
+                    <Figure label="Renews">
+                      <span class={status === "expiring" ? "text-warn" : status === "expired" ? "text-neg" : undefined}>
+                        {renewalDate ? shortDate(renewalDate) : "—"}
+                      </span>
+                    </Figure>
+                  </div>
+                  <div class="border-t border-border pt-2 -mb-1">
+                    <DisclosureButton open={isExpanded()} controls={`ins-pay-${p.id}`} onClick={() => toggleExpand(p.id)}>
+                      Payments
+                    </DisclosureButton>
+                  </div>
+                  <Show when={isExpanded()}>
+                    <InsurancePayments id={`ins-pay-${p.id}`} policyId={p.id} currency={p.currency} />
+                  </Show>
+                </BentoBlock>
               );
             }}
           </For>
         </div>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Policy">
+      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add policy">
         <InsuranceForm onSuccess={handleSuccess} onClose={() => setSheetOpen(false)} />
       </Sheet>
 
-      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit Policy">
+      <Sheet open={editSheetOpen()} onClose={closeEdit} title="Edit policy">
         <Show when={editPolicy()}>
           {(p) => (
             <InsuranceForm

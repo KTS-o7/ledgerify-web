@@ -93,7 +93,7 @@ export function SavingsForm(props: SavingsFormProps) {
   return (
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-name">Goal Name</label>
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-name">Goal Name</label>
         <Input
           id="sg-name"
           type="text"
@@ -105,8 +105,8 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-target">Target Amount</label>
-        <Input
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-target">Target Amount</label>
+        <Input class="font-mono tabular"
           id="sg-target"
           type="number"
           min="0"
@@ -118,8 +118,8 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-current">Current Amount</label>
-        <Input
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-current">Current Amount</label>
+        <Input class="font-mono tabular"
           id="sg-current"
           type="number"
           min="0"
@@ -131,7 +131,7 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-currency">Currency</label>
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-currency">Currency</label>
         <Select
           id="sg-currency"
           value={currency()}
@@ -144,7 +144,7 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-deadline">Deadline</label>
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-deadline">Deadline</label>
         <Input
           id="sg-deadline"
           type="date"
@@ -154,19 +154,19 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-description">Description</label>
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-description">Description</label>
         <textarea
           id="sg-description"
           rows={3}
           placeholder="Optional notes about this goal…"
           value={description()}
           onInput={(e) => setDescription(e.currentTarget.value)}
-          class="w-full rounded-input border border-border bg-surface px-3 py-2 text-base text-text font-body placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-bg resize-none"
+          class="w-full rounded-input border border-border-strong bg-surface px-3.5 py-2.5 text-[15px] text-text font-body placeholder:text-faint transition-colors duration-[160ms] focus:outline-none focus:border-signal resize-none"
         />
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted" for="sg-linked-account">
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]" for="sg-linked-account">
           Linked Account
           <span class="ml-1 text-muted font-normal normal-case text-xs">(Optional — auto-syncs balance)</span>
         </label>
@@ -183,7 +183,7 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-muted">Status</label>
+        <label class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em]">Status</label>
         <SegmentedControl
           options={STATUS_OPTIONS}
           value={status()}
@@ -193,7 +193,7 @@ export function SavingsForm(props: SavingsFormProps) {
       </div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]">{error()}</p>
       </Show>
 
       <Button type="submit" disabled={submitting()} class="w-full mt-2">

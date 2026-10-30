@@ -114,7 +114,7 @@ export function LoanForm(props: LoanFormProps) {
     <form onSubmit={handleSubmit} class="flex flex-col gap-4">
       {/* Name */}
       <div>
-        <label for="loan-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-name" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Name
         </label>
         <Input
@@ -129,7 +129,7 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Loan Type */}
       <div>
-        <label for="loan-type" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-type" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Loan Type
         </label>
         <Select
@@ -148,7 +148,7 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Currency */}
       <div>
-        <label for="loan-currency" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-currency" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Currency
         </label>
         <Select
@@ -166,10 +166,10 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Principal */}
       <div>
-        <label for="loan-principal" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-principal" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Principal
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="loan-principal"
           type="number"
           min="0"
@@ -182,10 +182,10 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Interest Rate */}
       <div>
-        <label for="loan-interest-rate" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-interest-rate" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Interest Rate (%)
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="loan-interest-rate"
           type="number"
           min="0"
@@ -198,10 +198,10 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Term Months */}
       <div>
-        <label for="loan-term-months" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-term-months" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Term (months)
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="loan-term-months"
           type="number"
           min="1"
@@ -214,10 +214,10 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* EMI Amount */}
       <div>
-        <label for="loan-emi-amount" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-emi-amount" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           EMI Amount
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="loan-emi-amount"
           type="number"
           min="0"
@@ -230,10 +230,10 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Outstanding Balance */}
       <div>
-        <label for="loan-outstanding-balance" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-outstanding-balance" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Outstanding Balance
         </label>
-        <Input
+        <Input class="font-mono tabular"
           id="loan-outstanding-balance"
           type="number"
           min="0"
@@ -246,7 +246,7 @@ export function LoanForm(props: LoanFormProps) {
 
       {/* Start Date */}
       <div>
-        <label for="loan-start-date" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">
+        <label for="loan-start-date" class="font-mono text-[11px] font-medium text-muted uppercase tracking-[0.1em] mb-1.5 block">
           Start Date
         </label>
         <Input
@@ -258,7 +258,7 @@ export function LoanForm(props: LoanFormProps) {
       </div>
 
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p class="text-neg text-[13px]">{error()}</p>
       </Show>
 
       <Button type="submit" class="w-full mt-2" disabled={submitting()}>

@@ -1,22 +1,25 @@
 #!/usr/bin/env node
-// Enforces: text-primary must not be paired with a light/ambiguous background.
-// A line containing text-primary is OK when:
-//   - it has no bg-* class at all (the parent element provides the dark surface), OR
-//   - every bg-* class on the line is in ALLOWED_BG.
+// Enforces the Luxe colour rules in src/:
+//   1. No legacy token names (primary, primary-press, accent, surface-hover) in
+//      utility classes or var(--color-*) references. Use signal, btn, neg, raised.
+//   2. No raw Tailwind palette colours (yellow-400, zinc-800, …).
+//   3. No arbitrary hex colours in classes (bg-[#123456]).
+// Inline styles that carry user data (category colours) are allowed.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const ALLOWED_BG = [
-  "bg-bg",
-  "bg-surface",
-  "bg-surface-hover",
-  "bg-text",
-  "bg-primary",
-  "bg-accent",
-];
 const ROOTS = ["src"];
 const EXTS = new Set([".ts", ".tsx", ".html"]);
-const BG_REGEX = /\bbg-[a-z0-9-]+(?:\/\d+)?\b/g;
+const UTIL = "(?:text|bg|border|ring|ring-offset|outline|fill|stroke|from|via|to|divide|placeholder|decoration|caret|shadow)";
+const RULES = [
+  { name: "legacy token", re: new RegExp(`\\b${UTIL}-(?:primary-press|primary|accent|surface-hover)\\b`, "g") },
+  { name: "legacy token var", re: /var\(--color-(?:primary-press|primary|accent|surface-hover)\)/g },
+  {
+    name: "raw palette colour",
+    re: new RegExp(`\\b${UTIL}-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\\d{2,3}\\b`, "g"),
+  },
+  { name: "hex colour in class", re: new RegExp(`\\b${UTIL}-\\[#[0-9a-fA-F]{3,8}\\]`, "g") },
+];
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -27,30 +30,18 @@ function walk(dir, out = []) {
   return out;
 }
 
-const files = ROOTS.flatMap((r) => walk(join(process.cwd(), r)));
+const files = ROOTS.flatMap((r) => walk(join(process.cwd(), r))).filter((f) => !f.includes("__tests__"));
 let violations = 0;
-let usageCount = 0;
 for (const f of files) {
   const text = readFileSync(f, "utf8");
   text.split("\n").forEach((line, i) => {
-    if (!/text-primary/.test(line)) return;
-    usageCount++;
-    const bgMatches = line.match(BG_REGEX) ?? [];
-    if (bgMatches.length === 0) return;
-    const bad = bgMatches.filter((bg) => {
-      const base = bg.split("/")[0];
-      return !ALLOWED_BG.includes(base);
-    });
-    if (bad.length > 0) {
-      console.error(
-        `${f}:${i + 1}: text-primary paired with disallowed background(s): ${bad.join(", ")}`
-      );
-      console.error(`  ${line.trim()}`);
+    for (const rule of RULES) {
+      const hits = line.match(rule.re);
+      if (!hits) continue;
+      console.error(`${f}:${i + 1}: ${rule.name}: ${[...new Set(hits)].join(", ")}`);
       violations++;
     }
   });
 }
-console.error(
-  `lint:colors — ${files.length} files, ${usageCount} text-primary usages, ${violations} violation(s).`
-);
+console.error(`lint:colors — ${files.length} files, ${violations} violation(s).`);
 if (violations > 0) process.exit(1);

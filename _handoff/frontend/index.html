@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Ledgerify — personal finance tracker for accounts, budgets, investments, loans and more" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0C0B09" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F0E7" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ledgerify" />
+    <meta property="og:title" content="Ledgerify" />
+    <meta property="og:description" content="Track your finances — accounts, budgets, investments, loans and more" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Ledgerify</title>
+    <script>
+      // Apply saved theme before paint to avoid a flash.
+      (function () {
+        try {
+          var t = localStorage.getItem("ledgerify.theme");
+          if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body style="margin:0">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx" data-cfasync="false"></script>
+  </body>
+</html>

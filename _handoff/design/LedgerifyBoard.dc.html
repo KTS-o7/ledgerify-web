@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.468.0/font/lucide.css">
+<style>
+@keyframes lgAurora { 0% { transform: translate3d(-4%,-2%,0) scale(1); } 50% { transform: translate3d(3%,2%,0) scale(1.08); } 100% { transform: translate3d(-2%,4%,0) scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</helmet>
+<div style="display:grid;grid-template-columns:1440px 630px;gap:40px;font-family:'Instrument Sans',system-ui,sans-serif;color:var(--tx);-webkit-font-smoothing:antialiased">
+
+  <!-- ============ DESKTOP ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Desktop Overview">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">01 — DESKTOP · OVERVIEW · press ⌘K inside</div>
+    <div onMouseEnter="{{ setHot }}" onMouseLeave="{{ clearHot }}" style="position:relative;width:1440px;height:920px;border-radius:16px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh);display:grid;grid-template-columns:240px 1fr;grid-template-rows:100%">
+      {{ aurora }}
+      <!-- Rail -->
+      <aside style="position:relative;display:flex;flex-direction:column;border-right:1px solid var(--ln);background:var(--rail);padding:20px 14px 14px;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 20px/1 'Instrument Serif',serif">L</div>
+          <span style="font:400 24px/1 'Instrument Serif',serif;letter-spacing:-.01em">Ledgerify</span>
+        </div>
+        <button onClick="{{ openPal }}" style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;border:1px solid var(--ln2);background:var(--s1);color:var(--mu);font:400 13px/1 'Instrument Sans',sans-serif;cursor:pointer;text-align:left" style-hover="border-color:var(--ac)">
+          <i class="icon-search" style="font-size:15px"></i>
+          <span style="flex:1">Search or jump to…</span>
+          <span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;background:var(--s2);color:var(--mu)">⌘K</span>
+        </button>
+        <nav style="display:flex;flex-direction:column;gap:16px;flex:1;overflow:hidden">
+          <sc-for list="{{ railGroups }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <div style="font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding:0 10px 7px">{{ g.title }}</div>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:10px;height:30px;padding:0 10px;border-radius:8px;background:{{ it.bg }};color:{{ it.col }};font:500 13.5px/1 'Instrument Sans',sans-serif;cursor:pointer" style-hover="background:var(--s1);color:var(--tx)">
+                  <i class="{{ it.ic }}" style="font-size:15px;width:16px"></i>
+                  <span style="flex:1">{{ it.label }}</span>
+                  <span style="font:400 10.5px/1 'Geist Mono',monospace;color:var(--mu2)">{{ it.kb }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </nav>
+        <div style="display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--ln);padding:12px 6px 0">
+          <div style="display:flex;align-items:center;gap:8px;font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--pos)"></span>
+            <span style="flex:1">Synced · available offline</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 12px/1 'Instrument Sans',sans-serif">SK</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font:500 13px/1 'Instrument Sans',sans-serif">Shenthar K</span><span style="font:400 11.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">INR · 3 currencies</span></div>
+            <i class="icon-settings" style="font-size:16px;color:var(--mu)"></i>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main style="position:relative;display:flex;flex-direction:column;min-width:0;min-height:0">
+        <header style="display:flex;align-items:center;gap:16px;height:68px;padding:0 28px;border-bottom:1px solid var(--ln)">
+          <h1 style="margin:0;font:400 30px/1 'Instrument Serif',serif;letter-spacing:-.01em">Overview</h1>
+          <div style="display:flex;align-items:center;gap:2px;margin-left:8px;height:32px;padding:0 4px;border-radius:9px;border:1px solid var(--ln)">
+            <i class="icon-chevron-left" style="font-size:15px;color:var(--mu);padding:0 6px;cursor:pointer"></i>
+            <span style="font:500 13px/1 'Geist Mono',monospace;min-width:72px;text-align:center">Oct 2026</span>
+            <i class="icon-chevron-right" style="font-size:15px;color:var(--mu2);padding:0 6px"></i>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:8px;font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">
+            <span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;border:1px solid var(--ln2)">G</span><span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;border:1px solid var(--ln2)">A</span><span>activity</span>
+          </div>
+          <button style="display:flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 14px;border-radius:10px;border:none;background:var(--btn);color:var(--btnx);font:600 13.5px/1 'Instrument Sans',sans-serif;cursor:pointer">
+            <i class="icon-plus" style="font-size:15px"></i>New transaction
+            <span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:5px;background:rgba(127,127,127,.18)">N</span>
+          </button>
+        </header>
+
+        <div style="flex:1;display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);grid-auto-rows:min-content;gap:16px;padding:20px 28px 24px;overflow:hidden">
+          <!-- alerts -->
+          <div style="grid-column:1 / -1;display:flex;gap:8px">
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:var(--s1);border:1px solid var(--ln);font:500 12.5px/1 'Instrument Sans',sans-serif">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ a.col }}"></span>
+                <span>{{ a.text }}</span>
+                <span style="color:var(--mu)">{{ a.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Net worth -->
+          <section style="position:relative;display:flex;flex-direction:column;gap:6px;padding:22px 24px 16px;border-radius:18px;background:var(--s1);border:1px solid var(--ln);overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Net worth</span>
+              <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:var(--bg2)">
+                <span style="font:500 11.5px/1 'Geist Mono',monospace;padding:5px 8px;color:var(--mu)">3M</span>
+                <span style="font:500 11.5px/1 'Geist Mono',monospace;padding:5px 8px;border-radius:6px;background:var(--s2);color:var(--tx)">1Y</span>
+                <span style="font:500 11.5px/1 'Geist Mono',monospace;padding:5px 8px;color:var(--mu)">ALL</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:16px">
+              <span style="font:500 46px/1.1 'Geist Mono',monospace;letter-spacing:-.04em;font-variant-numeric:tabular-nums"><span style="color:var(--mu);font-weight:400">₹</span>{{ nwText }}</span>
+              <span style="font:500 13px/1 'Geist Mono',monospace;color:var(--pos)">+₹1,84,300 · 3.9%</span>
+            </div>
+            <svg width="100%" height="150" viewBox="0 0 640 150" preserveAspectRatio="none" style="display:block;margin-top:8px">
+              <defs><linearGradient id="nwg{{ uid }}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ac)" stop-opacity=".22"></stop><stop offset="1" stop-color="var(--ac)" stop-opacity="0"></stop></linearGradient></defs>
+              <path d="{{ chartD.area }}" fill="url(#nwg{{ uid }})"></path>
+              <path d="{{ chartD.line }}" fill="none" stroke="var(--ac)" stroke-width="1.6" vector-effect="non-scaling-stroke"></path>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">
+              <sc-for list="{{ months }}" as="m" hint-placeholder-count="12"><span>{{ m }}</span></sc-for>
+            </div>
+          </section>
+
+          <!-- Cashflow -->
+          <section style="display:flex;flex-direction:column;gap:18px;padding:22px 24px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">October cashflow</span>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+              <div style="display:flex;flex-direction:column;gap:8px"><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">In</span><span style="font:500 21px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:var(--pos)">₹2,84,600</span></div>
+              <div style="display:flex;flex-direction:column;gap:8px"><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Out</span><span style="font:500 21px/1 'Geist Mono',monospace;letter-spacing:-.03em">₹78,400</span></div>
+              <div style="display:flex;flex-direction:column;gap:8px"><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Saved</span><span style="font:500 21px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:var(--ac)">72%</span></div>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;height:118px;padding-top:6px;border-top:1px solid var(--ln)">
+              <sc-for list="{{ flow }}" as="f" hint-placeholder-count="6">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px">
+                  <div style="display:flex;align-items:flex-end;gap:3px;height:90px">
+                    <div style="width:12px;height:{{ f.ih }};border-radius:3px 3px 1px 1px;background:var(--pos);opacity:{{ f.op }}"></div>
+                    <div style="width:12px;height:{{ f.eh }};border-radius:3px 3px 1px 1px;background:var(--neg);opacity:{{ f.op }}"></div>
+                  </div>
+                  <span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">{{ f.m }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <!-- Activity table -->
+          <section style="grid-row:span 2;display:flex;flex-direction:column;border-radius:18px;background:var(--s1);border:1px solid var(--ln);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:16px 20px 12px">
+              <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);flex:1">Recent activity</span>
+              <span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">J / K to move · E edit</span>
+              <span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--ac);cursor:pointer">View all</span>
+            </div>
+            <div style="display:grid;grid-template-columns:64px minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 120px;gap:12px;padding:8px 20px;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mu)">
+              <span>Date</span><span>Merchant</span><span>Category</span><span>Account</span><span style="text-align:right">Amount</span>
+            </div>
+            <sc-for list="{{ txns }}" as="t" hint-placeholder-count="9">
+              <div style="display:grid;grid-template-columns:64px minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 120px;gap:12px;align-items:center;height:44px;padding:0 20px;border-bottom:1px solid var(--ln);background:{{ t.sel }};font:400 13.5px/1 'Instrument Sans',sans-serif" style-hover="background:var(--s2)">
+                <span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu)">{{ t.d }}</span>
+                <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span><i class="{{ t.rec }}" style="font-size:12px;color:var(--ac)"></i></span>
+                <span style="display:flex;align-items:center;gap:7px;color:var(--mu)"><span style="width:7px;height:7px;border-radius:2px;background:{{ t.cc }}"></span>{{ t.cat }}</span>
+                <span style="color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.acct }}</span>
+                <span style="text-align:right;font:500 13px/1 'Geist Mono',monospace;color:{{ t.col }}">{{ t.amt }}</span>
+              </div>
+            </sc-for>
+          </section>
+
+          <!-- Budgets -->
+          <section style="display:flex;flex-direction:column;gap:14px;padding:18px 22px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Budgets</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu)">₹45,630 left · 9 days</span></div>
+            <sc-for list="{{ budgetsTop }}" as="b" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;justify-content:space-between;font:500 13px/1 'Instrument Sans',sans-serif"><span>{{ b.name }}</span><span style="font:400 12px/1 'Geist Mono',monospace;color:{{ b.tcol }}">{{ b.spent }} / {{ b.limit }}</span></div>
+                <div style="height:5px;border-radius:3px;background:var(--bg2);overflow:hidden"><div style="height:100%;width:{{ b.w }};border-radius:3px;background:{{ b.col }}"></div></div>
+              </div>
+            </sc-for>
+          </section>
+
+          <!-- Accounts -->
+          <section style="display:flex;flex-direction:column;padding:14px 8px 8px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 14px 8px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Accounts</span><i class="icon-plus" style="font-size:15px;color:var(--mu)"></i></div>
+            <sc-for list="{{ accountsTop }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:12px;height:42px;padding:0 14px;border-radius:10px" style-hover="background:var(--s2)">
+                <i class="{{ a.ic }}" style="font-size:16px;color:var(--mu);width:18px"></i>
+                <span style="flex:1;font:500 13.5px/1 'Instrument Sans',sans-serif">{{ a.name }}</span>
+                <span style="font:500 10.5px/1 'Geist Mono',monospace;padding:3px 5px;border-radius:4px;background:var(--bg2);color:var(--mu)">{{ a.cur }}</span>
+                <span style="min-width:110px;text-align:right;font:500 13px/1 'Geist Mono',monospace;color:{{ a.col }}">{{ a.bal }}</span>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+
+        <sc-if value="{{ pal }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closePal }}" style="position:absolute;inset:0;background:var(--scrim);backdrop-filter:blur(3px);display:flex;justify-content:center;padding-top:110px;z-index:5">
+            <div onClick="{{ stop }}" style="width:600px;height:fit-content;border-radius:16px;background:var(--s1);border:1px solid var(--ln2);box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:12px;height:56px;padding:0 18px;border-bottom:1px solid var(--ln)">
+                <i class="icon-search" style="font-size:17px;color:var(--mu)"></i>
+                <input autofocus="{{ true }}" value="{{ q }}" onInput="{{ setQ }}" placeholder="Type a command, account or merchant…" style="flex:1;border:none;outline:none;background:transparent;color:var(--tx);font:400 16px/1 'Instrument Sans',sans-serif">
+                <span style="font:500 11px/1 'Geist Mono',monospace;padding:3px 6px;border-radius:5px;border:1px solid var(--ln2);color:var(--mu)">ESC</span>
+              </div>
+              <div style="display:flex;flex-direction:column;padding:8px">
+                <sc-for list="{{ palItems }}" as="p" hint-placeholder-count="6">
+                  <div style="display:flex;flex-direction:column">
+                    <sc-if value="{{ p.head }}" hint-placeholder-val="{{ false }}"><div style="font:500 10.5px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding:12px 12px 6px">{{ p.head }}</div></sc-if>
+                    <div style="display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:9px;background:{{ p.bg }};font:500 14px/1 'Instrument Sans',sans-serif" style-hover="background:var(--s2)">
+                      <i class="{{ p.ic }}" style="font-size:16px;color:var(--mu);width:18px"></i>
+                      <span style="flex:1">{{ p.label }}</span>
+                      <span style="font:400 11.5px/1 'Geist Mono',monospace;color:var(--mu)">{{ p.kb }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:16px;padding:10px 18px;border-top:1px solid var(--ln);font:400 11.5px/1 'Geist Mono',monospace;color:var(--mu)"><span>↑↓ navigate</span><span>↵ open</span><span>⌘↵ open in split</span></div>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ SYSTEM PANEL ============ -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">00 — COLOR + TYPE SYSTEM</div>
+    <div style="display:flex;flex-direction:column;gap:28px;height:920px;box-sizing:border-box;padding:36px;border-radius:16px;background:var(--bg);border:1px solid var(--ln2)">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font:400 44px/1 'Instrument Serif',serif;letter-spacing:-.01em">{{ boardName }}</span>
+        <p style="margin:0;font:400 14.5px/1.55 'Instrument Sans',sans-serif;color:var(--mu);text-wrap:pretty">{{ boardBlurb }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Surfaces · one warm hue, stepped in lightness</span>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+          <sc-for list="{{ swSurf }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:64px;border-radius:10px;background:{{ s.v }};border:1px solid var(--ln2)"></div><span style="font:500 12px/1 'Instrument Sans',sans-serif">{{ s.n }}</span><span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">{{ s.r }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Signals · equal lightness + chroma, hue carries meaning</span>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+          <sc-for list="{{ swSig }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:6px"><div style="height:64px;border-radius:10px;background:{{ s.v }}"></div><span style="font:500 12px/1 'Instrument Sans',sans-serif">{{ s.n }}</span><span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">{{ s.r }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Category ramp · 6 hues, 60° apart</span>
+        <div style="display:flex;height:28px;border-radius:8px;overflow:hidden">
+          <div style="flex:1;background:var(--c1)"></div><div style="flex:1;background:var(--c2)"></div><div style="flex:1;background:var(--c3)"></div><div style="flex:1;background:var(--c4)"></div><div style="flex:1;background:var(--c5)"></div><div style="flex:1;background:var(--c6)"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;padding-top:20px;border-top:1px solid var(--ln)">
+        <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Type</span>
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:400 40px/1 'Instrument Serif',serif">Page titles</span><span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">Instrument Serif 30–44</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:500 34px/1 'Geist Mono',monospace;letter-spacing:-.04em">₹48,62,380</span><span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">Geist Mono · tabular</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:500 16px/1.4 'Instrument Sans',sans-serif">Interface text for labels, rows and controls</span><span style="font:400 11px/1 'Geist Mono',monospace;color:var(--mu)">Instrument Sans 13–16</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;font:400 13px/1.55 'Instrument Sans',sans-serif;color:var(--mu)">
+        <span>· Gold is reserved for net worth, the primary action and focus. Never decorative.</span>
+        <span>· Green / coral mark money in and out only. Amounts are always mono so columns align.</span>
+        <span>· Warning amber appears at 90% of a budget.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div style="grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,390px);gap:40px">
+
+    <!-- 02 LOGIN -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Login">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">02 — SIGN IN</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh);display:flex;flex-direction:column">
+        {{ aurora }}
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;padding:0 28px 40px">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+            <div style="width:52px;height:52px;border-radius:15px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 34px/1 'Instrument Serif',serif">L</div>
+            <span style="font:400 54px/1 'Instrument Serif',serif;letter-spacing:-.02em">Ledgerify</span>
+            <p style="margin:0;font:400 16px/1.5 'Instrument Sans',sans-serif;color:var(--mu);max-width:280px">Every account, currency and goal in one quiet ledger.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:7px"><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Email</span><div style="display:flex;align-items:center;height:52px;padding:0 16px;border-radius:14px;background:var(--s1);border:1px solid var(--ac);font:400 16px/1 'Instrument Sans',sans-serif">shenthar@hey.com</div></div>
+            <div style="display:flex;flex-direction:column;gap:7px"><span style="font:500 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Password</span><div style="display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px;border-radius:14px;background:var(--s1);border:1px solid var(--ln2);font:400 16px/1 'Instrument Sans',sans-serif;letter-spacing:.2em"><span>••••••••••</span><i class="icon-eye-off" style="font-size:17px;color:var(--mu);letter-spacing:0"></i></div></div>
+            <button style="height:54px;margin-top:8px;border:none;border-radius:14px;background:var(--btn);color:var(--btnx);font:600 16px/1 'Instrument Sans',sans-serif">Sign in</button>
+            <button style="display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:14px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:500 15px/1 'Instrument Sans',sans-serif"><i class="icon-fingerprint" style="font-size:18px"></i>Use passkey</button>
+            <span style="text-align:center;font:400 14px/1 'Instrument Sans',sans-serif;color:var(--mu);margin-top:10px">New here? <span style="color:var(--ac);font-weight:500">Create an account</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 HOME -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Home">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">03 — HOME</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        {{ aurora }}
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="position:relative;display:flex;flex-direction:column;gap:18px;padding:6px 20px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font:400 28px/1 'Instrument Serif',serif">Ledgerify</span>
+            <div style="display:flex;gap:8px"><div style="width:40px;height:40px;border-radius:50%;border:1px solid var(--ln2);display:flex;align-items:center;justify-content:center"><i class="icon-bell" style="font-size:17px"></i></div><div style="width:40px;height:40px;border-radius:50%;background:var(--acs);color:var(--ac);display:flex;align-items:center;justify-content:center;font:600 13px/1 'Instrument Sans',sans-serif">SK</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:6px">
+            <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Net worth</span>
+            <span style="font:500 38px/1 'Geist Mono',monospace;letter-spacing:-.05em;font-variant-numeric:tabular-nums"><span style="color:var(--mu);font-weight:400">₹</span>{{ nwText }}</span>
+            <span style="font:500 13px/1 'Geist Mono',monospace;color:var(--pos)">+₹1,84,300 this month</span>
+            <svg width="350" height="64" viewBox="0 0 350 64" style="display:block;margin-top:4px"><path d="{{ chartM.area }}" fill="var(--acs)"></path><path d="{{ chartM.line }}" fill="none" stroke="var(--ac)" stroke-width="1.6"></path></svg>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:14px 14px"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">In</span><span style="font:500 15px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:var(--pos)">₹2.85L</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:14px 14px;border-left:1px solid var(--ln)"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Out</span><span style="font:500 15px/1 'Geist Mono',monospace;letter-spacing:-.03em">₹78.4K</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:14px 14px;border-left:1px solid var(--ln)"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Saved</span><span style="font:500 15px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:var(--ac)">72%</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--s1);border:1px solid var(--ln)">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--warn)"></span>
+            <span style="flex:1;font:500 14px/1.3 'Instrument Sans',sans-serif">Dining is at 98% · ₹150 left</span>
+            <span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu)">+2</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Accounts</span><span style="font:500 13px/1 'Instrument Sans',sans-serif;color:var(--ac)">All 6</span></div>
+            <div style="display:flex;gap:10px;margin-right:-20px">
+              <sc-for list="{{ accountsCards }}" as="a" hint-placeholder-count="3">
+                <div style="flex:0 0 136px;display:flex;flex-direction:column;gap:14px;padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><i class="{{ a.ic }}" style="font-size:16px;color:var(--mu)"></i><span style="font:500 10.5px/1 'Geist Mono',monospace;color:var(--mu)">{{ a.cur }}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font:500 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">{{ a.short }}</span><span style="font:500 15px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:{{ a.col }}">{{ a.bal }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;padding-bottom:4px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Recent</span></div>
+            <sc-for list="{{ txnsM3 }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;height:58px;border-bottom:1px solid var(--ln)">
+                <div style="width:38px;height:38px;border-radius:12px;background:var(--s1);border:1px solid var(--ln);display:flex;align-items:center;justify-content:center"><i class="{{ t.ic }}" style="font-size:16px;color:{{ t.cc }}"></i></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font:500 15px/1 'Instrument Sans',sans-serif">{{ t.name }}</span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">{{ t.cat }} · {{ t.d }}</span></div>
+                <span style="font:500 14px/1 'Geist Mono',monospace;color:{{ t.col }}">{{ t.amt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.home }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 04 ACTIVITY -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Activity">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">04 — ACTIVITY</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:6px 20px 12px;border-bottom:1px solid var(--ln)">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:400 34px/1 'Instrument Serif',serif">Activity</span><span style="font:500 12.5px/1 'Geist Mono',monospace;color:var(--mu)">Oct · 48 entries</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-radius:12px;background:var(--s1);border:1px solid var(--ln);color:var(--mu);font:400 15px/1 'Instrument Sans',sans-serif"><i class="icon-search" style="font-size:16px"></i><span style="flex:1">Merchant, category, account</span><i class="icon-sliders-horizontal" style="font-size:16px;color:var(--tx)"></i></div>
+          <div style="display:flex;gap:6px">
+            <span style="height:32px;padding:0 14px;display:flex;align-items:center;border-radius:999px;background:var(--tx);color:var(--bg);font:600 13px/1 'Instrument Sans',sans-serif">All</span>
+            <span style="height:32px;padding:0 14px;display:flex;align-items:center;border-radius:999px;border:1px solid var(--ln2);color:var(--mu);font:500 13px/1 'Instrument Sans',sans-serif">Income</span>
+            <span style="height:32px;padding:0 14px;display:flex;align-items:center;border-radius:999px;border:1px solid var(--ln2);color:var(--mu);font:500 13px/1 'Instrument Sans',sans-serif">Expense</span>
+            <span style="height:32px;padding:0 14px;display:flex;align-items:center;border-radius:999px;border:1px solid var(--ln2);color:var(--mu);font:500 13px/1 'Instrument Sans',sans-serif">Transfer</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;padding:0 20px">
+          <sc-for list="{{ txnGroups }}" as="g" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;justify-content:space-between;padding:16px 0 4px;font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)"><span>{{ g.label }}</span><span>{{ g.net }}</span></div>
+              <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:12px;height:60px;border-bottom:1px solid var(--ln)">
+                  <div style="width:38px;height:38px;border-radius:12px;background:var(--s1);border:1px solid var(--ln);display:flex;align-items:center;justify-content:center"><i class="{{ t.ic }}" style="font-size:16px;color:{{ t.cc }}"></i></div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0"><span style="display:flex;align-items:center;gap:6px;font:500 15px/1 'Instrument Sans',sans-serif">{{ t.name }}<i class="{{ t.rec }}" style="font-size:11px;color:var(--ac)"></i></span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">{{ t.cat }} · {{ t.acct }}</span></div>
+                  <span style="font:500 14px/1 'Geist Mono',monospace;color:{{ t.col }}">{{ t.amt }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.activity }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 05 ADD SHEET -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Add transaction">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">05 — QUICK ADD SHEET</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg2);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif;color:var(--mu)"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;top:62px;border-radius:28px 28px 0 0;background:var(--s1);border-top:1px solid var(--ln2);display:flex;flex-direction:column;padding:10px 20px 30px;gap:16px">
+          <div style="width:40px;height:5px;border-radius:3px;background:var(--ln2);align-self:center"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><i class="icon-x" style="font-size:20px;color:var(--mu)"></i><span style="font:600 16px/1 'Instrument Sans',sans-serif">New transaction</span><span style="width:20px"></span></div>
+          <div style="display:flex;padding:4px;border-radius:12px;background:var(--bg2)">
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--s2);font:600 13.5px/1 'Instrument Sans',sans-serif;color:var(--neg)">Expense</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Income</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Transfer</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0 4px">
+            <div style="display:flex;align-items:baseline;gap:6px"><span style="font:400 30px/1 'Geist Mono',monospace;color:var(--mu)">₹</span><span style="font:500 60px/1 'Geist Mono',monospace;letter-spacing:-.05em">420</span><span style="width:2px;height:48px;background:var(--ac);align-self:center"></span></div>
+            <span style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--ln2);font:500 12px/1 'Geist Mono',monospace;color:var(--mu)">INR<i class="icon-chevron-down" style="font-size:12px"></i></span>
+          </div>
+          <div style="display:flex;flex-direction:column;border-radius:14px;border:1px solid var(--ln);background:var(--bg)">
+            <div style="display:flex;align-items:center;gap:12px;height:48px;padding:0 14px;border-bottom:1px solid var(--ln);font:500 14.5px/1 'Instrument Sans',sans-serif"><i class="icon-pen-line" style="font-size:16px;color:var(--mu)"></i><span style="flex:1">Blue Tokai Coffee</span><span style="display:flex;align-items:center;gap:5px;font:500 11.5px/1 'Geist Mono',monospace;color:var(--ac)"><i class="icon-sparkles" style="font-size:12px"></i>Dining</span></div>
+            <div style="display:flex;align-items:center;gap:12px;height:48px;padding:0 14px;border-bottom:1px solid var(--ln);font:500 14.5px/1 'Instrument Sans',sans-serif"><i class="icon-landmark" style="font-size:16px;color:var(--mu)"></i><span style="flex:1">HDFC Savings</span><i class="icon-chevron-right" style="font-size:15px;color:var(--mu)"></i></div>
+            <div style="display:flex;align-items:center;gap:12px;height:48px;padding:0 14px;font:500 14.5px/1 'Instrument Sans',sans-serif"><i class="icon-calendar" style="font-size:16px;color:var(--mu)"></i><span style="flex:1">Today, 22 Oct</span><i class="icon-chevron-right" style="font-size:15px;color:var(--mu)"></i></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1">
+            <sc-for list="{{ keypad }}" as="k" hint-placeholder-count="12">
+              <div style="display:flex;align-items:center;justify-content:center;border-radius:12px;font:500 24px/1 'Geist Mono',monospace" style-active="background:var(--s2)">{{ k }}</div>
+            </sc-for>
+          </div>
+          <button style="height:54px;border:none;border-radius:14px;background:var(--btn);color:var(--btnx);font:600 16px/1 'Instrument Sans',sans-serif">Save expense</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 ACCOUNTS -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Accounts">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">06 — ACCOUNTS</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:18px;padding:6px 20px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><i class="icon-chevron-left" style="font-size:22px;color:var(--mu)"></i><span style="font:400 34px/1 'Instrument Serif',serif">Accounts</span></div><div style="width:40px;height:40px;border-radius:50%;border:1px solid var(--ln2);display:flex;align-items:center;justify-content:center"><i class="icon-plus" style="font-size:18px"></i></div></div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+            <div style="display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:14px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 10.5px/1 'Geist Mono',monospace;color:var(--mu)">INR</span><span style="font:500 14px/1 'Geist Mono',monospace;letter-spacing:-.03em">₹16.9L</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:14px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 10.5px/1 'Geist Mono',monospace;color:var(--mu)">USD</span><span style="font:500 14px/1 'Geist Mono',monospace;letter-spacing:-.03em">$6,240</span></div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding:12px;border-radius:14px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 10.5px/1 'Geist Mono',monospace;color:var(--mu)">EUR</span><span style="font:500 14px/1 'Geist Mono',monospace;letter-spacing:-.03em">€1,180</span></div>
+          </div>
+          <sc-for list="{{ accountGroups }}" as="g" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);padding-bottom:6px">{{ g.label }}</span>
+              <div style="display:flex;flex-direction:column;border-radius:16px;background:var(--s1);border:1px solid var(--ln)">
+                <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="2">
+                  <div style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-bottom:1px solid var(--ln)">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <i class="{{ a.ic }}" style="font-size:17px;color:var(--mu);width:18px"></i>
+                      <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:500 15px/1 'Instrument Sans',sans-serif">{{ a.name }}</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">{{ a.sub }}</span></div>
+                      <span style="font:500 14.5px/1 'Geist Mono',monospace;color:{{ a.col }}">{{ a.bal }}</span>
+                    </div>
+                    <sc-if value="{{ a.util }}" hint-placeholder-val="{{ false }}"><div style="margin-left:30px;height:4px;border-radius:2px;background:var(--bg2)"><div style="width:{{ a.util }};height:100%;border-radius:2px;background:var(--neg)"></div></div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.home }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 07 ANALYTICS -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Analytics">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">07 — INSIGHTS · SPENDING</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:18px;padding:6px 20px 0">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:400 34px/1 'Instrument Serif',serif">Insights</span><span style="display:flex;align-items:center;gap:8px;font:500 13px/1 'Geist Mono',monospace"><i class="icon-chevron-left" style="color:var(--mu)"></i>Oct<i class="icon-chevron-right" style="color:var(--mu2)"></i></span></div>
+          <div style="display:flex;padding:4px;border-radius:12px;background:var(--s1);border:1px solid var(--ln)">
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--s2);font:600 13.5px/1 'Instrument Sans',sans-serif">Spending</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Income</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Budgets</span>
+          </div>
+          <div style="position:relative;display:flex;justify-content:center;padding:4px 0">
+            <svg width="232" height="232" viewBox="0 0 232 232" style="transform:rotate(-90deg)">
+              <sc-for list="{{ donut }}" as="s" hint-placeholder-count="6">
+                <circle cx="116" cy="116" r="96" fill="none" stroke="{{ s.c }}" stroke-width="20" stroke-dasharray="{{ s.da }}" stroke-dashoffset="{{ s.off }}"></circle>
+              </sc-for>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">Spent</span><span style="font:500 28px/1 'Geist Mono',monospace;letter-spacing:-.04em">₹78,400</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--pos)">−8% vs Sep</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:10px;height:10px;border-radius:3px;background:{{ c.c }}"></span>
+                <span style="flex:1;font:500 14.5px/1 'Instrument Sans',sans-serif">{{ c.name }}</span>
+                <span style="font:400 12px/1 'Geist Mono',monospace;color:var(--mu);width:36px;text-align:right">{{ c.pct }}</span>
+                <span style="font:500 14px/1 'Geist Mono',monospace;width:84px;text-align:right">{{ c.amt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.insights }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 08 BUDGETS -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Budgets">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">08 — INSIGHTS · BUDGETS</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:18px;padding:6px 20px 0">
+          <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:400 34px/1 'Instrument Serif',serif">Budgets</span><i class="icon-plus" style="font-size:20px"></i></div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:500 30px/1 'Geist Mono',monospace;letter-spacing:-.04em">₹45,630</span><span style="font:500 12.5px/1 'Geist Mono',monospace;color:var(--mu)">9 days left</span></div>
+            <span style="font:400 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">remaining of ₹63,500 across 6 budgets</span>
+            <div style="display:flex;gap:3px;height:8px;margin-top:4px"><div style="flex:56;border-radius:4px;background:var(--ac)"></div><div style="flex:44;border-radius:4px;background:var(--bg2)"></div></div>
+            <span style="font:400 12.5px/1.4 'Instrument Sans',sans-serif;color:var(--mu)">On pace: you're spending ₹1,290/day against a ₹2,120/day allowance.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <sc-for list="{{ budgets }}" as="b" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:9px;padding:14px 16px;border-bottom:1px solid var(--ln)">
+                <div style="display:flex;align-items:center;gap:10px"><span style="width:8px;height:8px;border-radius:2px;background:{{ b.cc }}"></span><span style="flex:1;font:500 15px/1 'Instrument Sans',sans-serif">{{ b.name }}</span><span style="font:500 13px/1 'Geist Mono',monospace;color:{{ b.tcol }}">{{ b.left }}</span></div>
+                <div style="height:5px;border-radius:3px;background:var(--bg2)"><div style="height:100%;width:{{ b.w }};border-radius:3px;background:{{ b.col }}"></div></div>
+                <span style="font:400 11.5px/1 'Geist Mono',monospace;color:var(--mu)">{{ b.spent }} of {{ b.limit }} · {{ b.pct }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.insights }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 09 NET WORTH -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Net worth">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">09 — WEALTH · NET WORTH</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        {{ aurora }}
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="position:relative;display:flex;flex-direction:column;gap:18px;padding:6px 20px 0">
+          <div style="display:flex;padding:4px;border-radius:12px;background:var(--s1);border:1px solid var(--ln)">
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--s2);font:600 13.5px/1 'Instrument Sans',sans-serif">Net worth</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Holdings</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Loans</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font:500 38px/1 'Geist Mono',monospace;letter-spacing:-.05em;font-variant-numeric:tabular-nums"><span style="color:var(--mu);font-weight:400">₹</span>{{ nwText }}</span>
+            <span style="font:500 13px/1 'Geist Mono',monospace;color:var(--pos)">+₹9,12,400 · 23.1% in 1Y</span>
+          </div>
+          <svg width="350" height="170" viewBox="0 0 350 170" style="display:block"><path d="{{ chartN.area }}" fill="var(--acs)"></path><path d="{{ chartN.line }}" fill="none" stroke="var(--ac)" stroke-width="1.8"></path><circle cx="{{ chartN.ex }}" cy="{{ chartN.ey }}" r="4" fill="var(--ac)"></circle></svg>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu);padding:7px 10px">1M</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu);padding:7px 10px">6M</span><span style="font:500 12px/1 'Geist Mono',monospace;padding:7px 10px;border-radius:8px;background:var(--s2)">1Y</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu);padding:7px 10px">3Y</span><span style="font:500 12px/1 'Geist Mono',monospace;color:var(--mu);padding:7px 10px">ALL</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:var(--s1);border:1px solid var(--ln)">
+            <div style="display:flex;gap:3px;height:10px">
+              <div style="flex:1042;border-radius:3px;background:var(--c4)"></div><div style="flex:3180;border-radius:3px;background:var(--c1)"></div><div style="flex:948;border-radius:3px;background:var(--c3)"></div><div style="flex:308;border-radius:3px;background:var(--neg)"></div>
+            </div>
+            <sc-for list="{{ nwParts }}" as="p" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:8px;height:8px;border-radius:2px;background:{{ p.c }}"></span><span style="flex:1;font:500 14px/1 'Instrument Sans',sans-serif">{{ p.n }}</span><span style="font:500 13.5px/1 'Geist Mono',monospace;color:{{ p.col }}">{{ p.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.wealth }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 10 HOLDINGS -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Investments">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">10 — WEALTH · HOLDINGS, SIPs, LOANS</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px"><i class="icon-signal"></i><i class="icon-wifi"></i><i class="icon-battery-full"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:16px;padding:6px 20px 0">
+          <div style="display:flex;padding:4px;border-radius:12px;background:var(--s1);border:1px solid var(--ln)">
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Net worth</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--s2);font:600 13.5px/1 'Instrument Sans',sans-serif">Holdings</span>
+            <span style="flex:1;height:34px;display:flex;align-items:center;justify-content:center;font:500 13.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">Loans</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Current value</span><span style="font:500 19px/1 'Geist Mono',monospace;letter-spacing:-.03em">₹41,28,800</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">Total return</span><span style="font:500 19px/1 'Geist Mono',monospace;letter-spacing:-.03em;color:var(--pos)">+16.4%</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;border-radius:16px;background:var(--s1);border:1px solid var(--ln)">
+            <sc-for list="{{ holdings }}" as="h" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;height:60px;padding:0 16px;border-bottom:1px solid var(--ln)">
+                <div style="flex:1;display:flex;flex-direction:column;gap:5px"><span style="font:500 14.5px/1 'Instrument Sans',sans-serif">{{ h.name }}</span><span style="font:400 12px/1 'Instrument Sans',sans-serif;color:var(--mu)">{{ h.sub }}</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span style="font:500 14px/1 'Geist Mono',monospace">{{ h.v }}</span><span style="font:500 11.5px/1 'Geist Mono',monospace;color:{{ h.col }}">{{ h.r }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <span style="font:500 11px/1 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)">SIPs · next debit 5 Nov</span>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 13.5px/1.2 'Instrument Sans',sans-serif">Parag Parikh Flexi</span><span style="font:500 14px/1 'Geist Mono',monospace">₹15,000<span style="color:var(--mu);font-size:11.5px">/mo</span></span></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:var(--s1);border:1px solid var(--ln)"><span style="font:500 13.5px/1.2 'Instrument Sans',sans-serif">Nifty Next 50</span><span style="font:500 14px/1 'Geist Mono',monospace">₹10,000<span style="color:var(--mu);font-size:11.5px">/mo</span></span></div>
+          </div>
+        </div>
+        <nav style="position:absolute;left:0;right:0;bottom:0;height:88px;padding:0 10px 26px;box-sizing:border-box;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;background:var(--navbg);backdrop-filter:blur(16px);border-top:1px solid var(--ln)">
+          <sc-for list="{{ nav.wealth }}" as="n" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;color:{{ n.col }}">
+              <div style="width:{{ n.sz }};height:{{ n.sz }};border-radius:50%;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center"><i class="{{ n.ic }}" style="font-size:21px"></i></div>
+              <span style="font:500 10.5px/1 'Instrument Sans',sans-serif">{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 11 OFFLINE + INSTALL -->
+    <div style="display:flex;flex-direction:column;gap:12px" data-screen-label="Mobile Offline Install">
+      <div style="font:500 13px/1 'Geist Mono',monospace;color:var(--mu);letter-spacing:.06em">11 — OFFLINE + INSTALL</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);border:1px solid var(--ln2);box-shadow:var(--sh)">
+        <div style="position:relative;display:flex;justify-content:space-between;align-items:center;height:54px;padding:0 30px;font:600 15px/1 'Instrument Sans',sans-serif"><span>9:41</span><span style="display:flex;gap:6px;font-size:15px;color:var(--mu)"><i class="icon-signal-zero"></i><i class="icon-wifi-off"></i><i class="icon-battery-full" style="color:var(--tx)"></i></span></div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:6px 20px 0">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:var(--s1);border:1px dashed var(--ln2)">
+            <i class="icon-cloud-off" style="font-size:17px;color:var(--warn)"></i>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:600 14px/1 'Instrument Sans',sans-serif">You're offline</span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--mu)">3 changes saved on this device. They'll sync when you reconnect.</span></div>
+          </div>
+          <span style="font:400 34px/1 'Instrument Serif',serif;padding-top:4px">Activity</span>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ pending }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;height:60px;border-bottom:1px solid var(--ln)">
+                <div style="width:38px;height:38px;border-radius:12px;border:1px dashed var(--ln2);display:flex;align-items:center;justify-content:center"><i class="icon-clock-3" style="font-size:16px;color:var(--mu)"></i></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:5px"><span style="font:500 15px/1 'Instrument Sans',sans-serif">{{ t.name }}</span><span style="font:400 12.5px/1 'Instrument Sans',sans-serif;color:var(--warn)">Waiting to sync</span></div>
+                <span style="font:500 14px/1 'Geist Mono',monospace;color:var(--mu)">{{ t.amt }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;left:0;right:0;bottom:0;background:var(--scrim);top:0"></div>
+        <div style="position:absolute;left:12px;right:12px;bottom:14px;display:flex;flex-direction:column;gap:16px;padding:22px;border-radius:30px;background:var(--s1);border:1px solid var(--ln2);box-shadow:0 -20px 60px rgba(0,0,0,.25)">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:56px;height:56px;border-radius:15px;background:var(--btn);color:var(--btnx);display:flex;align-items:center;justify-content:center;font:italic 400 36px/1 'Instrument Serif',serif">L</div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font:600 17px/1 'Instrument Sans',sans-serif">Install Ledgerify</span><span style="font:400 13px/1 'Instrument Sans',sans-serif;color:var(--mu)">money.shenthar.me</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;font:400 14px/1.35 'Instrument Sans',sans-serif">
+            <span style="display:flex;gap:10px"><i class="icon-wifi-off" style="font-size:16px;color:var(--ac)"></i>Works offline, syncs when you're back</span>
+            <span style="display:flex;gap:10px"><i class="icon-zap" style="font-size:16px;color:var(--ac)"></i>Long-press the icon to add an expense</span>
+            <span style="display:flex;gap:10px"><i class="icon-bell" style="font-size:16px;color:var(--ac)"></i>EMI, renewal and budget reminders</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:8px">
+            <button style="height:50px;border-radius:14px;border:1px solid var(--ln2);background:transparent;color:var(--tx);font:500 15px/1 'Instrument Sans',sans-serif">Not now</button>
+            <button style="height:50px;border-radius:14px;border:none;background:var(--btn);color:var(--btnx);font:600 15px/1 'Instrument Sans',sans-serif">Install app</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;boardName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Luxe&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;boardBlurb&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;uid&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;a&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;swatches&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  state = { nw: 0, pal: false, hot: false, q: '' };
+  componentDidMount() {
+    const target = 4862380;
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) this.setState({ nw: target });
+    else {
+      const t0 = performance.now(), d = 1500;
+      const step = (t) => { const p = Math.min(1, (t - t0) / d); this.setState({ nw: Math.round(target * (1 - Math.pow(1 - p, 4))) }); if (p < 1) this.raf = requestAnimationFrame(step); };
+      this.raf = requestAnimationFrame(step);
+      this.fb = setTimeout(() => this.setState({ nw: target }), d + 100);
+    }
+    this.onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && this.state.hot) { e.preventDefault(); this.setState(s => ({ pal: !s.pal, q: '' })); }
+      if (e.key === 'Escape') this.setState({ pal: false });
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearTimeout(this.fb); window.removeEventListener('keydown', this.onKey); }
+
+  path(vals, w, h, pad = 6) {
+    const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1;
+    const pts = vals.map((v, i) => [i * (w / (vals.length - 1)), pad + (h - pad * 2) * (1 - (v - mn) / r)]);
+    let line = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; const cx = (x0 + x1) / 2; line += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`; }
+    const last = pts[pts.length - 1];
+    return { line, area: `${line} L${w},${h} L0,${h} Z`, ex: last[0] - 4, ey: last[1] };
+  }
+
+  renderVals() {
+    const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+    const series = [39.5, 40.2, 39.8, 41.6, 42.1, 43.9, 43.2, 44.8, 45.6, 46.1, 46.78, 48.62];
+    const tx = [
+      { d: 'Oct 22', g: 'Today', name: 'Blue Tokai Coffee', cat: 'Dining', cc: 'var(--c2)', acct: 'HDFC Savings', amt: '−₹420', col: 'var(--tx)', ic: 'icon-coffee' },
+      { d: 'Oct 22', g: 'Today', name: 'Uber', cat: 'Transport', cc: 'var(--c4)', acct: 'ICICI Amazon Pay', amt: '−₹286', col: 'var(--tx)', ic: 'icon-car' },
+      { d: 'Oct 21', g: 'Yesterday', name: 'Salary · Acme Labs', cat: 'Income', cc: 'var(--pos)', acct: 'HDFC Savings', amt: '+₹2,10,000', col: 'var(--pos)', ic: 'icon-briefcase' },
+      { d: 'Oct 21', g: 'Yesterday', name: 'Figma', cat: 'Subscriptions', cc: 'var(--c5)', acct: 'Wise USD', amt: '−$15.00', col: 'var(--tx)', ic: 'icon-repeat', rec: 'icon-repeat' },
+      { d: 'Oct 21', g: 'Yesterday', name: 'Swiggy Instamart', cat: 'Groceries', cc: 'var(--c3)', acct: 'ICICI Amazon Pay', amt: '−₹1,842', col: 'var(--tx)', ic: 'icon-shopping-cart' },
+      { d: 'Oct 19', g: 'Sun, 19 Oct', name: 'BESCOM Electricity', cat: 'Utilities', cc: 'var(--c6)', acct: 'HDFC Savings', amt: '−₹2,310', col: 'var(--tx)', ic: 'icon-zap', rec: 'icon-repeat' },
+      { d: 'Oct 19', g: 'Sun, 19 Oct', name: 'Airbnb · Lisbon', cat: 'Travel', cc: 'var(--c1)', acct: 'Revolut EUR', amt: '−€212.40', col: 'var(--tx)', ic: 'icon-plane' },
+      { d: 'Oct 18', g: 'Sat, 18 Oct', name: 'Invoice #041 · Northwind', cat: 'Freelance', cc: 'var(--pos)', acct: 'Wise USD', amt: '+$1,200.00', col: 'var(--pos)', ic: 'icon-briefcase' },
+      { d: 'Oct 18', g: 'Sat, 18 Oct', name: 'Netflix', cat: 'Entertainment', cc: 'var(--c5)', acct: 'ICICI Amazon Pay', amt: '−₹649', col: 'var(--tx)', ic: 'icon-tv', rec: 'icon-repeat' },
+    ].map((t, i) => ({ ...t, rec: t.rec || '', sel: i === 2 ? 'var(--acs)' : 'transparent' }));
+    const groups = [];
+    tx.slice(0, 7).forEach(t => { let g = groups.find(x => x.label === t.g); if (!g) { g = { label: t.g, items: [], net: '' }; groups.push(g); } g.items.push(t); });
+    const nets = { 'Today': '−₹706', 'Yesterday': '+₹2,06,900', 'Sun, 19 Oct': '−₹22,140' };
+    groups.forEach(g => g.net = nets[g.label] || '');
+
+    const budgetsRaw = [
+      ['Dining', 7850, 8000, 'var(--c2)'], ['Subscriptions', 3180, 3500, 'var(--c5)'], ['Groceries', 9400, 12000, 'var(--c3)'],
+      ['Travel', 18200, 25000, 'var(--c1)'], ['Transport', 2900, 5000, 'var(--c4)'], ['Shopping', 4100, 10000, 'var(--c6)'],
+    ];
+    const budgets = budgetsRaw.map(([name, s, l, cc]) => { const p = s / l; const warn = p >= 0.9; return { name, cc, spent: '₹' + inr.format(s), limit: '₹' + inr.format(l), left: '₹' + inr.format(l - s) + ' left', pct: Math.round(p * 100) + '%', w: Math.min(100, p * 100) + '%', col: warn ? 'var(--warn)' : 'var(--ac)', tcol: warn ? 'var(--warn)' : 'var(--mu)' }; });
+
+    const accounts = [
+      { name: 'HDFC Savings', short: 'HDFC', sub: 'Savings · ••4821', cur: 'INR', bal: '₹4,82,350', ic: 'icon-landmark', col: 'var(--tx)', grp: 'Bank & cash' },
+      { name: 'Cash', short: 'Cash', sub: 'Wallet', cur: 'INR', bal: '₹6,200', ic: 'icon-banknote', col: 'var(--tx)', grp: 'Bank & cash' },
+      { name: 'ICICI Amazon Pay', short: 'ICICI card', sub: 'Due 5 Nov · 19% of ₹2,00,000', cur: 'INR', bal: '−₹38,420', ic: 'icon-credit-card', col: 'var(--neg)', grp: 'Credit cards', util: '19%' },
+      { name: 'Wise USD', short: 'Wise', sub: '≈ ₹5,24,800', cur: 'USD', bal: '$6,240.18', ic: 'icon-wallet', col: 'var(--tx)', grp: 'Foreign wallets' },
+      { name: 'Revolut EUR', short: 'Revolut', sub: '≈ ₹1,07,400', cur: 'EUR', bal: '€1,180.50', ic: 'icon-wallet', col: 'var(--tx)', grp: 'Foreign wallets' },
+      { name: 'Zerodha', short: 'Zerodha', sub: 'Brokerage', cur: 'INR', bal: '₹12,40,800', ic: 'icon-trending-up', col: 'var(--tx)', grp: 'Investment' },
+    ];
+    const accountGroups = [];
+    accounts.slice(0, 5).forEach(a => { let g = accountGroups.find(x => x.label === a.grp); if (!g) { g = { label: a.grp, items: [] }; accountGroups.push(g); } g.items.push({ ...a, util: a.util || '' }); });
+
+    const cats = [['Rent', 32000, 'var(--c6)'], ['Travel', 18200, 'var(--c1)'], ['Groceries', 9400, 'var(--c3)'], ['Dining', 7850, 'var(--c2)'], ['Shopping', 4100, 'var(--c4)'], ['Other', 6850, 'var(--c5)']];
+    const tot = cats.reduce((s, c) => s + c[1], 0), C = 2 * Math.PI * 96, gap = 3;
+    let acc = 0;
+    const donut = cats.map(([n, v, c]) => { const len = v / tot * C; const s = { c, da: `${Math.max(0, len - gap)} ${C}`, off: -acc }; acc += len; return s; });
+
+    const flowRaw = [['May', 248, 92], ['Jun', 252, 110], ['Jul', 251, 86], ['Aug', 268, 124], ['Sep', 262, 85], ['Oct', 285, 78]];
+    const fmax = 300;
+    const flow = flowRaw.map(([m, i, e], k) => ({ m, ih: (i / fmax * 90) + 'px', eh: (e / fmax * 90) + 'px', op: k === 5 ? 1 : 0.45 }));
+
+    const navDef = [['home', 'icon-house', 'Home'], ['activity', 'icon-receipt-text', 'Activity'], ['add', 'icon-plus', ''], ['insights', 'icon-chart-pie', 'Insights'], ['wealth', 'icon-trending-up', 'Wealth']];
+    const mk = (active) => navDef.map(([k, ic, label]) => k === 'add'
+      ? { ic, label: '', sz: '52px', bg: 'var(--btn)', fg: 'var(--btnx)', col: 'var(--tx)' }
+      : { ic, label, sz: '28px', bg: 'transparent', fg: k === active ? 'var(--tx)' : 'var(--mu)', col: k === active ? 'var(--tx)' : 'var(--mu)' });
+
+    const rail = [
+      { title: 'Overview', items: [['icon-layout-dashboard', 'Overview', 'G O', 1], ['icon-receipt-text', 'Activity', 'G A'], ['icon-wallet', 'Accounts', 'G C'], ['icon-chart-pie', 'Analytics', 'G Y']] },
+      { title: 'Plan', items: [['icon-target', 'Budgets', 'G B'], ['icon-repeat', 'Recurring', 'G R'], ['icon-piggy-bank', 'Savings goals', ''], ['icon-tag', 'Categories & tags', '']] },
+      { title: 'Wealth', items: [['icon-trending-up', 'Net worth', 'G N'], ['icon-coins', 'Investments', 'G I'], ['icon-calendar-sync', 'SIPs', ''], ['icon-landmark', 'Loans', ''], ['icon-shield-check', 'Insurance', '']] },
+      { title: 'Tools', items: [['icon-file-text', 'Reports', ''], ['icon-arrow-down-up', 'Import / Export', ''], ['icon-plug', 'MCP connect', '']] },
+    ].map(g => ({ title: g.title, items: g.items.map(([ic, label, kb, act]) => ({ ic, label, kb, bg: act ? 'var(--s2)' : 'transparent', col: act ? 'var(--tx)' : 'var(--mu)' })) }));
+
+    const palAll = [
+      { head: 'Actions', ic: 'icon-plus', label: 'New expense', kb: 'N' },
+      { ic: 'icon-arrow-left-right', label: 'Transfer between accounts', kb: 'T' },
+      { ic: 'icon-file-up', label: 'Import CSV statement', kb: '' },
+      { head: 'Jump to', ic: 'icon-target', label: 'Budgets', kb: 'G B' },
+      { ic: 'icon-trending-up', label: 'Net worth', kb: 'G N' },
+      { ic: 'icon-repeat', label: 'Recurring', kb: 'G R' },
+      { head: 'Accounts', ic: 'icon-landmark', label: 'HDFC Savings · ₹4,82,350', kb: '' },
+      { ic: 'icon-wallet', label: 'Wise USD · $6,240.18', kb: '' },
+    ];
+    const q = this.state.q.trim().toLowerCase();
+    const palItems = (q ? palAll.filter(p => p.label.toLowerCase().includes(q)).map((p, i) => ({ ...p, head: i === 0 ? 'Results' : '' })) : palAll)
+      .map((p, i) => ({ ...p, head: p.head || '', bg: i === 0 ? 'var(--s2)' : 'transparent' }));
+
+    const sw = this.props.swatches || {};
+
+    return {
+      uid: this.props.uid || 'a',
+      boardName: this.props.boardName || 'Luxe',
+      boardBlurb: this.props.boardBlurb || '',
+      swSurf: sw.surf || [], swSig: sw.sig || [],
+      nwText: inr.format(this.state.nw),
+      aurora: React.createElement('div', { style: { position: 'absolute', inset: '-20%', pointerEvents: 'none', background: 'radial-gradient(40% 35% at 20% 10%, var(--aur1), transparent 70%), radial-gradient(35% 30% at 85% 30%, var(--aur2), transparent 70%)', animation: 'lgAurora 28s ease-in-out infinite alternate', filter: 'blur(10px)' } }),
+      chartD: this.path(series, 640, 150, 12),
+      chartM: this.path(series, 350, 64, 4),
+      chartN: this.path(series, 350, 170, 10),
+      months: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+      alerts: [
+        { text: 'Dining at 98%', meta: '₹150 left', col: 'var(--warn)' },
+        { text: 'Car loan EMI ₹14,820', meta: 'due 5 Nov', col: 'var(--ac)' },
+        { text: 'Star Health renews', meta: '12 Nov', col: 'var(--ac)' },
+      ],
+      flow, txns: tx.slice(0, 7), txnsM3: tx.slice(0, 3), txnGroups: groups,
+      budgets, budgetsTop: budgets.slice(0, 4),
+      accountsTop: accounts.slice(0, 4), accountsCards: accounts.slice(0, 4).filter((a, i) => i !== 1), accountGroups,
+      cats: cats.map(([name, v, c]) => ({ name, c, amt: '₹' + inr.format(v), pct: Math.round(v / tot * 100) + '%' })),
+      donut,
+      nav: { home: mk('home'), activity: mk('activity'), insights: mk('insights'), wealth: mk('wealth') },
+      railGroups: rail,
+      keypad: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'],
+      nwParts: [
+        { n: 'Cash & bank', v: '₹10,42,000', c: 'var(--c4)', col: 'var(--tx)' },
+        { n: 'Investments', v: '₹31,80,600', c: 'var(--c1)', col: 'var(--tx)' },
+        { n: 'SIPs', v: '₹9,48,200', c: 'var(--c3)', col: 'var(--tx)' },
+        { n: 'Loans & cards', v: '−₹3,08,420', c: 'var(--neg)', col: 'var(--neg)' },
+      ],
+      holdings: [
+        { name: 'Nifty 50 Index Fund', sub: 'Mutual fund · 2,140 units', v: '₹8,42,100', r: '+14.2%', col: 'var(--pos)' },
+        { name: 'Apple Inc.', sub: 'AAPL · 38 shares · USD', v: '$8,920', r: '+22.1%', col: 'var(--pos)' },
+        { name: 'SBI Fixed Deposit', sub: '7.75% · matures Mar 2027', v: '₹5,38,400', r: '+7.7%', col: 'var(--pos)' },
+        { name: 'PPF', sub: '7.1% · 9 years left', v: '₹6,10,300', r: '+7.1%', col: 'var(--pos)' },
+        { name: 'Gold ETF', sub: '42 g equivalent', v: '₹2,18,400', r: '−1.4%', col: 'var(--neg)' },
+      ],
+      pending: [{ name: 'Chai Point', amt: '−₹120' }, { name: 'Auto rickshaw', amt: '−₹90' }, { name: 'Split dinner · Arjun', amt: '+₹1,450' }],
+      pal: this.state.pal, q: this.state.q,
+      setQ: (e) => this.setState({ q: e.target.value }),
+      openPal: () => this.setState({ pal: true, q: '' }),
+      closePal: () => this.setState({ pal: false }),
+      stop: (e) => e.stopPropagation(),
+      setHot: () => this.setState({ hot: true }),
+      clearHot: () => this.setState({ hot: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>

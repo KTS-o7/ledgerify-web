@@ -94,30 +94,50 @@ func spaHandler(fsys embed.FS, root string) http.Handler {
 			return
 		}
 
-		ext := fullPath
-		switch {
-		case strings.HasSuffix(ext, ".js"):
-			w.Header().Set("Content-Type", "application/javascript")
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		case strings.HasSuffix(ext, ".css"):
-			w.Header().Set("Content-Type", "text/css")
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		case strings.HasSuffix(ext, ".json"):
-			w.Header().Set("Content-Type", "application/json")
-		case strings.HasSuffix(ext, ".svg"):
-			w.Header().Set("Content-Type", "image/svg+xml")
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		case strings.HasSuffix(ext, ".png"), strings.HasSuffix(ext, ".jpg"), strings.HasSuffix(ext, ".ico"):
-			w.Header().Set("Content-Type", "image/"+strings.TrimPrefix(ext, "."))
-			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		default:
-			// HTML: no-transform disables Cloudflare Rocket Loader and other
-			// proxy transformations that break SolidJS ES module execution.
-			w.Header().Set("Content-Type", "text/html")
-			w.Header().Set("Cache-Control", "no-cache, no-transform")
-		}
+		setStaticHeaders(w, fullPath)
 		w.Write(data)
 	})
+}
+
+// setStaticHeaders sets Content-Type and Cache-Control for an embedded file.
+func setStaticHeaders(w http.ResponseWriter, fullPath string) {
+	h := w.Header()
+	switch {
+	// The service worker and manifest must revalidate, or updates never ship.
+	case strings.HasSuffix(fullPath, "/sw.js"):
+		h.Set("Content-Type", "application/javascript")
+		h.Set("Cache-Control", "no-cache")
+		h.Set("Service-Worker-Allowed", "/")
+	case strings.HasSuffix(fullPath, ".webmanifest"):
+		h.Set("Content-Type", "application/manifest+json")
+		h.Set("Cache-Control", "no-cache")
+	case strings.HasSuffix(fullPath, ".js"):
+		h.Set("Content-Type", "application/javascript")
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	case strings.HasSuffix(fullPath, ".css"):
+		h.Set("Content-Type", "text/css")
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	case strings.HasSuffix(fullPath, ".json"):
+		h.Set("Content-Type", "application/json")
+	case strings.HasSuffix(fullPath, ".svg"):
+		h.Set("Content-Type", "image/svg+xml")
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	// PWA icons are not content-hashed, so keep their cache short.
+	case strings.HasSuffix(fullPath, ".png"):
+		h.Set("Content-Type", "image/png")
+		h.Set("Cache-Control", "public, max-age=86400")
+	case strings.HasSuffix(fullPath, ".jpg"):
+		h.Set("Content-Type", "image/jpeg")
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	case strings.HasSuffix(fullPath, ".ico"):
+		h.Set("Content-Type", "image/x-icon")
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	default:
+		// HTML: no-transform disables Cloudflare Rocket Loader and other
+		// proxy transformations that break SolidJS ES module execution.
+		h.Set("Content-Type", "text/html")
+		h.Set("Cache-Control", "no-cache, no-transform")
+	}
 }
 
 func main() {
@@ -347,6 +367,12 @@ func main() {
 		// Backwards-compatibility redirects for old import/export paths.
 		r.Handle("/api/import", http.RedirectHandler("/api/v1/import", http.StatusMovedPermanently))
 		r.Handle("/api/export", http.RedirectHandler("/api/v1/export", http.StatusMovedPermanently))
+
+		// PWA share target. The service worker handles this POST; clients
+		// without a controlling worker get sent to the import page.
+		r.Post("/import/share", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/import", http.StatusSeeOther)
+		})
 
 		// SPA catch-all: serve SolidJS frontend
 		r.Handle("/*", spaHandler(embedassets.StaticFS(), "frontend/dist"))

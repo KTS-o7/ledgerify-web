@@ -1,51 +1,39 @@
-import { createResource, For, Show } from "solid-js";
+import { createResource, Show } from "solid-js";
 import { Target } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency, numericToFloat } from "../lib/format";
+import { onDataChanged } from "../lib/events";
 import { PageHeader } from "../components/ui/page-header";
-import { BentoBlock } from "../components/ui/bento-block";
-import { CategoryBar } from "../components/ui/category-bar";
 import { EmptyState } from "../components/ui/empty-state";
 import { SkeletonBlock } from "../components/ui/skeleton";
-
-interface BudgetItem { id: string; name: string; spent: number; amount: unknown; currency: string; }
+import { BudgetList, BudgetSummary, type Budget } from "../components/insights/budget-list";
 
 export default function ReportsBudgetVsActual() {
-  const [budgets] = createResource(() => api.get<BudgetItem[]>("/v1/budgets"));
+  const [budgets, { refetch }] = createResource(() => api.get<Budget[]>("/v1/budgets"));
+  onDataChanged(() => refetch());
+  const list = () => budgets() ?? [];
 
   return (
     <>
-      <PageHeader title="Budget vs Actual" back />
-      <div class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <PageHeader title="Budget vs actual" back />
+      <div class="px-5 md:px-7 py-5 md:py-6">
         <Show when={budgets.loading}>
-          <SkeletonBlock class="min-h-[100px]" />
-          <SkeletonBlock class="min-h-[100px]" />
-          <SkeletonBlock class="min-h-[100px]" />
-        </Show>
-        <Show when={budgets.error}>
-          <p class="text-accent text-sm py-6 text-center col-span-1 md:col-span-2 lg:col-span-3">Failed to load budgets.</p>
-        </Show>
-        <Show when={!budgets.loading && !budgets.error && (budgets() ?? []).length === 0}>
-          <div class="col-span-1 md:col-span-2 lg:col-span-3">
-            <EmptyState icon={Target} title="No budgets yet" body="Create budgets to compare planned vs actual spending." />
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <SkeletonBlock class="md:col-span-5 h-[150px]" />
+            <SkeletonBlock class="md:col-span-7 h-[240px]" />
           </div>
         </Show>
-        <For each={budgets() ?? []}>
-          {(b) => {
-            const amount = numericToFloat(b.amount);
-            const pct = amount > 0 ? (b.spent / amount) * 100 : 0;
-            const over = b.spent > amount;
-            return (
-              <BentoBlock>
-                <div class="flex items-center justify-between mb-2">
-                  <span class="font-display text-lg font-bold text-text">{b.name}</span>
-                  <span class="text-sm text-muted">{formatCurrency(b.spent, b.currency)} / {formatCurrency(amount, b.currency)}</span>
-                </div>
-                <CategoryBar value={pct / 100} color={over ? "var(--color-accent)" : "var(--color-primary)"} trackColor="bg-bg" />
-              </BentoBlock>
-            );
-          }}
-        </For>
+        <Show when={budgets.error}>
+          <p class="text-neg text-sm py-6 text-center">Failed to load budgets.</p>
+        </Show>
+        <Show when={!budgets.loading && !budgets.error && list().length === 0}>
+          <EmptyState icon={Target} title="No budgets yet" body="Create budgets to compare planned against actual spending." />
+        </Show>
+        <Show when={!budgets.loading && list().length > 0}>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+            <div class="md:col-span-5"><BudgetSummary budgets={list()} /></div>
+            <div class="md:col-span-7"><BudgetList budgets={list()} /></div>
+          </div>
+        </Show>
       </div>
     </>
   );

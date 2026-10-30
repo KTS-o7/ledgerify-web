@@ -1,35 +1,26 @@
-import { createResource, createSignal, For, Show } from "solid-js";
-import { A } from "@solidjs/router";
-import { Plus, ShoppingCart, Coffee, Bus, Banknote, Receipt, TrendingUp, TrendingDown, AlertTriangle } from "lucide-solid";
+import { createMemo, createResource, createSignal, Show } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { api } from "../lib/api";
 import { formatCurrency, pgDateToString, numericToFloat } from "../lib/format";
+import { onDataChanged, onRowEdit, onRowMove } from "../lib/events";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
-import { Stat } from "../components/ui/stat";
-import { Sparkline } from "../components/ui/sparkline";
-import { TransactionRow } from "../components/ui/transaction-row";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { Sheet } from "../components/ui/sheet";
+import { MonthPicker, currentMonth } from "../components/ui/month-picker";
+import { NewTransactionButton } from "../components/shell/NewTransactionButton";
 import { TransactionForm } from "../components/forms/transaction-form";
-import { MonthPicker } from "../components/ui/month-picker";
-
-interface Summary {
-  total_income: number;
-  total_expenses: number;
-  recent_transactions: Array<{
-    date: string;
-    title?: string;
-    merchant?: string;
-    account_name: string;
-    category_name: string;
-    amount: number;
-    type: "income" | "expense";
-  }>;
-  account_balances: Array<{ name: string; balance: number }>;
-  budget_status: Array<{ name: string; spent: number; amount: number; spent_pct: number }>;
-  monthly_networth: Array<{ date: string; total_balance: number }>;
-  category_spending: Array<{ category_id: string; category_name: string; color: string; total: number }>;
-}
+import { NetWorthCard } from "../components/dashboard/NetWorthCard";
+import { CashflowCard } from "../components/dashboard/CashflowCard";
+import { RecentActivityTable } from "../components/dashboard/RecentActivityTable";
+import { BudgetsCard } from "../components/dashboard/BudgetsCard";
+import { AccountsCard } from "../components/dashboard/AccountsCard";
+import { AlertPills, type AlertItem } from "../components/dashboard/AlertPills";
+import { MobileHome } from "../components/dashboard/MobileHome";
+import {
+  daysLeftInMonth, deriveNetWorth, lastMonths, snapshotSeries, toRow,
+  type NetWorthData, type Row, type Snapshot, type Summary,
+} from "../components/dashboard/data";
 
 interface InsurancePolicy {
   id: string;
@@ -45,28 +36,23 @@ interface Loan {
   outstanding_balance: unknown; // pgtype.Numeric
 }
 
-interface AlertItem {
-  key: string;
-  message: string;
-}
-
-function categoryIcon(category: string) {
-  const c = (category || "").toLowerCase();
-  if (c.includes("groceries")) return ShoppingCart;
-  if (c.includes("dining") || c.includes("food") || c.includes("coffee")) return Coffee;
-  if (c.includes("transport") || c.includes("travel")) return Bus;
-  if (c.includes("income") || c.includes("salary")) return Banknote;
-  return Receipt;
-}
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+interface FullTx {
+  id: string;
+  account_id: string;
+  type: "income" | "expense" | "transfer";
+  amount: string;
+  currency: string;
+  date: string;
+  category_id: string | null;
+  title: string;
+  note: string;
+  transfer_to_id?: string | null;
+  tags?: { id: string; name: string; color: string }[];
 }
 
 function formatAlertDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat("en-IN", { year: "numeric", month: "short", day: "numeric" }).format(new Date(iso));
+    return new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" }).format(new Date(iso));
   } catch {
     return iso;
   }
@@ -90,16 +76,32 @@ function nextEmiDate(startDateRaw: unknown): string | null {
   return candidate.toISOString().slice(0, 10);
 }
 
+const MONTH_LONG = new Intl.DateTimeFormat("en-US", { month: "long" });
+
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [month, setMonth] = createSignal(currentMonth());
   const [summary, { refetch }] = createResource(month, (m) => api.get<Summary>(`/v1/summary?month=${m}`));
+  const [networth, { refetch: refetchNetworth }] = createResource(() =>
+    api.get<NetWorthData>("/v1/networth").catch(() => null)
+  );
+  const [snapshots] = createResource(() =>
+    api.get<Snapshot[]>("/v1/networth/snapshots").catch(() => [] as Snapshot[])
+  );
+  // Net worth history is "as of today". When another month is selected,
+  // load the current month's cash flow so the estimate stays anchored to today.
+  const [currentSummary] = createResource(
+    () => (month() !== currentMonth() ? true : undefined),
+    () => api.get<Summary>(`/v1/summary?month=${currentMonth()}`).catch(() => null),
+  );
   const [insurance] = createResource(() =>
     api.get<InsurancePolicy[]>("/v1/insurance").catch(() => [] as InsurancePolicy[])
   );
   const [loans] = createResource(() =>
     api.get<Loan[]>("/v1/loans").catch(() => [] as Loan[])
   );
-  const [sheetOpen, setSheetOpen] = createSignal(false);
+
+  onDataChanged(() => { refetch(); refetchNetworth(); });
 
   /** Build alert items from available data. Returns [] when nothing to alert. */
   const alerts = (): AlertItem[] => {
@@ -107,36 +109,34 @@ export default function Dashboard() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // ── 1. Budget ≥ 80% ──────────────────────────────────────────────────
-    const budgets = summary()?.budget_status ?? [];
+    // ── 1. Budget ≥ 80% (warn at ≥ 90%) ─────────────────────────────────
+    const budgets = [...(summary()?.budget_status ?? [])].sort((a, b) => b.spent_pct - a.spent_pct);
     for (const b of budgets) {
       if (b.spent_pct >= 80) {
+        const left = b.amount - b.spent;
         items.push({
           key: `budget-${b.name}`,
-          message: `${b.name} is ${b.spent_pct}% used`,
+          text: `${b.name} is at ${b.spent_pct}%`,
+          meta: left >= 0 ? `${formatCurrency(left, b.currency)} left` : `${formatCurrency(-left, b.currency)} over`,
+          level: b.spent_pct >= 90 ? "warn" : "signal",
         });
       }
     }
 
     // ── 2. Insurance renewals within 30 days ─────────────────────────────
-    const policies = insurance() ?? [];
-    for (const p of policies) {
+    for (const p of insurance() ?? []) {
       const dateStr = pgDateToString(p.renewal_date);
       if (!dateStr) continue;
       const renewal = new Date(dateStr + "T00:00:00Z");
       if (isNaN(renewal.getTime())) continue;
       const diffDays = Math.floor((renewal.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays <= 30) {
-        items.push({
-          key: `insurance-${p.id}`,
-          message: `${p.name} renews on ${formatAlertDate(dateStr)}`,
-        });
+        items.push({ key: `insurance-${p.id}`, text: `${p.name} renews`, meta: formatAlertDate(dateStr), level: "signal" });
       }
     }
 
     // ── 3. Loans with EMI within 14 days ─────────────────────────────────
-    const loanList = loans() ?? [];
-    for (const l of loanList) {
+    for (const l of loans() ?? []) {
       const outstanding = numericToFloat(l.outstanding_balance);
       const emi = numericToFloat(l.emi_amount);
       if (outstanding <= 0 || emi <= 0) continue;
@@ -145,142 +145,150 @@ export default function Dashboard() {
       const due = new Date(nextDate + "T00:00:00Z");
       const diffDays = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays <= 14) {
-        items.push({
-          key: `loan-${l.id}`,
-          message: `${l.name} payment due ${formatAlertDate(nextDate)}`,
-        });
+        items.push({ key: `loan-${l.id}`, text: `${l.name} EMI ${formatCurrency(emi)}`, meta: `due ${formatAlertDate(nextDate)}`, level: "signal" });
       }
     }
 
     return items;
   };
 
+  const rows = createMemo<Row[]>(() => (summary()?.recent_transactions ?? []).map(toRow));
+  const accounts = () => summary()?.account_balances ?? [];
+
+  /** Today's net worth: the /networth figure, else the sum of account balances. */
+  const nwValue = () => networth()?.networth ?? accounts().reduce((s, a) => s + a.balance, 0);
+
+  const snapPoints = () => snapshotSeries(snapshots() ?? []);
+  const estimated = () => snapPoints().length < 2;
+  const nwPoints = () => {
+    if (!estimated()) {
+      // Pin the latest point to today's value so the chart ends where the number is.
+      const pts = snapPoints();
+      const cur = currentMonth();
+      return pts[pts.length - 1]!.month === cur
+        ? [...pts.slice(0, -1), { month: cur, value: nwValue() }]
+        : [...pts, { month: cur, value: nwValue() }];
+    }
+    const flows = (month() === currentMonth() ? summary() : currentSummary())?.monthly_networth ?? [];
+    return deriveNetWorth(nwValue(), flows, currentMonth(), 6);
+  };
+  const nwChangeThisMonth = () => {
+    const pts = nwPoints();
+    return pts.length >= 2 ? nwValue() - pts[pts.length - 2]!.value : null;
+  };
+
+  const flowMonths = () => lastMonths(summary()?.monthly_networth ?? [], month(), 6);
+
+  // ── J / K selection, E / Enter to edit ─────────────────────────────────
+  const [selected, setSelected] = createSignal(-1);
+  onRowMove((d) => {
+    const n = rows().length;
+    if (n === 0) return;
+    setSelected((i) => (i < 0 ? (d > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, i + d))));
+    document.querySelector<HTMLElement>(`#recent-activity [role="row"][aria-selected="true"]`)?.focus();
+  });
+  onRowEdit(() => { const r = rows()[selected()]; if (r) openEdit(r); });
+
+  const [editTx, setEditTx] = createSignal<FullTx | null>(null);
+  async function openEdit(r: Row) {
+    if (r.type === "transfer") { navigate("/activity"); return; }
+    try {
+      setEditTx(await api.get<FullTx>(`/v1/transactions/${r.id}`));
+    } catch {
+      navigate("/activity");
+    }
+  }
+  const closeEdit = () => setEditTx(null);
+
   return (
     <>
       <PageHeader
-        title="Dashboard"
+        title="Overview"
         actions={
           <div class="flex items-center gap-2">
-            <MonthPicker value={month()} onChange={setMonth} />
-            <button type="button" aria-label="Add transaction"
-              onClick={() => setSheetOpen(true)}
-              class="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
-              <Plus size={20} />
-            </button>
+            <MonthPicker value={month()} onChange={(m) => { setMonth(m); setSelected(-1); }} />
+            <NewTransactionButton />
           </div>
         }
       />
 
-      <div class="p-4 md:p-6 flex flex-col gap-3 md:gap-4">
-
-        {/* ── Alerts strip ─────────────────────────────────────────── */}
-        <Show when={alerts().length > 0}>
-          <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <For each={alerts()}>
-              {(alert) => (
-                <div class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-[16px] bg-surface border border-border-strong text-sm">
-                  <AlertTriangle size={14} class="text-yellow-400 flex-shrink-0" />
-                  <span class="text-text whitespace-nowrap">{alert.message}</span>
-                </div>
-              )}
-            </For>
+      <div class="px-5 md:px-7 pt-5 pb-6 flex flex-col gap-4">
+        <Show when={summary.loading && !summary()}>
+          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-4">
+            <SkeletonBlock class="min-h-[280px]" />
+            <SkeletonBlock class="min-h-[280px]" />
+            <SkeletonBlock class="min-h-[320px]" />
+            <SkeletonBlock class="min-h-[320px]" />
           </div>
         </Show>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4">
-          {/* Loading */}
-          <Show when={summary.loading}>
-            <SkeletonBlock class="col-span-1 md:col-span-8 min-h-[180px]" />
-            <SkeletonBlock class="col-span-1 md:col-span-4 min-h-[180px]" />
-            <SkeletonBlock class="col-span-1 md:col-span-6 min-h-[140px]" />
-            <SkeletonBlock class="col-span-1 md:col-span-6 min-h-[140px]" />
-          </Show>
+        <Show when={summary.error}>
+          <BentoBlock class="flex items-center justify-center py-16">
+            <p class="text-neg">Failed to load summary.</p>
+          </BentoBlock>
+        </Show>
 
-          {/* Error */}
-          <Show when={summary.error}>
-            <BentoBlock class="col-span-1 md:col-span-12 flex items-center justify-center py-16">
-              <p class="text-accent">Failed to load summary.</p>
-            </BentoBlock>
-          </Show>
+        <Show when={summary()}>
+          {(s) => (
+            <>
+              {/* ── Mobile Home (03) ─────────────────────────────── */}
+              <MobileHome
+                networth={nwValue()}
+                change={nwChangeThisMonth()}
+                spark={nwPoints().map((p) => p.value)}
+                income={s().total_income}
+                expense={s().total_expenses}
+                alerts={alerts()}
+                accounts={accounts()}
+                rows={rows()}
+                onOpen={openEdit}
+              />
 
-          <Show when={summary()}>
-            {(s) => {
-              const balance = () => s().total_income - s().total_expenses;
-              const sparkValues = () => (s().monthly_networth || []).map((r) => r.total_balance);
-              const hasSpark = () => sparkValues().length > 1;
-              const recentTxs = () => (s().recent_transactions || []).slice(0, 5);
-
-              return (
-                <>
-                  {/* Hero balance — left 8 cols desktop */}
-                  <BentoBlock class="col-span-1 md:col-span-8 flex flex-col gap-4 p-5">
-                    <Stat
-                      label="Total Balance"
-                      value={formatCurrency(balance())}
-                      size="xl"
-                      tone={balance() >= 0 ? "primary" : "accent"}
-                      trend={{ dir: balance() >= 0 ? "up" : "down", value: `${balance() >= 0 ? "+" : ""}${formatCurrency(Math.abs(balance()))} this month` }}
-                    />
-                    <Show when={hasSpark()}>
-                      <Sparkline values={sparkValues()} height={56} class="w-full" tone={balance() >= 0 ? "primary" : "accent"} />
-                    </Show>
-                  </BentoBlock>
-
-                  {/* Quick stats — right 4 cols desktop */}
-                  <div class="col-span-1 md:col-span-4 flex flex-col gap-3">
-                    <BentoBlock class="flex flex-col justify-center py-5">
-                      <div class="flex items-center gap-2 mb-1">
-                        <TrendingUp size={16} class="text-primary" />
-                        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Income</span>
-                      </div>
-                      <span class="font-display font-bold text-2xl text-primary">{formatCurrency(s().total_income)}</span>
-                    </BentoBlock>
-                    <BentoBlock class="flex flex-col justify-center py-5">
-                      <div class="flex items-center gap-2 mb-1">
-                        <TrendingDown size={16} class="text-muted" />
-                        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Expenses</span>
-                      </div>
-                      <span class="font-display font-bold text-2xl text-text">{formatCurrency(s().total_expenses)}</span>
-                    </BentoBlock>
+              {/* ── Desktop Overview (01) ────────────────────────── */}
+              <div class="hidden md:flex flex-col gap-4">
+                <AlertPills alerts={alerts()} />
+                <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-4 items-start">
+                  <NetWorthCard value={nwValue()} points={nwPoints()} estimated={estimated()} />
+                  <CashflowCard
+                    monthLabel={MONTH_LONG.format(new Date(`${month()}-01T00:00:00`))}
+                    income={s().total_income}
+                    expense={s().total_expenses}
+                    months={flowMonths()}
+                  />
+                  <div id="recent-activity" class="lg:row-span-2">
+                    <RecentActivityTable rows={rows()} selected={selected()} onSelect={setSelected} onOpen={openEdit} />
                   </div>
-
-                  {/* Recent transactions — full width */}
-                  <BentoBlock class="col-span-1 md:col-span-12 p-0 overflow-hidden">
-                    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
-                      <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide">Recent transactions</span>
-                      <A href="/activity" class="text-sm text-primary hover:underline font-medium">View all →</A>
-                    </div>
-                    <Show when={recentTxs().length > 0} fallback={
-                      <p class="text-muted text-sm py-10 text-center">No recent transactions.</p>
-                    }>
-                      <div class="flex flex-col px-5 divide-y divide-border">
-                        <For each={recentTxs()}>
-                          {(tx) => (
-                            <TransactionRow
-                              icon={categoryIcon(tx.category_name)}
-                              merchant={tx.title || tx.merchant || "—"}
-                              category={tx.category_name || "Uncategorized"}
-                              amount={tx.amount}
-                              type={tx.type}
-                              date={tx.date}
-                            />
-                          )}
-                        </For>
-                      </div>
-                    </Show>
-                  </BentoBlock>
-                </>
-              );
-            }}
-          </Show>
-        </div>
+                  <BudgetsCard budgets={s().budget_status ?? []} daysLeft={daysLeftInMonth(month())} />
+                  <AccountsCard accounts={accounts()} />
+                </div>
+              </div>
+            </>
+          )}
+        </Show>
       </div>
 
-      <Sheet open={sheetOpen()} onClose={() => setSheetOpen(false)} title="Add Transaction">
-        <TransactionForm
-          onSuccess={() => { setSheetOpen(false); refetch(); }}
-          onClose={() => setSheetOpen(false)}
-        />
+      <Sheet open={editTx() !== null} onClose={closeEdit} title="Edit transaction">
+        <Show when={editTx()}>
+          {(tx) => (
+            <TransactionForm
+              existing={{
+                id: tx().id,
+                type: tx().type,
+                amount: tx().amount,
+                currency: tx().currency,
+                date: tx().date,
+                account_id: tx().account_id,
+                category_id: tx().category_id ?? undefined,
+                title: tx().title,
+                note: tx().note,
+                transfer_to_id: tx().transfer_to_id ?? undefined,
+                tags: tx().tags ?? [],
+              }}
+              onSuccess={() => { closeEdit(); refetch(); refetchNetworth(); }}
+              onClose={closeEdit}
+            />
+          )}
+        </Show>
       </Sheet>
     </>
   );

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#1a1916}a{color:#D9B97C}a:hover{color:#EEE8DC}</style>
+</helmet>
+<section style="display:flex;flex-direction:column;gap:40px;padding:80px 80px 0;font-family:'Instrument Sans',sans-serif;color:#EEE8DC">
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:900px">
+    <span style="font:500 13px/1 'Geist Mono',monospace;letter-spacing:.1em;color:#A39B8B">TURN 2 · MOTION, IMPORT / EXPORT, MCP</span>
+    <span style="font:400 64px/1 'Instrument Serif',serif">Moving data in, out and to assistants</span>
+    <p style="margin:0;font:400 17px/1.55 'Instrument Sans',sans-serif;color:#A39B8B;text-wrap:pretty">A motion system with live demos, a four-step import (upload, map columns, review AI and rule categories, done), MCP connect with copy, client tabs and a connection test, and mobile flows including the PWA share target. Shown in both <a href="#2a">2a</a> dark and <a href="#2b">2b</a> light.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:80px;align-items:flex-start">
+    <div id="2a" style="display:flex;flex-direction:column;gap:20px;padding:40px;border-radius:28px;background:#0C0B09;--bg:#0C0B09;--bg2:#080706;--rail:rgba(8,7,6,.6);--s1:#15130F;--s2:#1E1B16;--ln:rgba(236,224,200,.075);--ln2:rgba(236,224,200,.14);--tx:#EEE8DC;--mu:#A39B8B;--mu2:#5F594E;--ac:#D9B97C;--acs:rgba(217,185,124,.12);--btn:#D9B97C;--btnx:#17120A;--pos:#8EC6A2;--neg:#E39783;--warn:#E2B463;--c1:#CDAE78;--c2:#D9907E;--c3:#86BE98;--c4:#7EB2C9;--c5:#A79CD6;--c6:#D08FB0;--aur1:rgba(217,185,124,.10);--aur2:rgba(126,178,201,.06);--navbg:rgba(12,11,9,.82);--scrim:rgba(4,3,2,.55);--sh:0 40px 80px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:12px"><span style="font:600 14px/1 'Geist Mono',monospace;padding:6px 10px;border-radius:8px;background:#D9B97C;color:#17120A">2a</span><span style="font:400 30px/1 'Instrument Serif',serif;color:#EEE8DC">Flows — Luxe Dark</span></div>
+      <dc-import name="LedgerifyFlows" hint-size="2110px,2800px"></dc-import>
+    </div>
+    <div id="2b" style="display:flex;flex-direction:column;gap:20px;padding:40px;border-radius:28px;background:#F4F0E7;--bg:#F4F0E7;--bg2:#EAE4D7;--rail:rgba(234,228,215,.55);--s1:#FBF9F4;--s2:#FFFFFF;--ln:rgba(50,38,15,.09);--ln2:rgba(50,38,15,.16);--tx:#1D1A14;--mu:#6A6252;--mu2:#A39B8B;--ac:#8C6A2C;--acs:rgba(140,106,44,.10);--btn:#1D1A14;--btnx:#F4F0E7;--pos:#2F7650;--neg:#A84A35;--warn:#9A6B12;--c1:#8F7238;--c2:#A65C4A;--c3:#4C8862;--c4:#3F7D96;--c5:#7468A6;--c6:#9A587A;--aur1:rgba(196,160,90,.20);--aur2:rgba(120,160,180,.12);--navbg:rgba(244,240,231,.86);--scrim:rgba(29,26,20,.28);--sh:0 30px 70px rgba(60,45,20,.14)">
+      <div style="display:flex;align-items:center;gap:12px"><span style="font:600 14px/1 'Geist Mono',monospace;padding:6px 10px;border-radius:8px;background:#1D1A14;color:#F4F0E7">2b</span><span style="font:400 30px/1 'Instrument Serif',serif;color:#1D1A14">Flows — Luxe Light</span></div>
+      <dc-import name="LedgerifyFlows" hint-size="2110px,2800px"></dc-import>
+    </div>
+  </div>
+</section>
+<section style="display:flex;flex-direction:column;gap:40px;padding:80px;font-family:'Instrument Sans',sans-serif;color:#EEE8DC">
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:900px">
+    <span style="font:500 13px/1 'Geist Mono',monospace;letter-spacing:.1em;color:#A39B8B">LEDGERIFY · PWA REDESIGN · TURN 1</span>
+    <span style="font:400 64px/1 'Instrument Serif',serif">Luxe ledger, two lights</span>
+    <p style="margin:0;font:400 17px/1.55 'Instrument Sans',sans-serif;color:#A39B8B;text-wrap:pretty">One warm-ink system in two modes. <a href="#1a">1a</a> is the dark-first direction with a gold signal; <a href="#1b">1b</a> is light-first on ivory paper with a bronze signal and ink buttons. Desktop gets a full rail with every section visible, keyboard shortcuts and a ⌘K palette. Mobile gets a 5-tab bar with a centre quick-add, plus offline and install states. Compare against the <a href="Ledgerify Current.dc.html">current UI recreation</a>.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:80px;align-items:flex-start">
+    <div id="1a" style="display:flex;flex-direction:column;gap:20px;padding:40px;border-radius:28px;background:#0C0B09;--bg:#0C0B09;--bg2:#080706;--rail:rgba(8,7,6,.6);--s1:#15130F;--s2:#1E1B16;--ln:rgba(236,224,200,.075);--ln2:rgba(236,224,200,.14);--tx:#EEE8DC;--mu:#A39B8B;--mu2:#5F594E;--ac:#D9B97C;--acs:rgba(217,185,124,.12);--btn:#D9B97C;--btnx:#17120A;--pos:#8EC6A2;--neg:#E39783;--warn:#E2B463;--c1:#CDAE78;--c2:#D9907E;--c3:#86BE98;--c4:#7EB2C9;--c5:#A79CD6;--c6:#D08FB0;--aur1:rgba(217,185,124,.10);--aur2:rgba(126,178,201,.06);--navbg:rgba(12,11,9,.82);--scrim:rgba(4,3,2,.55);--sh:0 40px 80px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:12px"><span style="font:600 14px/1 'Geist Mono',monospace;padding:6px 10px;border-radius:8px;background:#D9B97C;color:#17120A">1a</span><span style="font:400 30px/1 'Instrument Serif',serif;color:#EEE8DC">Luxe Dark — ink + gold</span></div>
+      <dc-import name="LedgerifyBoard" uid="a" board-name="Luxe Dark" board-blurb="Warm ink surfaces stepped 3–4% in lightness from a single hue (≈ 70°), so cards separate by tone instead of borders. Gold is the only saturated color outside of money in/out, so the eye goes to net worth and the next action first." swatches="{{ swDark }}" hint-size="2110px,2700px"></dc-import>
+    </div>
+    <div id="1b" style="display:flex;flex-direction:column;gap:20px;padding:40px;border-radius:28px;background:#F4F0E7;--bg:#F4F0E7;--bg2:#EAE4D7;--rail:rgba(234,228,215,.55);--s1:#FBF9F4;--s2:#FFFFFF;--ln:rgba(50,38,15,.09);--ln2:rgba(50,38,15,.16);--tx:#1D1A14;--mu:#6A6252;--mu2:#A39B8B;--ac:#8C6A2C;--acs:rgba(140,106,44,.10);--btn:#1D1A14;--btnx:#F4F0E7;--pos:#2F7650;--neg:#A84A35;--warn:#9A6B12;--c1:#8F7238;--c2:#A65C4A;--c3:#4C8862;--c4:#3F7D96;--c5:#7468A6;--c6:#9A587A;--aur1:rgba(196,160,90,.20);--aur2:rgba(120,160,180,.12);--navbg:rgba(244,240,231,.86);--scrim:rgba(29,26,20,.28);--sh:0 30px 70px rgba(60,45,20,.14)">
+      <div style="display:flex;align-items:center;gap:12px"><span style="font:600 14px/1 'Geist Mono',monospace;padding:6px 10px;border-radius:8px;background:#1D1A14;color:#F4F0E7">1b</span><span style="font:400 30px/1 'Instrument Serif',serif;color:#1D1A14">Luxe Light — ivory + bronze</span></div>
+      <dc-import name="LedgerifyBoard" uid="b" board-name="Luxe Light" board-blurb="Ivory paper with ink type at 15:1 contrast. Primary actions are solid ink, not color, so bronze stays a quiet accent for focus and net worth. Signals are darkened to the same lightness so green, coral and amber all pass 4.5:1 on paper." swatches="{{ swLight }}" hint-size="2110px,2700px"></dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      swDark: {
+        surf: [{ n: 'Base', v: '#0C0B09', r: 'bg' }, { n: 'Sunken', v: '#080706', r: 'tracks' }, { n: 'Card', v: '#15130F', r: 'surface' }, { n: 'Raised', v: '#1E1B16', r: 'hover / active' }, { n: 'Ink', v: '#EEE8DC', r: 'text 15.8:1' }],
+        sig: [{ n: 'Gold', v: '#D9B97C', r: 'signal · CTA' }, { n: 'In', v: '#8EC6A2', r: 'income' }, { n: 'Out', v: '#E39783', r: 'debt / overspend' }, { n: 'Amber', v: '#E2B463', r: '≥ 90% budget' }],
+      },
+      swLight: {
+        surf: [{ n: 'Paper', v: '#F4F0E7', r: 'bg' }, { n: 'Sunken', v: '#EAE4D7', r: 'tracks' }, { n: 'Card', v: '#FBF9F4', r: 'surface' }, { n: 'Raised', v: '#FFFFFF', r: 'hover / active' }, { n: 'Ink', v: '#1D1A14', r: 'text · CTA' }],
+        sig: [{ n: 'Bronze', v: '#8C6A2C', r: 'signal · focus' }, { n: 'In', v: '#2F7650', r: 'income' }, { n: 'Out', v: '#A84A35', r: 'debt / overspend' }, { n: 'Amber', v: '#9A6B12', r: '≥ 90% budget' }],
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

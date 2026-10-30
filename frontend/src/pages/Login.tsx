@@ -1,10 +1,9 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal } from "solid-js";
 import { useNavigate, A } from "@solidjs/router";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { BentoBlock } from "../components/ui/bento-block";
+import { AuthShell, AuthField } from "../components/settings/auth-shell";
 
 export default function Login() {
   const [email, setEmail] = createSignal("");
@@ -30,34 +29,16 @@ export default function Login() {
   };
 
   return (
-    <div class="min-h-screen flex items-center justify-center bg-bg p-4">
-      <BentoBlock class="w-full max-w-sm">
-        <div class="flex flex-col items-center text-center mb-6">
-          <div class="w-12 h-12 rounded-input bg-primary flex items-center justify-center text-bg font-display font-bold text-2xl mb-3">L</div>
-          <h1 class="font-display text-2xl font-bold text-text">Ledgerify</h1>
-          <p class="text-sm text-muted mt-1">Sign in to your account</p>
-        </div>
-
-        <Show when={error()}>
-          <div class="mb-4 rounded-input bg-accent/10 border border-accent/30 px-3 py-2 text-sm text-accent">{error()}</div>
-        </Show>
-
-        <form onSubmit={handleSubmit} class="flex flex-col gap-3">
-          <div>
-            <label for="login-email" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Email</label>
-            <Input id="login-email" type="email" value={email()} onInput={(e) => setEmail(e.currentTarget.value)} required autocomplete="email" />
-          </div>
-          <div>
-            <label for="login-password" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Password</label>
-            <Input id="login-password" type="password" value={password()} onInput={(e) => setPassword(e.currentTarget.value)} required autocomplete="current-password" />
-          </div>
-          <Button type="submit" disabled={loading()} class="w-full mt-1">{loading() ? "Signing in…" : "Sign in"}</Button>
-        </form>
-
-        <p class="text-center text-sm text-muted mt-4">
-          No account? <A href="/register" class="text-primary hover:underline font-medium">Sign up</A>
-        </p>
-      </BentoBlock>
-    </div>
+    <AuthShell error={error()}>
+      <h1 class="sr-only">Sign in to Ledgerify</h1>
+      <form onSubmit={handleSubmit} class="flex flex-col gap-3.5">
+        <AuthField id="login-email" label="Email" type="email" value={email()} onInput={setEmail} autocomplete="email" />
+        <AuthField id="login-password" label="Password" type="password" value={password()} onInput={setPassword} autocomplete="current-password" />
+        <Button type="submit" size="lg" disabled={loading()} class="w-full mt-2">{loading() ? "Signing in…" : "Sign in"}</Button>
+      </form>
+      <p class="text-center text-[14px] text-muted mt-6">
+        New here? <A href="/register" class="font-medium underline-offset-4 hover:underline">Create an account</A>
+      </p>
+    </AuthShell>
   );
 }

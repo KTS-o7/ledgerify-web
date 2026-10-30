@@ -1,10 +1,9 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal } from "solid-js";
 import { useNavigate, A } from "@solidjs/router";
 import { useAuth } from "../lib/store";
 import { api } from "../lib/api";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { BentoBlock } from "../components/ui/bento-block";
+import { AuthShell, AuthField } from "../components/settings/auth-shell";
 
 export default function Register() {
   const [name, setName] = createSignal("");
@@ -31,38 +30,17 @@ export default function Register() {
   };
 
   return (
-    <div class="min-h-screen flex items-center justify-center bg-bg p-4">
-      <BentoBlock class="w-full max-w-sm">
-        <div class="flex flex-col items-center text-center mb-6">
-          <div class="w-12 h-12 rounded-input bg-primary flex items-center justify-center text-bg font-display font-bold text-2xl mb-3">L</div>
-          <h1 class="font-display text-2xl font-bold text-text">Ledgerify</h1>
-          <p class="text-sm text-muted mt-1">Create your account</p>
-        </div>
-
-        <Show when={error()}>
-          <div class="mb-4 rounded-input bg-accent/10 border border-accent/30 px-3 py-2 text-sm text-accent">{error()}</div>
-        </Show>
-
-        <form onSubmit={handleSubmit} class="flex flex-col gap-3">
-          <div>
-            <label for="register-name" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Name</label>
-            <Input id="register-name" type="text" value={name()} onInput={(e) => setName(e.currentTarget.value)} required autocomplete="name" />
-          </div>
-          <div>
-            <label for="register-email" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Email</label>
-            <Input id="register-email" type="email" value={email()} onInput={(e) => setEmail(e.currentTarget.value)} required autocomplete="email" />
-          </div>
-          <div>
-            <label for="register-password" class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-1.5 block">Password</label>
-            <Input id="register-password" type="password" value={password()} onInput={(e) => setPassword(e.currentTarget.value)} required autocomplete="new-password" />
-          </div>
-          <Button type="submit" disabled={loading()} class="w-full mt-1">{loading() ? "Creating account…" : "Create account"}</Button>
-        </form>
-
-        <p class="text-center text-sm text-muted mt-4">
-          Already have an account? <A href="/login" class="text-primary hover:underline font-medium">Sign in</A>
-        </p>
-      </BentoBlock>
-    </div>
+    <AuthShell error={error()}>
+      <h1 class="sr-only">Create a Ledgerify account</h1>
+      <form onSubmit={handleSubmit} class="flex flex-col gap-3.5">
+        <AuthField id="register-name" label="Name" type="text" value={name()} onInput={setName} autocomplete="name" />
+        <AuthField id="register-email" label="Email" type="email" value={email()} onInput={setEmail} autocomplete="email" />
+        <AuthField id="register-password" label="Password" type="password" value={password()} onInput={setPassword} autocomplete="new-password" />
+        <Button type="submit" size="lg" disabled={loading()} class="w-full mt-2">{loading() ? "Creating account…" : "Create account"}</Button>
+      </form>
+      <p class="text-center text-[14px] text-muted mt-6">
+        Already have an account? <A href="/login" class="font-medium underline-offset-4 hover:underline">Sign in</A>
+      </p>
+    </AuthShell>
   );
 }

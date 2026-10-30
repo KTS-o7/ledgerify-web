@@ -7,21 +7,21 @@ type SearchBarProps = {
   onChange: (v: string) => void;
   placeholder?: string;
   class?: string;
+  /** Optional trailing control, e.g. a filter button. */
+  trailing?: JSX.Element;
 };
 
 export const SearchBar: Component<SearchBarProps> = (props): JSX.Element => (
-  <label class={cn("relative block w-full", props.class)}>
+  <label class={cn("relative flex items-center w-full h-11 bg-surface rounded-input border border-border-strong focus-within:border-signal transition-colors duration-[160ms]", props.class)}>
     <span class="sr-only">Search transactions.</span>
-    <Search
-      size={20}
-      class="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-    />
+    <Search size={17} class="absolute left-3.5 text-muted pointer-events-none" />
     <input
       type="search"
       value={props.value}
       onInput={(e) => props.onChange(e.currentTarget.value)}
       placeholder={props.placeholder ?? "Search…"}
-      class="h-12 w-full bg-surface rounded-input pl-12 pr-4 text-text placeholder:text-muted border border-border focus:outline-none focus-within:ring-1 focus-within:ring-primary focus:border-primary transition-colors"
+      class="h-full flex-1 min-w-0 bg-transparent pl-10 pr-3 text-[15px] text-text placeholder:text-faint focus:outline-none"
     />
+    {props.trailing}
   </label>
 );

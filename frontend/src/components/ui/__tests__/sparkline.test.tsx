@@ -17,8 +17,8 @@ describe("Sparkline — render", () => {
     const { container } = render(() => <Sparkline values={[1, 2, 3]} width={120} height={40} />);
     expect(container.querySelector("path")).not.toBeNull();
   });
-  it("uses primary stroke by default", () => {
+  it("uses the signal stroke by default", () => {
     const { container } = render(() => <Sparkline values={[1, 2, 3]} width={120} height={40} />);
-    expect(container.querySelector("path")).toHaveAttribute("stroke", "var(--color-primary)");
+    expect(container.querySelector("path")).toHaveAttribute("stroke", "var(--color-signal)");
   });
 });

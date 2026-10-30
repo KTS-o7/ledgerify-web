@@ -1,13 +1,15 @@
 import { createResource, createSignal, For, Show } from "solid-js";
-import { RotateCw, Pause, Play, Pencil, Trash2, Zap } from "lucide-solid";
+import { Repeat, Pause, Play, Pencil, Trash2, Zap, Plus } from "lucide-solid";
 import { api } from "../lib/api";
-import { formatCurrency } from "../lib/format";
 import { PageHeader } from "../components/ui/page-header";
 import { BentoBlock } from "../components/ui/bento-block";
 import { Button } from "../components/ui/button";
 import { Sheet } from "../components/ui/sheet";
 import { SkeletonBlock } from "../components/ui/skeleton";
 import { EmptyState } from "../components/ui/empty-state";
+import { Money } from "../components/ui/money";
+import { Badge } from "../components/ui/badge";
+import { cn } from "../lib/utils";
 
 interface Rule {
   id: string;
@@ -55,6 +57,12 @@ function daysUntil(date: string): number {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return Math.round((d.getTime() - now.getTime()) / 86400000);
+}
+
+const DUE_FMT = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
+function formatDue(date: string): string {
+  const d = new Date(date + "T00:00:00");
+  return isNaN(d.getTime()) ? date : DUE_FMT.format(d);
 }
 
 function dueLabel(date: string): string {
@@ -122,119 +130,117 @@ export default function Recurring() {
     }
   };
 
+  const sorted = () =>
+    [...(rules() ?? [])].sort((x, y) =>
+      x.status === y.status ? x.next_due_date.localeCompare(y.next_due_date) : x.status === "active" ? -1 : 1
+    );
+
   return (
     <>
       <PageHeader
         title="Recurring"
+        meta={(rules() ?? []).length > 0 ? String((rules() ?? []).length) : undefined}
         actions={
           <div class="flex items-center gap-2">
-            <Button variant="outline" disabled={runningNow()} onClick={runNow}>
-              <Zap size={16} />
-              <span>{runningNow() ? "Running…" : "Run Now"}</span>
+            <Button variant="outline" size="sm" class="h-9" disabled={runningNow()} onClick={runNow} aria-label="Run due rules now">
+              <Zap size={15} />
+              <span class="hidden md:inline">{runningNow() ? "Running…" : "Run now"}</span>
             </Button>
-            <Button onClick={openNew}>
-              <RotateCw size={16} />
-              <span>New Rule</span>
+            <Button size="sm" class="h-9" onClick={openNew} aria-label="New rule">
+              <Plus size={16} />
+              <span class="hidden md:inline">New rule</span>
             </Button>
           </div>
         }
       />
 
       <Show when={runMessage()}>
-        <div class="px-4 md:px-6 pt-3">
-          <div class="px-4 py-2 rounded-input bg-surface text-sm text-text border border-border">
+        <div class="px-5 md:px-7 pt-4">
+          <div role="status" class="px-4 py-2.5 rounded-[12px] bg-surface text-[13.5px] text-text border border-border">
             {runMessage()}
           </div>
         </div>
       </Show>
 
-      <div class="p-4 md:p-6">
+      <div class="px-5 md:px-7 py-5 md:py-6">
         <Show when={rules.loading}>
-          <SkeletonBlock class="min-h-[200px]" />
-        </Show>
-        <Show when={!rules.loading && (rules() ?? []).length > 0}>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <For each={rules()}>
-              {(r) => (
-                <BentoBlock>
-                  <div class="flex items-start justify-between gap-3 mb-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="font-body font-medium text-text truncate">
-                        {r.name}
-                      </span>
-                      <span
-                        class={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full font-body shrink-0 ${
-                          r.status === "active"
-                            ? "bg-primary/15 text-primary"
-                            : "bg-muted/15 text-muted"
-                        }`}
-                      >
-                        {r.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="text-sm text-muted mb-3 space-y-1">
-                    <div class="font-body">
-                      {frequencyLabel(r)} • {formatCurrency(r.amount, r.currency)}
-                    </div>
-                    <div class="font-body text-xs">
-                      Next: {r.next_due_date} ({dueLabel(r.next_due_date)})
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-1">
-                    <button
-                      type="button"
-                      class="w-8 h-8 flex items-center justify-center rounded-input hover:bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                      onClick={() => toggleStatus(r)}
-                      title={r.status === "active" ? "Pause" : "Resume"}
-                      aria-label={r.status === "active" ? `Pause ${r.name}` : `Resume ${r.name}`}
-                    >
-                      <Show
-                        when={r.status === "active"}
-                        fallback={<Play size={14} />}
-                      >
-                        <Pause size={14} />
-                      </Show>
-                    </button>
-                    <button
-                      type="button"
-                      class="w-8 h-8 flex items-center justify-center rounded-input hover:bg-surface-hover text-muted hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                      onClick={() => openEdit(r)}
-                      title="Edit"
-                      aria-label={`Edit ${r.name}`}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      class="w-8 h-8 flex items-center justify-center rounded-input hover:bg-surface-hover text-muted hover:text-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                      onClick={() => remove(r)}
-                      title="Delete"
-                      aria-label={`Delete ${r.name}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </BentoBlock>
-              )}
-            </For>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <SkeletonBlock class="h-[132px]" />
+            <SkeletonBlock class="h-[132px]" />
           </div>
         </Show>
+        <Show when={!rules.loading && (rules() ?? []).length > 0}>
+          <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <For each={sorted()}>
+              {(r) => {
+                const overdue = () => r.status === "active" && daysUntil(r.next_due_date) < 0;
+                return (
+                  <li>
+                    <BentoBlock class={cn("flex flex-col gap-3", r.status === "paused" && "opacity-70")}>
+                      <div class="flex items-start gap-3">
+                        <div class="w-[38px] h-[38px] shrink-0 rounded-[10px] bg-raised text-muted flex items-center justify-center" aria-hidden="true">
+                          <Repeat size={17} />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[14.5px] font-medium text-text truncate">{r.name}</span>
+                            <Badge variant={r.status === "active" ? "signal" : "default"} class="shrink-0 font-mono text-[10.5px] uppercase tracking-[0.06em]">
+                              {r.status}
+                            </Badge>
+                          </div>
+                          <div class="text-[12.5px] text-muted mt-0.5">{frequencyLabel(r)} · <span class="capitalize">{r.type}</span></div>
+                        </div>
+                        <span class="font-mono tabular text-[15px] shrink-0">
+                          {r.type === "income" ? "+" : r.type === "expense" ? "−" : ""}
+                          <Money value={r.amount} currency={r.currency} tone={r.type === "income" ? "pos" : r.type === "transfer" ? "muted" : "text"} />
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between gap-2 pt-3 border-t border-border">
+                        <div class="text-[12.5px] text-muted min-w-0 truncate">
+                          Next <span class="font-mono tabular text-text">{formatDue(r.next_due_date)}</span>{" "}
+                          <span class={cn("font-mono tabular", overdue() ? "text-warn" : "text-faint")}>· {dueLabel(r.next_due_date)}</span>
+                        </div>
+                        <div class="flex items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            class="w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                            onClick={() => toggleStatus(r)}
+                            title={r.status === "active" ? "Pause" : "Resume"}
+                            aria-label={r.status === "active" ? `Pause ${r.name}` : `Resume ${r.name}`}
+                          >
+                            <Show when={r.status === "active"} fallback={<Play size={14} />}>
+                              <Pause size={14} />
+                            </Show>
+                          </button>
+                          <button type="button" class="w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal" onClick={() => openEdit(r)} title="Edit" aria-label={`Edit ${r.name}`}>
+                            <Pencil size={14} />
+                          </button>
+                          <button type="button" class="w-8 h-8 flex items-center justify-center rounded-[8px] text-muted hover:text-text hover:bg-raised transition-colors duration-[160ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal hover:text-neg" onClick={() => remove(r)} title="Delete" aria-label={`Delete ${r.name}`}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </BentoBlock>
+                  </li>
+                );
+              }}
+            </For>
+          </ul>
+        </Show>
         <Show when={!rules.loading && (rules() ?? []).length === 0}>
-          <BentoBlock>
-            <EmptyState
-              icon={RotateCw}
-              title="No recurring rules yet"
-              body="Set up rent, salary, subscriptions — anything that repeats on a schedule."
-            />
-          </BentoBlock>
+          <EmptyState
+            icon={Repeat}
+            title="Nothing repeats yet"
+            body="Set up rent, salary, subscriptions — anything that repeats on a schedule."
+            action={{ label: "New rule", onClick: openNew }}
+          />
         </Show>
       </div>
 
       <Sheet
         open={sheetOpen()}
         onClose={() => setSheetOpen(false)}
-        title={editRule() ? "Edit Rule" : "New Rule"}
+        title={editRule() ? "Edit rule" : "New rule"}
       >
         <RecurringForm
           existing={editRule()}
@@ -338,7 +344,7 @@ function RecurringForm(props: {
       class="space-y-4"
     >
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Name
         </span>
         <input
@@ -346,18 +352,18 @@ function RecurringForm(props: {
           value={name()}
           onInput={(e) => setName(e.currentTarget.value)}
           required
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           placeholder="Rent, Salary, Netflix..."
         />
       </label>
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Type
         </span>
         <select
           value={type()}
           onChange={(e) => setType(e.currentTarget.value as TxType)}
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
         >
           <option value="expense">Expense</option>
           <option value="income">Income</option>
@@ -366,7 +372,7 @@ function RecurringForm(props: {
       </label>
       <div class="grid grid-cols-2 gap-2">
         <label class="block">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+          <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
             Amount
           </span>
           <input
@@ -375,11 +381,11 @@ function RecurringForm(props: {
             value={amount()}
             onInput={(e) => setAmount(e.currentTarget.value)}
             required
-            class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+            class="w-full h-11 px-3.5 font-mono tabular rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           />
         </label>
         <label class="block">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+          <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
             Currency
           </span>
           <input
@@ -388,19 +394,19 @@ function RecurringForm(props: {
             onInput={(e) => setCurrency(e.currentTarget.value)}
             maxLength="3"
             required
-            class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+            class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           />
         </label>
       </div>
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Account
         </span>
         <select
           value={accountId()}
           onChange={(e) => setAccountId(e.currentTarget.value)}
           required
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
         >
           <option value="">Select account…</option>
           <For each={props.accounts}>
@@ -410,13 +416,13 @@ function RecurringForm(props: {
       </label>
       <Show when={type() !== "transfer"}>
         <label class="block">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+          <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
             Category
           </span>
           <select
             value={categoryId()}
             onChange={(e) => setCategoryId(e.currentTarget.value)}
-            class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+            class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           >
             <option value="">None</option>
             <For each={filteredCats()}>
@@ -426,35 +432,35 @@ function RecurringForm(props: {
         </label>
       </Show>
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Title (optional)
         </span>
         <input
           type="text"
           value={title()}
           onInput={(e) => setTitle(e.currentTarget.value)}
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
         />
       </label>
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Note (optional)
         </span>
         <textarea
           value={note()}
           onInput={(e) => setNote(e.currentTarget.value)}
           rows={2}
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full py-2.5 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
         />
       </label>
       <label class="block">
-        <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+        <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
           Frequency
         </span>
         <select
           value={frequency()}
           onChange={(e) => setFrequency(e.currentTarget.value as Frequency)}
-          class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+          class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
         >
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
@@ -464,7 +470,7 @@ function RecurringForm(props: {
       <Show when={frequency() === "custom"}>
         <div class="grid grid-cols-2 gap-2">
           <label class="block">
-            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+            <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
               Every N
             </span>
             <input
@@ -473,17 +479,17 @@ function RecurringForm(props: {
               value={intervalValue()}
               onInput={(e) => setIntervalValue(e.currentTarget.value)}
               required
-              class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+              class="w-full h-11 px-3.5 font-mono tabular rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
             />
           </label>
           <label class="block">
-            <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+            <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
               Unit
             </span>
             <select
               value={intervalUnit()}
               onChange={(e) => setIntervalUnit(e.currentTarget.value as IntervalUnit)}
-              class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+              class="w-full h-11 px-3.5 rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
             >
               <option value="day">Days</option>
               <option value="week">Weeks</option>
@@ -494,7 +500,7 @@ function RecurringForm(props: {
       </Show>
       <div class="grid grid-cols-2 gap-2">
         <label class="block">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+          <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
             Start date
           </span>
           <input
@@ -502,23 +508,23 @@ function RecurringForm(props: {
             value={startDate()}
             onInput={(e) => setStartDate(e.currentTarget.value)}
             required
-            class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+            class="w-full h-11 px-3.5 font-mono tabular rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           />
         </label>
         <label class="block">
-          <span class="text-[13px] font-body font-medium text-muted uppercase tracking-wide mb-2 block">
+          <span class="text-[12.5px] font-medium text-muted mb-1.5 block">
             End date (optional)
           </span>
           <input
             type="date"
             value={endDate()}
             onInput={(e) => setEndDate(e.currentTarget.value)}
-            class="w-full px-3 py-2 rounded-input bg-bg border border-border text-text font-body"
+            class="w-full h-11 px-3.5 font-mono tabular rounded-input bg-surface border border-border-strong text-[15px] text-text focus:outline-none focus:border-signal transition-colors duration-[160ms]"
           />
         </label>
       </div>
       <Show when={error()}>
-        <p class="text-accent text-sm">{error()}</p>
+        <p role="alert" class="text-neg text-[13.5px]">{error()}</p>
       </Show>
       <div class="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={props.onClose}>
